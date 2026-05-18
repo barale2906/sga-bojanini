@@ -12,7 +12,7 @@
 require __DIR__ . '/api/auth.php';
 
 // Fase 2: Almacenes, Zonas, Ubicaciones
-// require __DIR__ . '/api/warehouse.php';
+require __DIR__ . '/api/warehouse.php';
 
 // Fase 3: Catálogo Maestro
 // require __DIR__ . '/api/catalog.php';

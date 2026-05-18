@@ -6,6 +6,12 @@ namespace App\Providers;
 
 use App\Modules\Auth\Domain\Repositories\UserRepositoryInterface;
 use App\Modules\Auth\Infrastructure\Persistence\EloquentUserRepository;
+use App\Modules\Warehouse\Domain\Repositories\LocationRepositoryInterface;
+use App\Modules\Warehouse\Domain\Repositories\WarehouseRepositoryInterface;
+use App\Modules\Warehouse\Domain\Repositories\ZoneRepositoryInterface;
+use App\Modules\Warehouse\Infrastructure\Persistence\EloquentLocationRepository;
+use App\Modules\Warehouse\Infrastructure\Persistence\EloquentWarehouseRepository;
+use App\Modules\Warehouse\Infrastructure\Persistence\EloquentZoneRepository;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -23,9 +29,9 @@ class ModuleServiceProvider extends ServiceProvider
         UserRepositoryInterface::class => EloquentUserRepository::class,
 
         // Warehouse (Fase 2)
-        // WarehouseRepositoryInterface::class => EloquentWarehouseRepository::class,
-        // ZoneRepositoryInterface::class      => EloquentZoneRepository::class,
-        // LocationRepositoryInterface::class  => EloquentLocationRepository::class,
+        WarehouseRepositoryInterface::class => EloquentWarehouseRepository::class,
+        ZoneRepositoryInterface::class      => EloquentZoneRepository::class,
+        LocationRepositoryInterface::class  => EloquentLocationRepository::class,
 
         // Catalog (Fase 3)
         // CategoryRepositoryInterface::class    => EloquentCategoryRepository::class,
