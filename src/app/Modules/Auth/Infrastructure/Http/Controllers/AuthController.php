@@ -16,10 +16,20 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Hash;
 
+/**
+ * Autenticación de usuarios (Sanctum).
+ */
 class AuthController extends Controller
 {
     use ApiResponse;
 
+    /**
+     * POST /api/v1/auth/login — Iniciar sesión y obtener token Bearer.
+     *
+     * @response 200 Token y datos del usuario
+     * @response 401 Credenciales inválidas
+     * @response 422 Validación fallida
+     */
     public function login(LoginRequest $request, LoginUseCase $useCase): JsonResponse
     {
         $data = new LoginData(
@@ -36,6 +46,12 @@ class AuthController extends Controller
         ], 'Login exitoso');
     }
 
+    /**
+     * POST /api/v1/auth/logout — Revocar el token actual (requiere autenticación).
+     *
+     * @response 200 Sesión cerrada
+     * @response 401 No autenticado
+     */
     public function logout(Request $request, LogoutUseCase $useCase): JsonResponse
     {
         $useCase->execute($request->user());

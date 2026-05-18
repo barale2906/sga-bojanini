@@ -18,18 +18,11 @@ return [
     /*
      * The path where your OpenAPI specification will be exported.
      */
-    'export_path' => 'api.json',
+    'export_path' => 'docs/openapi/api.json',
 
     'info' => [
-        /*
-         * API version.
-         */
-        'version' => env('API_VERSION', '0.0.1'),
-
-        /*
-         * Description rendered on the home page of the API documentation (`/docs/api`).
-         */
-        'description' => '',
+        'version' => env('API_VERSION', '1.0.0'),
+        'description' => 'API del Sistema de Gestión de Almacén (SGA) Bojanini — inventario, compras, monitoreo, integraciones y reportes.',
     ],
 
     /*
@@ -39,7 +32,7 @@ return [
         /*
          * Define the title of the documentation's website. App name is used when this config is `null`.
          */
-        'title' => null,
+        'title' => 'SGA Bojanini API',
 
         /*
          * Define the theme of the documentation. Available options are `light`, `dark`, and `system`.

@@ -31,6 +31,8 @@ class AppServiceProvider extends ServiceProvider
 
         Scramble::configure()
             ->withDocumentTransformers(function (OpenApi $openApi): void {
+                $openApi->info->title = 'SGA Bojanini API';
+                $openApi->info->version = config('scramble.info.version', '1.0.0');
                 $openApi->secure(
                     SecurityScheme::http('bearer', 'JWT')
                 );

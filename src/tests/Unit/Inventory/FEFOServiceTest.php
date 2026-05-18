@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Unit;
+namespace Tests\Unit\Inventory;
 
 use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductModel;
 use App\Modules\Inventory\Domain\Exceptions\InsufficientStockException;
@@ -23,58 +23,43 @@ class FEFOServiceTest extends TestCase
         $this->artisan('db:seed', ['--class' => 'Database\\Seeders\\CatalogSeeder']);
     }
 
-    public function test_fefo_selecciona_lote_con_vencimiento_mas_proximo_primero(): void
+    public function test_selects_batch_with_earliest_expiry(): void
     {
         $setup = $this->createWarehouseSetup();
-        $product = ProductModel::where('code', 'AGU-21G')->first();
+        $product = ProductModel::where('code', 'AGU-21G')->firstOrFail();
 
-        $batchSoon = BatchModel::create([
-            'product_id'         => $product->id,
-            'lot_number'         => 'LOT-SOON',
-            'expiration_date'    => now()->addDays(30)->format('Y-m-d'),
-            'quantity_received'  => 50,
-            'quantity_available' => 50,
-            'status'             => 'active',
-            'received_at'        => now(),
-        ]);
+        $batchSoon = $this->createBatch($product->id, 'LOT-SOON', now()->addDays(30), 50, $setup['location']);
+        $batchLater = $this->createBatch($product->id, 'LOT-LATER', now()->addDays(90), 100, $setup['location']);
 
-        $batchLater = BatchModel::create([
-            'product_id'         => $product->id,
-            'lot_number'         => 'LOT-LATER',
-            'expiration_date'    => now()->addDays(90)->format('Y-m-d'),
-            'quantity_received'  => 100,
-            'quantity_available' => 100,
-            'status'             => 'active',
-            'received_at'        => now(),
-        ]);
-
-        $this->attachBatchToLocation($batchSoon, $setup['location']);
-        $this->attachBatchToLocation($batchLater, $setup['location']);
-
-        $service = app(FEFOService::class);
-        $selected = $service->selectBatchesForExit($product->id, $setup['warehouse']->id, 30);
+        $selected = app(FEFOService::class)->selectBatchesForExit($product->id, $setup['warehouse']->id, 30);
 
         $this->assertCount(1, $selected);
         $this->assertSame($batchSoon->id, $selected[0]['batch_id']);
-        $this->assertSame(30, $selected[0]['quantity']);
     }
 
-    public function test_fefo_lanza_excepcion_si_no_hay_stock_suficiente(): void
+    public function test_distributes_across_multiple_batches(): void
     {
         $setup = $this->createWarehouseSetup();
-        $product = ProductModel::where('code', 'AGU-21G')->first();
+        $product = ProductModel::where('code', 'AGU-21G')->firstOrFail();
 
-        $batch = BatchModel::create([
-            'product_id'         => $product->id,
-            'lot_number'         => 'LOT-LOW',
-            'expiration_date'    => now()->addDays(30)->format('Y-m-d'),
-            'quantity_received'  => 10,
-            'quantity_available' => 10,
-            'status'             => 'active',
-            'received_at'        => now(),
-        ]);
+        $batchSoon = $this->createBatch($product->id, 'LOT-SOON', now()->addDays(30), 30, $setup['location']);
+        $batchLater = $this->createBatch($product->id, 'LOT-LATER', now()->addDays(90), 50, $setup['location']);
 
-        $this->attachBatchToLocation($batch, $setup['location']);
+        $selected = app(FEFOService::class)->selectBatchesForExit($product->id, $setup['warehouse']->id, 50);
+
+        $this->assertCount(2, $selected);
+        $this->assertSame($batchSoon->id, $selected[0]['batch_id']);
+        $this->assertSame(30, $selected[0]['quantity']);
+        $this->assertSame($batchLater->id, $selected[1]['batch_id']);
+        $this->assertSame(20, $selected[1]['quantity']);
+    }
+
+    public function test_throws_when_insufficient_stock(): void
+    {
+        $setup = $this->createWarehouseSetup();
+        $product = ProductModel::where('code', 'AGU-21G')->firstOrFail();
+
+        $this->createBatch($product->id, 'LOT-LOW', now()->addDays(30), 10, $setup['location']);
 
         $this->expectException(InsufficientStockException::class);
 
@@ -110,8 +95,20 @@ class FEFOServiceTest extends TestCase
         return compact('warehouse', 'zone', 'location');
     }
 
-    private function attachBatchToLocation(BatchModel $batch, LocationModel $location): void
+    private function createBatch(int $productId, string $lot, $expiration, int $qty, LocationModel $location): BatchModel
     {
-        $batch->locations()->attach($location->id, ['quantity' => $batch->quantity_available]);
+        $batch = BatchModel::create([
+            'product_id'         => $productId,
+            'lot_number'         => $lot,
+            'expiration_date'    => $expiration->format('Y-m-d'),
+            'quantity_received'  => $qty,
+            'quantity_available' => $qty,
+            'status'             => 'active',
+            'received_at'        => now(),
+        ]);
+
+        $batch->locations()->attach($location->id, ['quantity' => $qty]);
+
+        return $batch;
     }
 }
