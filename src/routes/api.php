@@ -15,7 +15,7 @@ require __DIR__ . '/api/auth.php';
 require __DIR__ . '/api/warehouse.php';
 
 // Fase 3: Catálogo Maestro
-// require __DIR__ . '/api/catalog.php';
+require __DIR__ . '/api/catalog.php';
 
 // Fase 4: Inventario
 // require __DIR__ . '/api/inventory.php';

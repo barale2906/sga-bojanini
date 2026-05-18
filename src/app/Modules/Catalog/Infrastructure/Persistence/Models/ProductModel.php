@@ -1,0 +1,71 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Modules\Catalog\Infrastructure\Persistence\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
+
+class ProductModel extends Model
+{
+    use SoftDeletes;
+
+    protected $table = 'products';
+
+    protected $fillable = [
+        'category_id',
+        'base_unit_id',
+        'product_type',
+        'name',
+        'code',
+        'sku',
+        'description',
+        'requires_cold_chain',
+        'reorder_point',
+        'reorder_quantity',
+        'min_stock',
+        'max_stock',
+        'is_active',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'requires_cold_chain' => 'boolean',
+            'is_active'           => 'boolean',
+        ];
+    }
+
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(CategoryModel::class, 'category_id');
+    }
+
+    public function baseUnit(): BelongsTo
+    {
+        return $this->belongsTo(UnitOfMeasureModel::class, 'base_unit_id');
+    }
+
+    public function suppliers(): BelongsToMany
+    {
+        return $this->belongsToMany(SupplierModel::class, 'product_supplier')
+            ->withPivot(['supplier_sku', 'lead_time_days', 'unit_price', 'is_preferred', 'product_presentation_id'])
+            ->withTimestamps();
+    }
+
+    public function presentations(): HasMany
+    {
+        return $this->hasMany(ProductPresentationModel::class, 'product_id');
+    }
+
+    public function kitComponents(): HasMany
+    {
+        return $this->hasMany(ProductKitComponentModel::class, 'kit_product_id')
+            ->where('is_active', true)
+            ->orderBy('sort_order');
+    }
+}
