@@ -15,6 +15,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->api(prepend: [
             \App\Http\Middleware\ForceJsonResponse::class,
         ]);
+
+        $middleware->alias([
+            'permission'     => \App\Http\Middleware\CheckPermission::class,
+            'user.is_active' => \App\Http\Middleware\EnsureUserIsActive::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (\Illuminate\Auth\AuthenticationException $e, $request) {

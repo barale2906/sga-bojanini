@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Modules\Auth\Domain\Repositories\UserRepositoryInterface;
+use App\Modules\Auth\Infrastructure\Persistence\EloquentUserRepository;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -18,7 +20,7 @@ class ModuleServiceProvider extends ServiceProvider
      */
     public array $bindings = [
         // Auth (Fase 1)
-        // UserRepositoryInterface::class => EloquentUserRepository::class,
+        UserRepositoryInterface::class => EloquentUserRepository::class,
 
         // Warehouse (Fase 2)
         // WarehouseRepositoryInterface::class => EloquentWarehouseRepository::class,

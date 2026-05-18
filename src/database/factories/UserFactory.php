@@ -2,16 +2,18 @@
 
 namespace Database\Factories;
 
-use App\Models\User;
+use App\Modules\Auth\Infrastructure\Persistence\Models\UserModel;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 /**
- * @extends Factory<User>
+ * @extends Factory<UserModel>
  */
 class UserFactory extends Factory
 {
+    protected $model = UserModel::class;
+
     /**
      * The current password being used by the factory.
      */
@@ -30,6 +32,7 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
+            'is_active'      => true,
         ];
     }
 

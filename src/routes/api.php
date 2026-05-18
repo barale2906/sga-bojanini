@@ -9,7 +9,7 @@
  */
 
 // Fase 1: Autenticación
-// require __DIR__ . '/api/auth.php';
+require __DIR__ . '/api/auth.php';
 
 // Fase 2: Almacenes, Zonas, Ubicaciones
 // require __DIR__ . '/api/warehouse.php';
