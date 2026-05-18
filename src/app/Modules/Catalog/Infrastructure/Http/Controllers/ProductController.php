@@ -14,6 +14,7 @@ use App\Modules\Catalog\Infrastructure\Http\Requests\StoreProductRequest;
 use App\Modules\Catalog\Infrastructure\Http\Requests\UpdateProductRequest;
 use App\Modules\Catalog\Infrastructure\Http\Resources\ProductResource;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductModel;
+use App\Modules\Inventory\Domain\Services\KitAvailabilityService;
 use App\Modules\Shared\Infrastructure\Http\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -81,6 +82,31 @@ class ProductController extends Controller
         $useCase->execute($product);
 
         return $this->noContent('Producto eliminado');
+    }
+
+    public function kitAvailability(int $product, Request $request, KitAvailabilityService $service): JsonResponse
+    {
+        $model = ProductModel::find($product);
+
+        if ($model === null) {
+            return $this->error('Producto no encontrado', 404);
+        }
+
+        if ($model->product_type !== ProductType::Kit->value) {
+            return $this->error('El producto no es de tipo kit.', 422);
+        }
+
+        $request->validate([
+            'warehouse_id' => ['required', 'integer', 'exists:warehouses,id'],
+        ]);
+
+        $available = $service->getAvailableKits($product, (int) $request->query('warehouse_id'));
+
+        return $this->success([
+            'kit_product_id'  => $product,
+            'warehouse_id'    => (int) $request->query('warehouse_id'),
+            'available_kits'  => $available,
+        ], 'Disponibilidad del kit');
     }
 
     private function toProductData(array $validated): ProductData

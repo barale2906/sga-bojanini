@@ -1,0 +1,20 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Modules\Inventory\Domain\Events;
+
+use Illuminate\Foundation\Events\Dispatchable;
+use Illuminate\Queue\SerializesModels;
+
+class StockBelowReorderPoint
+{
+    use Dispatchable, SerializesModels;
+
+    public function __construct(
+        public readonly int $productId,
+        public readonly int $warehouseId,
+        public readonly int $currentStock,
+        public readonly int $reorderPoint,
+    ) {}
+}

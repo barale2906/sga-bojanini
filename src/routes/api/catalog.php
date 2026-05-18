@@ -41,6 +41,9 @@ Route::middleware(['auth:sanctum', 'user.is_active'])->prefix('v1')->group(funct
     Route::apiResource('products', ProductController::class)
         ->middleware('permission:products.delete')->only(['destroy']);
 
+    Route::get('products/{product}/kit-availability', [ProductController::class, 'kitAvailability'])
+        ->middleware('permission:stock.view');
+
     Route::get('products/{productId}/presentations', [ProductPresentationController::class, 'index'])
         ->middleware('permission:products.view');
     Route::get('products/{productId}/presentations/tree', [ProductPresentationController::class, 'tree'])
@@ -76,4 +79,6 @@ Route::middleware(['auth:sanctum', 'user.is_active'])->prefix('v1')->group(funct
         ->middleware('permission:products.import');
     Route::post('import/suppliers', [ImportController::class, 'importSuppliers'])
         ->middleware('permission:suppliers.import');
+    Route::get('import/templates/{entity}', [ImportController::class, 'downloadTemplate'])
+        ->middleware('permission:products.view');
 });

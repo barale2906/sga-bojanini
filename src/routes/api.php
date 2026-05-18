@@ -18,7 +18,7 @@ require __DIR__ . '/api/warehouse.php';
 require __DIR__ . '/api/catalog.php';
 
 // Fase 4: Inventario
-// require __DIR__ . '/api/inventory.php';
+require __DIR__ . '/api/inventory.php';
 
 // Fase 5: Compras
 // require __DIR__ . '/api/purchasing.php';

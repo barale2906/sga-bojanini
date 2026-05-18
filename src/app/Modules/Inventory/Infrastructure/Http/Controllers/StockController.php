@@ -1,0 +1,84 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Modules\Inventory\Infrastructure\Http\Controllers;
+
+use App\Modules\Inventory\Infrastructure\Http\Resources\StockResource;
+use App\Modules\Inventory\Infrastructure\Persistence\Models\StockSummaryModel;
+use App\Modules\Shared\Infrastructure\Http\Traits\ApiResponse;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Routing\Controller;
+
+class StockController extends Controller
+{
+    use ApiResponse;
+
+    public function index(Request $request): JsonResponse
+    {
+        $query = StockSummaryModel::with(['product', 'warehouse']);
+
+        if ($request->filled('warehouse_id')) {
+            $query->where('warehouse_id', $request->integer('warehouse_id'));
+        }
+
+        if ($request->filled('product_id')) {
+            $query->where('product_id', $request->integer('product_id'));
+        }
+
+        $perPage = min(
+            (int) $request->query('per_page', config('sga.pagination.default_per_page', 25)),
+            config('sga.pagination.max_per_page', 100),
+        );
+
+        return $this->paginated(
+            $query->orderByDesc('updated_at')->paginate($perPage)->through(fn ($summary) => new StockResource($summary)),
+            'Stock por producto y almacén',
+        );
+    }
+
+    public function summary(Request $request): JsonResponse
+    {
+        $request->validate([
+            'warehouse_id' => ['required', 'integer', 'exists:warehouses,id'],
+            'product_id'   => ['required', 'integer', 'exists:products,id'],
+        ]);
+
+        $summary = StockSummaryModel::with(['product', 'warehouse'])
+            ->where('warehouse_id', $request->integer('warehouse_id'))
+            ->where('product_id', $request->integer('product_id'))
+            ->first();
+
+        if ($summary === null) {
+            return $this->success([
+                'product_id'         => $request->integer('product_id'),
+                'warehouse_id'       => $request->integer('warehouse_id'),
+                'total_quantity'     => 0,
+                'reserved_quantity'  => 0,
+                'available_quantity' => 0,
+                'last_movement_at'   => null,
+            ], 'Resumen de stock');
+        }
+
+        return $this->success(new StockResource($summary), 'Resumen de stock');
+    }
+
+    public function low(Request $request): JsonResponse
+    {
+        $query = StockSummaryModel::query()
+            ->with(['product', 'warehouse'])
+            ->join('products', 'stock_summaries.product_id', '=', 'products.id')
+            ->where('products.reorder_point', '>', 0)
+            ->whereColumn('stock_summaries.available_quantity', '<=', 'products.reorder_point')
+            ->select('stock_summaries.*');
+
+        if ($request->filled('warehouse_id')) {
+            $query->where('stock_summaries.warehouse_id', $request->integer('warehouse_id'));
+        }
+
+        $summaries = $query->get();
+
+        return $this->success(StockResource::collection($summaries), 'Productos con stock bajo');
+    }
+}

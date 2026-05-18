@@ -67,4 +67,22 @@ class ImportController extends Controller
 
         return $this->success($results, 'Importación de proveedores finalizada');
     }
+
+    public function downloadTemplate(string $entity): \Symfony\Component\HttpFoundation\BinaryFileResponse|JsonResponse
+    {
+        $templates = [
+            'products'  => storage_path('app/templates/products_template.xlsx'),
+            'suppliers' => storage_path('app/templates/suppliers_template.xlsx'),
+        ];
+
+        if (! isset($templates[$entity])) {
+            return $this->error('Plantilla no encontrada', 404);
+        }
+
+        if (! file_exists($templates[$entity])) {
+            return $this->error('El archivo de plantilla no existe. Ejecute: php artisan sga:generate-import-templates', 404);
+        }
+
+        return response()->download($templates[$entity]);
+    }
 }
