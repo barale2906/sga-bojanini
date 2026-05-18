@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Catalog\Infrastructure\Persistence\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Modules\Inventory\Infrastructure\Persistence\Models\StockSummaryModel;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -52,7 +53,7 @@ class ProductModel extends Model
 
     public function suppliers(): BelongsToMany
     {
-        return $this->belongsToMany(SupplierModel::class, 'product_supplier')
+        return $this->belongsToMany(SupplierModel::class, 'product_supplier', 'product_id', 'supplier_id')
             ->withPivot(['supplier_sku', 'lead_time_days', 'unit_price', 'is_preferred', 'product_presentation_id'])
             ->withTimestamps();
     }
@@ -67,5 +68,10 @@ class ProductModel extends Model
         return $this->hasMany(ProductKitComponentModel::class, 'kit_product_id')
             ->where('is_active', true)
             ->orderBy('sort_order');
+    }
+
+    public function stockSummaries(): HasMany
+    {
+        return $this->hasMany(StockSummaryModel::class, 'product_id');
     }
 }

@@ -14,6 +14,10 @@ return [
         'consumption_days' => (int) env('SGA_REORDER_CONSUMPTION_DAYS', 90),
     ],
 
+    'purchasing' => [
+        'tax_rate' => (float) env('SGA_PURCHASING_TAX_RATE', 0),
+    ],
+
     'monitoring' => [
         'reading_interval' => (int) env('SGA_MONITORING_READING_INTERVAL', 15),
     ],

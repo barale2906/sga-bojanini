@@ -11,3 +11,7 @@ Artisan::command('inspire', function () {
 Schedule::command('sga:check-expirations')
     ->dailyAt('06:00')
     ->name('sga:check-expirations');
+
+Schedule::command('sga:check-reorder-points')
+    ->hourly()
+    ->name('sga:check-reorder-points');
