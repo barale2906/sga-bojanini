@@ -33,5 +33,6 @@
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
         <env name="IOT_TOKEN" value="test-iot-token"/>
+        <env name="SGA_INTEGRATIONS_USE_MOCK" value="true"/>
     </php>
 </phpunit>

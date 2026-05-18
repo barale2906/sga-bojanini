@@ -26,6 +26,30 @@ return [
         'token' => env('IOT_TOKEN', 'changeme-generate-a-secure-token'),
     ],
 
+    'integrations' => [
+        'use_mock' => env('SGA_INTEGRATIONS_USE_MOCK', true),
+    ],
+
+    'service_product_map' => [
+        'Consulta Dermatológica' => [
+            ['product_code' => 'AGU-21G', 'quantity_per_service' => 2],
+            ['product_code' => 'GAS-10X10', 'quantity_per_service' => 1],
+        ],
+        'Aplicación de Botox' => [
+            ['product_code' => 'AGU-21G', 'quantity_per_service' => 1],
+            ['product_code' => 'GAS-10X10', 'quantity_per_service' => 2],
+        ],
+        'Peeling Químico' => [
+            ['product_code' => 'GAS-10X10', 'quantity_per_service' => 5],
+        ],
+        'Láser CO2' => [
+            ['product_code' => 'GAS-10X10', 'quantity_per_service' => 3],
+        ],
+        'Mesoterapia' => [
+            ['product_code' => 'AGU-21G', 'quantity_per_service' => 1],
+        ],
+    ],
+
     'exports' => [
         'pdf_storage_path'   => env('SGA_PDF_STORAGE_PATH', 'exports/pdf'),
         'excel_storage_path' => env('SGA_EXCEL_STORAGE_PATH', 'exports/excel'),

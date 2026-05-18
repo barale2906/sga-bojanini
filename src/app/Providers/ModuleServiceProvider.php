@@ -20,6 +20,18 @@ use App\Modules\Catalog\Infrastructure\Persistence\EloquentSupplierRepository;
 use App\Modules\Catalog\Infrastructure\Persistence\EloquentUnitOfMeasureRepository;
 use App\Modules\Audit\Domain\Repositories\AuditLogRepositoryInterface;
 use App\Modules\Audit\Infrastructure\Persistence\EloquentAuditLogRepository;
+use App\Modules\Integration\Domain\Ports\ClinicalRecordsServiceInterface;
+use App\Modules\Integration\Domain\Ports\SchedulingServiceInterface;
+use App\Modules\Integration\Domain\Repositories\ConsumptionRecordRepositoryInterface;
+use App\Modules\Integration\Domain\Repositories\ExternalIntegrationRepositoryInterface;
+use App\Modules\Integration\Infrastructure\ExternalServices\ClinicalRecordsApiAdapter;
+use App\Modules\Integration\Infrastructure\ExternalServices\MockClinicalRecordsAdapter;
+use App\Modules\Integration\Infrastructure\ExternalServices\MockSchedulingAdapter;
+use App\Modules\Integration\Infrastructure\ExternalServices\SchedulingApiAdapter;
+use App\Modules\Integration\Infrastructure\Persistence\EloquentConsumptionRecordRepository;
+use App\Modules\Integration\Infrastructure\Persistence\EloquentExternalIntegrationRepository;
+use App\Modules\Inventory\Domain\Repositories\StockSummaryRepositoryInterface;
+use App\Modules\Inventory\Infrastructure\Persistence\EloquentStockSummaryRepository;
 use App\Modules\Monitoring\Domain\Repositories\AlertRuleRepositoryInterface;
 use App\Modules\Monitoring\Domain\Repositories\SensorReadingRepositoryInterface;
 use App\Modules\Monitoring\Domain\Repositories\SensorRepositoryInterface;
@@ -64,7 +76,7 @@ class ModuleServiceProvider extends ServiceProvider
         // Inventory (Fase 4)
         // BatchRepositoryInterface::class       => EloquentBatchRepository::class,
         // MovementRepositoryInterface::class    => EloquentMovementRepository::class,
-        // StockSummaryRepositoryInterface::class => EloquentStockSummaryRepository::class,
+        StockSummaryRepositoryInterface::class => EloquentStockSummaryRepository::class,
 
         // Purchasing (Fase 5)
         // PurchaseOrderRepositoryInterface::class => EloquentPurchaseOrderRepository::class,
@@ -77,11 +89,23 @@ class ModuleServiceProvider extends ServiceProvider
 
         // Audit (Fase 7)
         AuditLogRepositoryInterface::class => EloquentAuditLogRepository::class,
+
+        // Integration (Fase 8)
+        ExternalIntegrationRepositoryInterface::class => EloquentExternalIntegrationRepository::class,
+        ConsumptionRecordRepositoryInterface::class   => EloquentConsumptionRecordRepository::class,
     ];
 
     public function register(): void
     {
-        //
+        $useMock = (bool) config('sga.integrations.use_mock', true);
+
+        $this->app->bind(SchedulingServiceInterface::class, $useMock
+            ? MockSchedulingAdapter::class
+            : SchedulingApiAdapter::class);
+
+        $this->app->bind(ClinicalRecordsServiceInterface::class, $useMock
+            ? MockClinicalRecordsAdapter::class
+            : ClinicalRecordsApiAdapter::class);
     }
 
     public function boot(): void

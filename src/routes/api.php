@@ -30,7 +30,7 @@ require __DIR__ . '/api/monitoring.php';
 require __DIR__ . '/api/audit.php';
 
 // Fase 8: Integraciones
-// require __DIR__ . '/api/integration.php';
+require __DIR__ . '/api/integration.php';
 
 // Fase 9: Reportes y Dashboard
 // require __DIR__ . '/api/reports.php';

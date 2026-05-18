@@ -102,6 +102,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'alert_rules.view', 'alert_rules.create', 'alert_rules.update', 'alert_rules.delete',
             'audit.view', 'audit.export',
             'reports.view', 'reports.export',
+            'integrations.view', 'integrations.configure',
             'consumptions.view', 'consumptions.create',
             'dashboard.view',
             'notifications.view',
