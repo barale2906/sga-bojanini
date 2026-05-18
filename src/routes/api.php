@@ -33,5 +33,5 @@ require __DIR__ . '/api/audit.php';
 require __DIR__ . '/api/integration.php';
 
 // Fase 9: Reportes y Dashboard
-// require __DIR__ . '/api/reports.php';
-// require __DIR__ . '/api/dashboard.php';
+require __DIR__ . '/api/reports.php';
+require __DIR__ . '/api/dashboard.php';

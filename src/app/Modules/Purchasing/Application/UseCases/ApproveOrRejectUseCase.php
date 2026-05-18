@@ -7,12 +7,16 @@ namespace App\Modules\Purchasing\Application\UseCases;
 use App\Modules\Purchasing\Domain\Enums\PurchaseOrderStatus;
 use App\Modules\Purchasing\Domain\Services\ApprovalEngine;
 use App\Modules\Purchasing\Infrastructure\Persistence\Models\PurchaseOrderModel;
+use App\Modules\Shared\Application\Services\NotificationRecipientService;
+use App\Modules\Shared\Infrastructure\Notifications\PurchaseOrderApprovedNotification;
+use App\Modules\Shared\Infrastructure\Notifications\PurchaseOrderRejectedNotification;
 use Illuminate\Support\Facades\DB;
 
 class ApproveOrRejectUseCase
 {
     public function __construct(
         private readonly ApprovalEngine $approvalEngine,
+        private readonly NotificationRecipientService $notificationService,
     ) {}
 
     public function execute(int $orderId, int $userId, string $decision, ?string $comments = null, ?int $recordId = null): PurchaseOrderModel
@@ -46,7 +50,21 @@ class ApproveOrRejectUseCase
                 $order->update(['status' => PurchaseOrderStatus::Approved->value]);
             }
 
-            return $order->fresh(['items.product', 'items.presentation', 'supplier', 'warehouse']);
+            $order = $order->fresh(['items.product', 'items.presentation', 'supplier', 'warehouse']);
+
+            if ($order->status === PurchaseOrderStatus::Rejected->value) {
+                $this->notificationService->notifyByType(
+                    'purchase_order_rejected',
+                    new PurchaseOrderRejectedNotification($order->code, $comments),
+                );
+            } elseif ($order->status === PurchaseOrderStatus::Approved->value) {
+                $this->notificationService->notifyByType(
+                    'purchase_order_approved',
+                    new PurchaseOrderApprovedNotification($order->code),
+                );
+            }
+
+            return $order;
         });
     }
 }

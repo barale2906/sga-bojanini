@@ -9,6 +9,8 @@ use App\Modules\Monitoring\Domain\Entities\SensorReading;
 use App\Modules\Monitoring\Domain\Repositories\SensorReadingRepositoryInterface;
 use App\Modules\Monitoring\Domain\Repositories\SensorRepositoryInterface;
 use App\Modules\Monitoring\Domain\Services\ConditionAlertService;
+use App\Modules\Shared\Application\Services\NotificationRecipientService;
+use App\Modules\Shared\Infrastructure\Notifications\ConditionOutOfRangeNotification;
 use DateTimeImmutable;
 use Illuminate\Support\Facades\Auth;
 
@@ -25,6 +27,7 @@ class RegisterReadingUseCase
         private readonly SensorRepositoryInterface $sensorRepository,
         private readonly SensorReadingRepositoryInterface $readingRepository,
         private readonly ConditionAlertService $alertService,
+        private readonly NotificationRecipientService $notificationService,
     ) {}
 
     /**
@@ -57,8 +60,16 @@ class RegisterReadingUseCase
         // Guardar en la base de datos
         $reading = $this->readingRepository->save($reading);
 
-        // Evaluar alertas
         $alerts = $this->alertService->evaluateReading($reading);
+
+        foreach ($alerts as $alert) {
+            if (($alert['type'] ?? '') === 'out_of_range') {
+                $this->notificationService->notifyByType(
+                    'condition_out_of_range',
+                    new ConditionOutOfRangeNotification($alert['message']),
+                );
+            }
+        }
 
         return [
             'reading' => $reading,

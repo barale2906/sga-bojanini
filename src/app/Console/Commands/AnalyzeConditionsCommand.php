@@ -6,6 +6,8 @@ namespace App\Console\Commands;
 
 use App\Modules\Monitoring\Domain\Repositories\SensorRepositoryInterface;
 use App\Modules\Monitoring\Domain\Services\TrendAnalysisService;
+use App\Modules\Shared\Application\Services\NotificationRecipientService;
+use App\Modules\Shared\Infrastructure\Notifications\ConditionTrendAlertNotification;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
@@ -26,6 +28,7 @@ class AnalyzeConditionsCommand extends Command
     public function handle(
         SensorRepositoryInterface $sensorRepository,
         TrendAnalysisService $trendService,
+        NotificationRecipientService $notificationService,
     ): int {
         $sensors = $sensorRepository->findAllActive();
         $count = count($sensors);
@@ -45,8 +48,14 @@ class AnalyzeConditionsCommand extends Command
                 $direction = $result['overall_direction'] === 'up' ? 'ascendente' : 'descendente';
                 $this->warn("  ⚠ Sensor {$sensor->getCode()}: tendencia {$direction} (confianza: {$result['confidence']})");
 
-                // Aquí se generaría la notificación ConditionTrendAlertNotification
-                // (se implementa en Fase 9)
+                $notificationService->notifyByType(
+                    'condition_trend_alert',
+                    new ConditionTrendAlertNotification(
+                        sensorCode: $sensor->getCode(),
+                        direction: $direction,
+                        confidence: (string) ($result['confidence'] ?? 'medium'),
+                    ),
+                );
                 $alertsGenerated++;
 
                 Log::warning("Tendencia detectada en sensor {$sensor->getCode()}", $result);

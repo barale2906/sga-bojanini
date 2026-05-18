@@ -148,7 +148,10 @@ class MockIntegrationTest extends TestCase
         ]);
 
         $job = new SyncConsumptionToHCJob('PAC-SYNC', 'CITA-SYNC', [$record->id]);
-        $job->handle(app(ClinicalRecordsServiceInterface::class));
+        $job->handle(
+            app(ClinicalRecordsServiceInterface::class),
+            app(\App\Modules\Shared\Application\Services\NotificationRecipientService::class),
+        );
 
         $record->refresh();
         $this->assertSame('synced', $record->sync_status);

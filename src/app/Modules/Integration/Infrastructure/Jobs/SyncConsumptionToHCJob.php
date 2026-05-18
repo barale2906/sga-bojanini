@@ -6,6 +6,8 @@ namespace App\Modules\Integration\Infrastructure\Jobs;
 
 use App\Modules\Integration\Domain\Ports\ClinicalRecordsServiceInterface;
 use App\Modules\Integration\Infrastructure\Persistence\Models\ConsumptionRecordModel;
+use App\Modules\Shared\Application\Services\NotificationRecipientService;
+use App\Modules\Shared\Infrastructure\Notifications\ConsumptionSyncFailedNotification;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -28,7 +30,10 @@ class SyncConsumptionToHCJob implements ShouldQueue
         private readonly array $consumptionRecordIds,
     ) {}
 
-    public function handle(ClinicalRecordsServiceInterface $clinicalService): void
+    public function handle(
+        ClinicalRecordsServiceInterface $clinicalService,
+        NotificationRecipientService $notificationService,
+    ): void
     {
         $records = ConsumptionRecordModel::with(['product', 'batch'])
             ->whereIn('id', $this->consumptionRecordIds)
@@ -67,6 +72,11 @@ class SyncConsumptionToHCJob implements ShouldQueue
                 ->update(['sync_status' => 'failed']);
 
             Log::error("Error al sincronizar consumo con HC: {$e->getMessage()}");
+
+            $notificationService->notifyByType(
+                'consumption_sync_failed',
+                new ConsumptionSyncFailedNotification($this->appointmentId, $e->getMessage()),
+            );
 
             throw $e;
         }

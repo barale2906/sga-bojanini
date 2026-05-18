@@ -59,4 +59,20 @@ return [
         'default_per_page' => (int) env('SGA_DEFAULT_PER_PAGE', 25),
         'max_per_page'     => (int) env('SGA_MAX_PER_PAGE', 100),
     ],
+
+    'firebase' => [
+        'credentials' => env('FIREBASE_CREDENTIALS', 'storage/app/firebase/service-account.json'),
+    ],
+
+    'notification_recipients' => [
+        'batch_expiring_soon'             => ['admin', 'warehouse_manager', 'warehouse_operator'],
+        'batch_expired'                   => ['admin', 'warehouse_manager', 'warehouse_operator'],
+        'stock_below_reorder'             => ['admin', 'warehouse_manager', 'purchasing'],
+        'purchase_order_pending_approval' => ['admin', 'warehouse_manager'],
+        'purchase_order_approved'         => ['purchasing', 'warehouse_manager'],
+        'purchase_order_rejected'         => ['purchasing'],
+        'condition_out_of_range'          => ['admin', 'warehouse_manager'],
+        'condition_trend_alert'           => ['admin'],
+        'consumption_sync_failed'         => ['admin'],
+    ],
 ];
