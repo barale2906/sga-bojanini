@@ -1,0 +1,7 @@
+# Solo se versiona src/ (aplicación Laravel).
+# En la raíz quedan fuera de git: docker/, Makefile, .cursor/, AGENTS.md, etc.
+
+/*
+!/.gitignore
+!/src/
+!/src/**
