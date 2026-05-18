@@ -22,6 +22,10 @@ return [
         'reading_interval' => (int) env('SGA_MONITORING_READING_INTERVAL', 15),
     ],
 
+    'iot' => [
+        'token' => env('IOT_TOKEN', 'changeme-generate-a-secure-token'),
+    ],
+
     'exports' => [
         'pdf_storage_path'   => env('SGA_PDF_STORAGE_PATH', 'exports/pdf'),
         'excel_storage_path' => env('SGA_EXCEL_STORAGE_PATH', 'exports/excel'),

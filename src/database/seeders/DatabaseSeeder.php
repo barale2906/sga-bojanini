@@ -12,6 +12,7 @@ class DatabaseSeeder extends Seeder
             RolesAndPermissionsSeeder::class,
             CatalogSeeder::class,
             PurchasingSeeder::class,
+            MonitoringSeeder::class,
         ]);
     }
 }

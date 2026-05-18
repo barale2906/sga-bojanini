@@ -19,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'permission'     => \App\Http\Middleware\CheckPermission::class,
             'user.is_active' => \App\Http\Middleware\EnsureUserIsActive::class,
+            'iot.token'    => \App\Modules\Monitoring\Infrastructure\Http\Middleware\IoTTokenMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

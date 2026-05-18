@@ -15,3 +15,11 @@ Schedule::command('sga:check-expirations')
 Schedule::command('sga:check-reorder-points')
     ->hourly()
     ->name('sga:check-reorder-points');
+
+Schedule::command('sga:analyze-conditions')
+    ->everyThirtyMinutes()
+    ->name('sga:analyze-conditions');
+
+Schedule::command('sga:generate-condition-reports')
+    ->dailyAt('23:00')
+    ->name('sga:generate-condition-reports');

@@ -18,6 +18,12 @@ use App\Modules\Catalog\Infrastructure\Persistence\EloquentProductPresentationRe
 use App\Modules\Catalog\Infrastructure\Persistence\EloquentProductRepository;
 use App\Modules\Catalog\Infrastructure\Persistence\EloquentSupplierRepository;
 use App\Modules\Catalog\Infrastructure\Persistence\EloquentUnitOfMeasureRepository;
+use App\Modules\Monitoring\Domain\Repositories\AlertRuleRepositoryInterface;
+use App\Modules\Monitoring\Domain\Repositories\SensorReadingRepositoryInterface;
+use App\Modules\Monitoring\Domain\Repositories\SensorRepositoryInterface;
+use App\Modules\Monitoring\Infrastructure\Persistence\EloquentAlertRuleRepository;
+use App\Modules\Monitoring\Infrastructure\Persistence\EloquentSensorReadingRepository;
+use App\Modules\Monitoring\Infrastructure\Persistence\EloquentSensorRepository;
 use App\Modules\Warehouse\Domain\Repositories\LocationRepositoryInterface;
 use App\Modules\Warehouse\Domain\Repositories\WarehouseRepositoryInterface;
 use App\Modules\Warehouse\Domain\Repositories\ZoneRepositoryInterface;
@@ -61,6 +67,11 @@ class ModuleServiceProvider extends ServiceProvider
         // Purchasing (Fase 5)
         // PurchaseOrderRepositoryInterface::class => EloquentPurchaseOrderRepository::class,
         // ApprovalFlowRepositoryInterface::class  => EloquentApprovalFlowRepository::class,
+
+        // Monitoring (Fase 6)
+        SensorRepositoryInterface::class        => EloquentSensorRepository::class,
+        SensorReadingRepositoryInterface::class => EloquentSensorReadingRepository::class,
+        AlertRuleRepositoryInterface::class     => EloquentAlertRuleRepository::class,
     ];
 
     public function register(): void
