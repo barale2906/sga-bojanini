@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace App\Modules\Monitoring\Infrastructure\Persistence\Models;
 
+use App\Modules\Audit\Infrastructure\Traits\Auditable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class AlertRuleModel extends Model
 {
+    use Auditable;
+
     protected $table = 'sensor_alert_rules';
 
     protected $fillable = [

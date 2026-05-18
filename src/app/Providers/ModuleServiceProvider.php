@@ -18,6 +18,8 @@ use App\Modules\Catalog\Infrastructure\Persistence\EloquentProductPresentationRe
 use App\Modules\Catalog\Infrastructure\Persistence\EloquentProductRepository;
 use App\Modules\Catalog\Infrastructure\Persistence\EloquentSupplierRepository;
 use App\Modules\Catalog\Infrastructure\Persistence\EloquentUnitOfMeasureRepository;
+use App\Modules\Audit\Domain\Repositories\AuditLogRepositoryInterface;
+use App\Modules\Audit\Infrastructure\Persistence\EloquentAuditLogRepository;
 use App\Modules\Monitoring\Domain\Repositories\AlertRuleRepositoryInterface;
 use App\Modules\Monitoring\Domain\Repositories\SensorReadingRepositoryInterface;
 use App\Modules\Monitoring\Domain\Repositories\SensorRepositoryInterface;
@@ -72,6 +74,9 @@ class ModuleServiceProvider extends ServiceProvider
         SensorRepositoryInterface::class        => EloquentSensorRepository::class,
         SensorReadingRepositoryInterface::class => EloquentSensorReadingRepository::class,
         AlertRuleRepositoryInterface::class     => EloquentAlertRuleRepository::class,
+
+        // Audit (Fase 7)
+        AuditLogRepositoryInterface::class => EloquentAuditLogRepository::class,
     ];
 
     public function register(): void

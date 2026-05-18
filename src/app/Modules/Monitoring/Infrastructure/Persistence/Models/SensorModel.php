@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Monitoring\Infrastructure\Persistence\Models;
 
+use App\Modules\Audit\Infrastructure\Traits\Auditable;
 use App\Modules\Warehouse\Infrastructure\Persistence\Models\ZoneModel;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,6 +12,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class SensorModel extends Model
 {
+    use Auditable;
+
     protected $table = 'sensors';
 
     protected $fillable = [

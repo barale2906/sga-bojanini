@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Catalog\Infrastructure\Persistence\Models;
 
+use App\Modules\Audit\Infrastructure\Traits\Auditable;
 use Illuminate\Database\Eloquent\Model;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\StockSummaryModel;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -13,7 +14,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ProductModel extends Model
 {
-    use SoftDeletes;
+    use Auditable, SoftDeletes;
 
     protected $table = 'products';
 

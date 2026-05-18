@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Inventory\Infrastructure\Persistence\Models;
 
+use App\Modules\Audit\Infrastructure\Traits\Auditable;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductModel;
 use App\Modules\Warehouse\Infrastructure\Persistence\Models\LocationModel;
 use Illuminate\Database\Eloquent\Model;
@@ -13,6 +14,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class BatchModel extends Model
 {
+    use Auditable;
+
     protected $table = 'batches';
 
     protected $fillable = [

@@ -27,7 +27,7 @@ require __DIR__ . '/api/purchasing.php';
 require __DIR__ . '/api/monitoring.php';
 
 // Fase 7: Auditoría
-// require __DIR__ . '/api/audit.php';
+require __DIR__ . '/api/audit.php';
 
 // Fase 8: Integraciones
 // require __DIR__ . '/api/integration.php';

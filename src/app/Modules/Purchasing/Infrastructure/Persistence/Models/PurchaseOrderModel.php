@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Purchasing\Infrastructure\Persistence\Models;
 
+use App\Modules\Audit\Infrastructure\Traits\Auditable;
 use App\Modules\Auth\Infrastructure\Persistence\Models\UserModel;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\SupplierModel;
 use App\Modules\Warehouse\Infrastructure\Persistence\Models\WarehouseModel;
@@ -13,6 +14,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PurchaseOrderModel extends Model
 {
+    use Auditable;
+
     protected $table = 'purchase_orders';
 
     protected $fillable = [

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Inventory\Infrastructure\Persistence\Models;
 
+use App\Modules\Audit\Infrastructure\Traits\Auditable;
 use App\Modules\Auth\Infrastructure\Persistence\Models\UserModel;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductModel;
 use App\Modules\Warehouse\Infrastructure\Persistence\Models\LocationModel;
@@ -13,6 +14,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class StockMovementModel extends Model
 {
+    use Auditable;
+
     public const UPDATED_AT = null;
 
     protected $table = 'stock_movements';
