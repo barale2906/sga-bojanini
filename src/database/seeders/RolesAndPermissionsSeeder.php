@@ -183,10 +183,10 @@ class RolesAndPermissionsSeeder extends Seeder
         // PASO 3: Crear usuario admin inicial
         // ─────────────────────────────────────────
         $adminUser = UserModel::firstOrCreate(
-            ['email' => 'admin@sga.bojanini.com'],
+            ['email' => 'alexanderbarajas@gmail.com'],
             [
                 'name'      => 'Administrador SGA',
-                'password'  => 'Admin2026!',
+                'password'  => '10203040',
                 'phone'     => null,
                 'is_active' => true,
             ],
@@ -194,8 +194,8 @@ class RolesAndPermissionsSeeder extends Seeder
         $adminUser->assignRole('super_admin');
 
         $this->command->info('Roles, permisos y usuario admin creados exitosamente.');
-        $this->command->info('  Email: admin@sga.bojanini.com');
-        $this->command->info('  Password: Admin2026!');
+        $this->command->info('  Email: alexanderbarajas@gmail.com');
+        $this->command->info('  Password: 10203040');
         $this->command->info('  Rol: super_admin');
     }
 }
