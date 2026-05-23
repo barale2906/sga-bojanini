@@ -57,7 +57,7 @@ class ConditionAlertFlowTest extends TestCase
             ->where('notifiable_id', $admin->id)
             ->first();
 
-        $this->assertNotNull($row, 'No se creó notificación en BD para el admin (revisar NotificationRecipientService y rol super_admin).');
+        $this->assertNotNull($row, 'No se creó notificación en BD para el admin (revisar NotificationRecipientService y rol super_administrador).');
 
         $data = json_decode($row->data, true, 512, JSON_THROW_ON_ERROR);
         $this->assertSame('condition_out_of_range', $data['type']);

@@ -16,19 +16,19 @@ Route::prefix('v1')->group(function () {
         Route::put('auth/password', [AuthController::class, 'changePassword']);
         Route::post('auth/refresh', [AuthController::class, 'refresh']);
 
-        Route::get('users', [UserController::class, 'index'])->middleware('permission:users.view');
-        Route::post('users', [UserController::class, 'store'])->middleware('permission:users.create');
-        Route::get('users/{id}', [UserController::class, 'show'])->middleware('permission:users.view');
-        Route::put('users/{id}', [UserController::class, 'update'])->middleware('permission:users.update');
-        Route::delete('users/{id}', [UserController::class, 'destroy'])->middleware('permission:users.delete');
-        Route::post('users/{id}/roles', [UserController::class, 'assignRoles'])->middleware('permission:roles.update');
+        Route::get('users', [UserController::class, 'index'])->middleware('permission:usuarios.ver');
+        Route::post('users', [UserController::class, 'store'])->middleware('permission:usuarios.crear');
+        Route::get('users/{id}', [UserController::class, 'show'])->middleware('permission:usuarios.ver');
+        Route::put('users/{id}', [UserController::class, 'update'])->middleware('permission:usuarios.editar');
+        Route::delete('users/{id}', [UserController::class, 'destroy'])->middleware('permission:usuarios.eliminar');
+        Route::post('users/{id}/roles', [UserController::class, 'assignRoles'])->middleware('permission:roles.editar');
 
-        Route::get('roles', [RoleController::class, 'index'])->middleware('permission:roles.view');
-        Route::post('roles', [RoleController::class, 'store'])->middleware('permission:roles.create');
-        Route::get('roles/{id}', [RoleController::class, 'show'])->middleware('permission:roles.view');
-        Route::put('roles/{id}', [RoleController::class, 'update'])->middleware('permission:roles.update');
-        Route::delete('roles/{id}', [RoleController::class, 'destroy'])->middleware('permission:roles.delete');
+        Route::get('roles', [RoleController::class, 'index'])->middleware('permission:roles.ver');
+        Route::post('roles', [RoleController::class, 'store'])->middleware('permission:roles.crear');
+        Route::get('roles/{id}', [RoleController::class, 'show'])->middleware('permission:roles.ver');
+        Route::put('roles/{id}', [RoleController::class, 'update'])->middleware('permission:roles.editar');
+        Route::delete('roles/{id}', [RoleController::class, 'destroy'])->middleware('permission:roles.eliminar');
 
-        Route::get('permissions', [RoleController::class, 'permissions'])->middleware('permission:roles.view');
+        Route::get('permissions', [RoleController::class, 'permissions'])->middleware('permission:roles.ver');
     });
 });

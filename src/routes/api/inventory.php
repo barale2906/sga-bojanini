@@ -6,22 +6,22 @@ use App\Modules\Inventory\Infrastructure\Http\Controllers\StockController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth:sanctum', 'user.is_active'])->prefix('v1')->group(function () {
-    Route::get('batches', [BatchController::class, 'index'])->middleware('permission:batches.view');
-    Route::get('batches/expiring', [BatchController::class, 'expiring'])->middleware('permission:batches.view');
-    Route::get('batches/expired', [BatchController::class, 'expired'])->middleware('permission:batches.view');
-    Route::get('batches/{id}', [BatchController::class, 'show'])->middleware('permission:batches.view');
-    Route::get('products/{id}/batches', [BatchController::class, 'byProduct'])->middleware('permission:batches.view');
+    Route::get('batches', [BatchController::class, 'index'])->middleware('permission:lotes.ver');
+    Route::get('batches/expiring', [BatchController::class, 'expiring'])->middleware('permission:lotes.ver');
+    Route::get('batches/expired', [BatchController::class, 'expired'])->middleware('permission:lotes.ver');
+    Route::get('batches/{id}', [BatchController::class, 'show'])->middleware('permission:lotes.ver');
+    Route::get('products/{id}/batches', [BatchController::class, 'byProduct'])->middleware('permission:lotes.ver');
 
-    Route::get('stock', [StockController::class, 'index'])->middleware('permission:stock.view');
-    Route::get('stock/summary', [StockController::class, 'summary'])->middleware('permission:stock.view');
-    Route::get('stock/low', [StockController::class, 'low'])->middleware('permission:stock.view');
+    Route::get('stock', [StockController::class, 'index'])->middleware('permission:stock.ver');
+    Route::get('stock/summary', [StockController::class, 'summary'])->middleware('permission:stock.ver');
+    Route::get('stock/low', [StockController::class, 'low'])->middleware('permission:stock.ver');
 
-    Route::post('movements/entry', [MovementController::class, 'entry'])->middleware('permission:movements.entry');
-    Route::post('movements/exit', [MovementController::class, 'exit'])->middleware('permission:movements.exit');
-    Route::post('movements/transfer', [MovementController::class, 'transfer'])->middleware('permission:movements.transfer');
-    Route::post('movements/adjustment', [MovementController::class, 'adjustment'])->middleware('permission:movements.adjustment');
-    Route::post('movements/return', [MovementController::class, 'returnStock'])->middleware('permission:movements.return');
-    Route::post('movements/write-off', [MovementController::class, 'writeOff'])->middleware('permission:movements.write_off');
-    Route::get('movements', [MovementController::class, 'index'])->middleware('permission:stock.view');
-    Route::get('movements/{id}', [MovementController::class, 'show'])->middleware('permission:stock.view');
+    Route::post('movements/entry', [MovementController::class, 'entry'])->middleware('permission:movimientos.entrada');
+    Route::post('movements/exit', [MovementController::class, 'exit'])->middleware('permission:movimientos.salida');
+    Route::post('movements/transfer', [MovementController::class, 'transfer'])->middleware('permission:movimientos.transferir');
+    Route::post('movements/adjustment', [MovementController::class, 'adjustment'])->middleware('permission:movimientos.ajuste');
+    Route::post('movements/return', [MovementController::class, 'returnStock'])->middleware('permission:movimientos.devolucion');
+    Route::post('movements/write-off', [MovementController::class, 'writeOff'])->middleware('permission:movimientos.baja');
+    Route::get('movements', [MovementController::class, 'index'])->middleware('permission:stock.ver');
+    Route::get('movements/{id}', [MovementController::class, 'show'])->middleware('permission:stock.ver');
 });

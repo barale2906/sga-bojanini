@@ -9,36 +9,36 @@ use Illuminate\Support\Facades\Route;
 Route::middleware(['auth:sanctum', 'user.is_active'])->prefix('v1')->group(function () {
 
     Route::apiResource('sensors', SensorController::class)
-        ->middleware('permission:sensors.view')->only(['index', 'show']);
+        ->middleware('permission:sensores.ver')->only(['index', 'show']);
     Route::apiResource('sensors', SensorController::class)
-        ->middleware('permission:sensors.create')->only(['store']);
+        ->middleware('permission:sensores.crear')->only(['store']);
     Route::apiResource('sensors', SensorController::class)
-        ->middleware('permission:sensors.update')->only(['update']);
+        ->middleware('permission:sensores.editar')->only(['update']);
     Route::apiResource('sensors', SensorController::class)
-        ->middleware('permission:sensors.delete')->only(['destroy']);
+        ->middleware('permission:sensores.eliminar')->only(['destroy']);
 
     Route::post('sensors/{sensorId}/readings', [SensorReadingController::class, 'store'])
-        ->middleware('permission:readings.create');
+        ->middleware('permission:lecturas.crear');
     Route::get('sensors/{sensorId}/readings', [SensorReadingController::class, 'index'])
-        ->middleware('permission:readings.view');
+        ->middleware('permission:lecturas.ver');
     Route::get('sensors/{sensorId}/statistics', [SensorReadingController::class, 'statistics'])
-        ->middleware('permission:readings.view');
+        ->middleware('permission:lecturas.ver');
     Route::get('sensors/{sensorId}/trend', [SensorReadingController::class, 'trend'])
-        ->middleware('permission:readings.view');
+        ->middleware('permission:lecturas.ver');
 
     Route::get('sensors/{sensorId}/alert-rules', [AlertRuleController::class, 'index'])
-        ->middleware('permission:alert_rules.view');
+        ->middleware('permission:reglas_alerta.ver');
     Route::post('sensors/{sensorId}/alert-rules', [AlertRuleController::class, 'store'])
-        ->middleware('permission:alert_rules.create');
+        ->middleware('permission:reglas_alerta.crear');
     Route::put('alert-rules/{id}', [AlertRuleController::class, 'update'])
-        ->middleware('permission:alert_rules.update');
+        ->middleware('permission:reglas_alerta.editar');
     Route::delete('alert-rules/{id}', [AlertRuleController::class, 'destroy'])
-        ->middleware('permission:alert_rules.delete');
+        ->middleware('permission:reglas_alerta.eliminar');
 
     Route::post('monitoring/reports/generate', [ConditionReportController::class, 'generate'])
-        ->middleware('permission:readings.view');
+        ->middleware('permission:lecturas.ver');
     Route::get('monitoring/reports', [ConditionReportController::class, 'index'])
-        ->middleware('permission:readings.view');
+        ->middleware('permission:lecturas.ver');
 });
 
 Route::middleware('iot.token')->prefix('v1')->group(function () {

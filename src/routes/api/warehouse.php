@@ -8,34 +8,34 @@ use Illuminate\Support\Facades\Route;
 Route::middleware(['auth:sanctum', 'user.is_active'])->prefix('v1')->group(function () {
 
     Route::apiResource('warehouses', WarehouseController::class)
-        ->middleware('permission:warehouses.view')->only(['index', 'show']);
+        ->middleware('permission:almacenes.ver')->only(['index', 'show']);
     Route::apiResource('warehouses', WarehouseController::class)
-        ->middleware('permission:warehouses.create')->only(['store']);
+        ->middleware('permission:almacenes.crear')->only(['store']);
     Route::apiResource('warehouses', WarehouseController::class)
-        ->middleware('permission:warehouses.update')->only(['update']);
+        ->middleware('permission:almacenes.editar')->only(['update']);
     Route::apiResource('warehouses', WarehouseController::class)
-        ->middleware('permission:warehouses.delete')->only(['destroy']);
+        ->middleware('permission:almacenes.eliminar')->only(['destroy']);
 
     Route::get('warehouses/{id}/zones', [WarehouseController::class, 'zones'])
-        ->middleware('permission:zones.view');
+        ->middleware('permission:zonas.ver');
     Route::get('warehouses/{id}/locations', [WarehouseController::class, 'locations'])
-        ->middleware('permission:locations.view');
+        ->middleware('permission:ubicaciones.ver');
 
     Route::apiResource('zones', ZoneController::class)
-        ->middleware('permission:zones.view')->only(['index', 'show']);
+        ->middleware('permission:zonas.ver')->only(['index', 'show']);
     Route::apiResource('zones', ZoneController::class)
-        ->middleware('permission:zones.create')->only(['store']);
+        ->middleware('permission:zonas.crear')->only(['store']);
     Route::apiResource('zones', ZoneController::class)
-        ->middleware('permission:zones.update')->only(['update']);
+        ->middleware('permission:zonas.editar')->only(['update']);
     Route::apiResource('zones', ZoneController::class)
-        ->middleware('permission:zones.delete')->only(['destroy']);
+        ->middleware('permission:zonas.eliminar')->only(['destroy']);
 
     Route::apiResource('locations', LocationController::class)
-        ->middleware('permission:locations.view')->only(['index', 'show']);
+        ->middleware('permission:ubicaciones.ver')->only(['index', 'show']);
     Route::apiResource('locations', LocationController::class)
-        ->middleware('permission:locations.create')->only(['store']);
+        ->middleware('permission:ubicaciones.crear')->only(['store']);
     Route::apiResource('locations', LocationController::class)
-        ->middleware('permission:locations.update')->only(['update']);
+        ->middleware('permission:ubicaciones.editar')->only(['update']);
     Route::apiResource('locations', LocationController::class)
-        ->middleware('permission:locations.delete')->only(['destroy']);
+        ->middleware('permission:ubicaciones.eliminar')->only(['destroy']);
 });

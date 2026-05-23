@@ -65,14 +65,14 @@ return [
     ],
 
     'notification_recipients' => [
-        'batch_expiring_soon'             => ['admin', 'warehouse_manager', 'warehouse_operator'],
-        'batch_expired'                   => ['admin', 'warehouse_manager', 'warehouse_operator'],
-        'stock_below_reorder'             => ['admin', 'warehouse_manager', 'purchasing'],
-        'purchase_order_pending_approval' => ['admin', 'warehouse_manager'],
-        'purchase_order_approved'         => ['purchasing', 'warehouse_manager'],
-        'purchase_order_rejected'         => ['purchasing'],
-        'condition_out_of_range'          => ['admin', 'warehouse_manager'],
-        'condition_trend_alert'           => ['admin'],
-        'consumption_sync_failed'         => ['admin'],
+        'batch_expiring_soon'             => ['administrador', 'jefe_almacen', 'operador_almacen'],
+        'batch_expired'                   => ['administrador', 'jefe_almacen', 'operador_almacen'],
+        'stock_below_reorder'             => ['administrador', 'jefe_almacen', 'compras'],
+        'purchase_order_pending_approval' => ['administrador', 'jefe_almacen'],
+        'purchase_order_approved'         => ['compras', 'jefe_almacen'],
+        'purchase_order_rejected'         => ['compras'],
+        'condition_out_of_range'          => ['administrador', 'jefe_almacen'],
+        'condition_trend_alert'           => ['administrador'],
+        'consumption_sync_failed'         => ['administrador'],
     ],
 ];

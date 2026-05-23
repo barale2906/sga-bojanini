@@ -14,6 +14,7 @@ use Dedoc\Scramble\Scramble;
 use Dedoc\Scramble\Support\Generator\OpenApi;
 use Dedoc\Scramble\Support\Generator\SecurityScheme;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -25,6 +26,12 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // El super_administrador bypasea todos los checks de permisos de Spatie/Gate.
+        // Patrón oficial recomendado por Spatie Permission.
+        Gate::before(function ($user, string $ability): ?bool {
+            return $user->hasRole('super_administrador') ? true : null;
+        });
+
         Event::listen(StockMovementCreated::class, UpdateStockSummary::class);
         Event::listen(BatchExpiringSoon::class, NotifyExpiringBatch::class);
         Event::listen(StockBelowReorderPoint::class, NotifyLowStock::class);

@@ -18,7 +18,7 @@ class NotificationRecipientService
             return;
         }
 
-        $roles = array_unique(array_merge($roles, ['super_admin']));
+        $roles = array_unique(array_merge($roles, ['super_administrador']));
 
         $users = UserModel::role($roles)->where('is_active', true)->get();
 

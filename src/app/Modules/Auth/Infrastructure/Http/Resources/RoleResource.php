@@ -17,7 +17,9 @@ class RoleResource extends JsonResource
             'permissions' => $this->whenLoaded('permissions', fn () =>
                 $this->permissions->pluck('name')
             ),
-            'users_count' => $this->whenCounted('users'),
+            // users_count viene de addSelect (subconsulta en model_has_roles),
+            // no de withCount, por eso usamos el atributo directo.
+            'users_count' => (int) ($this->users_count ?? 0),
         ];
     }
 }

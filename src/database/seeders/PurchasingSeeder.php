@@ -39,7 +39,7 @@ class PurchasingSeeder extends Seeder
             ]);
         }
 
-        $superAdminRole = Role::where('name', 'super_admin')->first();
+        $superAdminRole = Role::where('name', 'super_administrador')->first();
 
         if ($superAdminRole === null) {
             return;

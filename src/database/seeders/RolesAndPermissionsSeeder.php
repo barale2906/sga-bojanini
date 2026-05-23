@@ -26,47 +26,47 @@ class RolesAndPermissionsSeeder extends Seeder
         // ─────────────────────────────────────────
         $permissions = [
             // Usuarios
-            'users.view', 'users.create', 'users.update', 'users.delete',
+            'usuarios.ver', 'usuarios.crear', 'usuarios.editar', 'usuarios.eliminar',
             // Roles
-            'roles.view', 'roles.create', 'roles.update', 'roles.delete',
+            'roles.ver', 'roles.crear', 'roles.editar', 'roles.eliminar',
             // Almacenes
-            'warehouses.view', 'warehouses.create', 'warehouses.update', 'warehouses.delete',
+            'almacenes.ver', 'almacenes.crear', 'almacenes.editar', 'almacenes.eliminar',
             // Zonas
-            'zones.view', 'zones.create', 'zones.update', 'zones.delete',
+            'zonas.ver', 'zonas.crear', 'zonas.editar', 'zonas.eliminar',
             // Ubicaciones
-            'locations.view', 'locations.create', 'locations.update', 'locations.delete',
+            'ubicaciones.ver', 'ubicaciones.crear', 'ubicaciones.editar', 'ubicaciones.eliminar',
             // Productos
-            'products.view', 'products.create', 'products.update', 'products.delete', 'products.import',
+            'productos.ver', 'productos.crear', 'productos.editar', 'productos.eliminar', 'productos.importar',
             // Proveedores
-            'suppliers.view', 'suppliers.create', 'suppliers.update', 'suppliers.delete', 'suppliers.import',
+            'proveedores.ver', 'proveedores.crear', 'proveedores.editar', 'proveedores.eliminar', 'proveedores.importar',
             // Lotes
-            'batches.view', 'batches.create',
+            'lotes.ver', 'lotes.crear',
             // Stock
-            'stock.view',
+            'stock.ver',
             // Movimientos
-            'movements.entry', 'movements.exit', 'movements.transfer',
-            'movements.adjustment', 'movements.return', 'movements.write_off',
+            'movimientos.entrada', 'movimientos.salida', 'movimientos.transferir',
+            'movimientos.ajuste', 'movimientos.devolucion', 'movimientos.baja',
             // Órdenes de compra
-            'purchase_orders.view', 'purchase_orders.create', 'purchase_orders.approve',
-            'purchase_orders.send', 'purchase_orders.receive',
+            'ordenes_compra.ver', 'ordenes_compra.crear', 'ordenes_compra.aprobar',
+            'ordenes_compra.enviar', 'ordenes_compra.recibir',
             // Sensores
-            'sensors.view', 'sensors.create', 'sensors.update', 'sensors.delete',
+            'sensores.ver', 'sensores.crear', 'sensores.editar', 'sensores.eliminar',
             // Lecturas
-            'readings.view', 'readings.create',
+            'lecturas.ver', 'lecturas.crear',
             // Reglas de alerta
-            'alert_rules.view', 'alert_rules.create', 'alert_rules.update', 'alert_rules.delete',
+            'reglas_alerta.ver', 'reglas_alerta.crear', 'reglas_alerta.editar', 'reglas_alerta.eliminar',
             // Auditoría
-            'audit.view', 'audit.export',
+            'auditoria.ver', 'auditoria.exportar',
             // Reportes
-            'reports.view', 'reports.export',
+            'reportes.ver', 'reportes.exportar',
             // Integraciones
-            'integrations.view', 'integrations.configure',
+            'integraciones.ver', 'integraciones.configurar',
             // Consumos
-            'consumptions.view', 'consumptions.create',
-            // Dashboard
-            'dashboard.view',
+            'consumos.ver', 'consumos.crear',
+            // Tablero
+            'tablero.ver',
             // Notificaciones
-            'notifications.view',
+            'notificaciones.ver',
         ];
 
         foreach ($permissions as $permission) {
@@ -77,125 +77,136 @@ class RolesAndPermissionsSeeder extends Seeder
         // PASO 2: Crear los 7 roles y asignar permisos
         // ─────────────────────────────────────────
 
-        // 1. Super Admin — TIENE TODOS LOS PERMISOS
-        $superAdmin = Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
+        // 1. Super Administrador — TIENE TODOS LOS PERMISOS
+        $superAdmin = Role::firstOrCreate(['name' => 'super_administrador', 'guard_name' => 'web']);
         $superAdmin->givePermissionTo(Permission::all());
 
-        // 2. Admin — Casi todo, excepto configurar integraciones
-        $admin = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        // 2. Administrador — Casi todo, excepto configurar integraciones
+        $admin = Role::firstOrCreate(['name' => 'administrador', 'guard_name' => 'web']);
         $admin->givePermissionTo([
-            'users.view', 'users.create', 'users.update', 'users.delete',
-            'roles.view', 'roles.create', 'roles.update', 'roles.delete',
-            'warehouses.view', 'warehouses.create', 'warehouses.update', 'warehouses.delete',
-            'zones.view', 'zones.create', 'zones.update', 'zones.delete',
-            'locations.view', 'locations.create', 'locations.update', 'locations.delete',
-            'products.view', 'products.create', 'products.update', 'products.delete', 'products.import',
-            'suppliers.view', 'suppliers.create', 'suppliers.update', 'suppliers.delete', 'suppliers.import',
-            'batches.view', 'batches.create',
-            'stock.view',
-            'movements.entry', 'movements.exit', 'movements.transfer',
-            'movements.adjustment', 'movements.return', 'movements.write_off',
-            'purchase_orders.view', 'purchase_orders.create', 'purchase_orders.approve',
-            'purchase_orders.send', 'purchase_orders.receive',
-            'sensors.view', 'sensors.create', 'sensors.update', 'sensors.delete',
-            'readings.view', 'readings.create',
-            'alert_rules.view', 'alert_rules.create', 'alert_rules.update', 'alert_rules.delete',
-            'audit.view', 'audit.export',
-            'reports.view', 'reports.export',
-            'integrations.view', 'integrations.configure',
-            'consumptions.view', 'consumptions.create',
-            'dashboard.view',
-            'notifications.view',
+            'usuarios.ver', 'usuarios.crear', 'usuarios.editar', 'usuarios.eliminar',
+            'roles.ver', 'roles.crear', 'roles.editar', 'roles.eliminar',
+            'almacenes.ver', 'almacenes.crear', 'almacenes.editar', 'almacenes.eliminar',
+            'zonas.ver', 'zonas.crear', 'zonas.editar', 'zonas.eliminar',
+            'ubicaciones.ver', 'ubicaciones.crear', 'ubicaciones.editar', 'ubicaciones.eliminar',
+            'productos.ver', 'productos.crear', 'productos.editar', 'productos.eliminar', 'productos.importar',
+            'proveedores.ver', 'proveedores.crear', 'proveedores.editar', 'proveedores.eliminar', 'proveedores.importar',
+            'lotes.ver', 'lotes.crear',
+            'stock.ver',
+            'movimientos.entrada', 'movimientos.salida', 'movimientos.transferir',
+            'movimientos.ajuste', 'movimientos.devolucion', 'movimientos.baja',
+            'ordenes_compra.ver', 'ordenes_compra.crear', 'ordenes_compra.aprobar',
+            'ordenes_compra.enviar', 'ordenes_compra.recibir',
+            'sensores.ver', 'sensores.crear', 'sensores.editar', 'sensores.eliminar',
+            'lecturas.ver', 'lecturas.crear',
+            'reglas_alerta.ver', 'reglas_alerta.crear', 'reglas_alerta.editar', 'reglas_alerta.eliminar',
+            'auditoria.ver', 'auditoria.exportar',
+            'reportes.ver', 'reportes.exportar',
+            'integraciones.ver', 'integraciones.configurar',
+            'consumos.ver', 'consumos.crear',
+            'tablero.ver',
+            'notificaciones.ver',
         ]);
 
         // 3. Operador de Almacén — Gestiona inventario día a día
-        $warehouseOperator = Role::firstOrCreate(['name' => 'warehouse_operator', 'guard_name' => 'web']);
+        $warehouseOperator = Role::firstOrCreate(['name' => 'operador_almacen', 'guard_name' => 'web']);
         $warehouseOperator->givePermissionTo([
-            'warehouses.view',
-            'zones.view',
-            'locations.view',
-            'products.view',
-            'suppliers.view',
-            'batches.view', 'batches.create',
-            'stock.view',
-            'movements.entry', 'movements.exit', 'movements.transfer',
-            'readings.view', 'readings.create',
-            'dashboard.view',
-            'notifications.view',
+            'almacenes.ver',
+            'zonas.ver',
+            'ubicaciones.ver',
+            'productos.ver',
+            'proveedores.ver',
+            'lotes.ver', 'lotes.crear',
+            'stock.ver',
+            'movimientos.entrada', 'movimientos.salida', 'movimientos.transferir',
+            'lecturas.ver', 'lecturas.crear',
+            'tablero.ver',
+            'notificaciones.ver',
         ]);
 
         // 4. Compras — Gestiona órdenes de compra
-        $purchasing = Role::firstOrCreate(['name' => 'purchasing', 'guard_name' => 'web']);
+        $purchasing = Role::firstOrCreate(['name' => 'compras', 'guard_name' => 'web']);
         $purchasing->givePermissionTo([
-            'products.view',
-            'suppliers.view', 'suppliers.create', 'suppliers.update',
-            'stock.view',
-            'purchase_orders.view', 'purchase_orders.create', 'purchase_orders.send',
-            'dashboard.view',
-            'notifications.view',
-            'reports.view',
+            'productos.ver',
+            'proveedores.ver', 'proveedores.crear', 'proveedores.editar',
+            'stock.ver',
+            'ordenes_compra.ver', 'ordenes_compra.crear', 'ordenes_compra.enviar',
+            'tablero.ver',
+            'notificaciones.ver',
+            'reportes.ver',
         ]);
 
         // 5. Auditor — Solo lectura y exportación
         $auditor = Role::firstOrCreate(['name' => 'auditor', 'guard_name' => 'web']);
         $auditor->givePermissionTo([
-            'warehouses.view', 'zones.view', 'locations.view',
-            'products.view', 'suppliers.view',
-            'batches.view', 'stock.view',
-            'sensors.view', 'readings.view',
-            'audit.view', 'audit.export',
-            'reports.view', 'reports.export',
-            'dashboard.view',
+            'almacenes.ver', 'zonas.ver', 'ubicaciones.ver',
+            'productos.ver', 'proveedores.ver',
+            'lotes.ver', 'stock.ver',
+            'sensores.ver', 'lecturas.ver',
+            'auditoria.ver', 'auditoria.exportar',
+            'reportes.ver', 'reportes.exportar',
+            'tablero.ver',
         ]);
 
         // 6. Jefe de Almacén — Operador + aprobaciones + ajustes
-        $warehouseManager = Role::firstOrCreate(['name' => 'warehouse_manager', 'guard_name' => 'web']);
+        $warehouseManager = Role::firstOrCreate(['name' => 'jefe_almacen', 'guard_name' => 'web']);
         $warehouseManager->givePermissionTo([
-            'warehouses.view', 'warehouses.create', 'warehouses.update',
-            'zones.view', 'zones.create', 'zones.update',
-            'locations.view', 'locations.create', 'locations.update',
-            'products.view', 'products.create', 'products.update', 'products.import',
-            'suppliers.view',
-            'batches.view', 'batches.create',
-            'stock.view',
-            'movements.entry', 'movements.exit', 'movements.transfer',
-            'movements.adjustment', 'movements.return', 'movements.write_off',
-            'purchase_orders.view', 'purchase_orders.approve', 'purchase_orders.receive',
-            'sensors.view', 'sensors.create', 'sensors.update',
-            'readings.view', 'readings.create',
-            'alert_rules.view', 'alert_rules.create', 'alert_rules.update',
-            'reports.view', 'reports.export',
-            'dashboard.view',
-            'notifications.view',
+            'almacenes.ver', 'almacenes.crear', 'almacenes.editar',
+            'zonas.ver', 'zonas.crear', 'zonas.editar',
+            'ubicaciones.ver', 'ubicaciones.crear', 'ubicaciones.editar',
+            'productos.ver', 'productos.crear', 'productos.editar', 'productos.importar',
+            'proveedores.ver',
+            'lotes.ver', 'lotes.crear',
+            'stock.ver',
+            'movimientos.entrada', 'movimientos.salida', 'movimientos.transferir',
+            'movimientos.ajuste', 'movimientos.devolucion', 'movimientos.baja',
+            'ordenes_compra.ver', 'ordenes_compra.aprobar', 'ordenes_compra.recibir',
+            'sensores.ver', 'sensores.crear', 'sensores.editar',
+            'lecturas.ver', 'lecturas.crear',
+            'reglas_alerta.ver', 'reglas_alerta.crear', 'reglas_alerta.editar',
+            'reportes.ver', 'reportes.exportar',
+            'tablero.ver',
+            'notificaciones.ver',
         ]);
 
         // 7. Personal Médico — Solo ve stock y registra consumos
-        $medicalStaff = Role::firstOrCreate(['name' => 'medical_staff', 'guard_name' => 'web']);
+        $medicalStaff = Role::firstOrCreate(['name' => 'personal_medico', 'guard_name' => 'web']);
         $medicalStaff->givePermissionTo([
-            'products.view',
-            'stock.view',
-            'consumptions.view', 'consumptions.create',
-            'dashboard.view',
-            'notifications.view',
+            'productos.ver',
+            'stock.ver',
+            'consumos.ver', 'consumos.crear',
+            'tablero.ver',
+            'notificaciones.ver',
         ]);
 
         // ─────────────────────────────────────────
         // PASO 3: Crear usuario admin inicial
         // ─────────────────────────────────────────
         $adminUser = UserModel::firstOrCreate(
-            ['email' => 'alexanderbarajas@gmail.com'],
+            ['email' => 'admin@sga.bojanini.com'],
             [
                 'name'      => 'Administrador SGA',
-                'password'  => '10203040',
+                'password'  => bcrypt('Admin2026!'),
                 'phone'     => null,
                 'is_active' => true,
             ],
         );
-        $adminUser->assignRole('super_admin');
+        $adminUser->assignRole('super_administrador');
+
+        $abv = UserModel::firstOrCreate(
+            ['email' => 'alexanderbarajas@gmail.com'],
+            [
+                'name'      => 'Ing. Alexander Barajas',
+                'password'  => bcrypt('10203040'),
+                'phone'     => null,
+                'is_active' => true,
+            ],
+        );
+        $abv->assignRole('super_administrador');
 
         $this->command->info('Roles, permisos y usuario admin creados exitosamente.');
-        $this->command->info('  Email: alexanderbarajas@gmail.com');
-        $this->command->info('  Password: 10203040');
-        $this->command->info('  Rol: super_admin');
+        $this->command->info('  Email: admin@sga.bojanini.com');
+        $this->command->info('  Password: Admin2026!');
+        $this->command->info('  Rol: super_administrador');
     }
 }

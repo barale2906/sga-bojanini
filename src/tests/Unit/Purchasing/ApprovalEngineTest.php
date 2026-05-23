@@ -48,8 +48,8 @@ class ApprovalEngineTest extends TestCase
     {
         ApprovalFlowModel::where('name', 'Aprobación estándar OC')->update(['is_active' => false]);
 
-        $managerRole = Role::where('name', 'warehouse_manager')->firstOrFail();
-        $adminRole = Role::where('name', 'super_admin')->firstOrFail();
+        $managerRole = Role::where('name', 'jefe_almacen')->firstOrFail();
+        $adminRole = Role::where('name', 'super_administrador')->firstOrFail();
 
         $flow = ApprovalFlowModel::create([
             'name'        => 'Flujo dos niveles',
@@ -85,7 +85,7 @@ class ApprovalEngineTest extends TestCase
             'name' => 'Manager', 'email' => 'manager@test.local',
             'password' => bcrypt('x'), 'is_active' => true,
         ]);
-        $manager->assignRole('warehouse_manager');
+        $manager->assignRole('jefe_almacen');
         $this->engine->processDecision($records[0]->id, $manager->id, 'approved');
 
         $this->assertFalse($this->engine->isFullyApproved(ApprovalEngine::ENTITY_PURCHASE_ORDER, $order->id));

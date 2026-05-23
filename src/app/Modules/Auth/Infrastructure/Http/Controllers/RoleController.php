@@ -9,6 +9,7 @@ use App\Modules\Shared\Infrastructure\Http\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
@@ -18,14 +19,32 @@ class RoleController extends Controller
 
     public function index(): JsonResponse
     {
-        $roles = Role::with('permissions')->withCount('users')->get();
+        // Nota: NO usamos withCount('users') del modelo Spatie porque en Laravel 13
+        // la instancia vacía del modelo no tiene guard_name, getModelForGuard devuelve
+        // null y Eloquent lanza "Class name must be a valid object or a string".
+        // Solución: subconsulta directa sobre la tabla pivote model_has_roles.
+        $roles = Role::with('permissions')
+            ->addSelect([
+                'roles.*',
+                'users_count' => DB::table('model_has_roles')
+                    ->selectRaw('count(*)')
+                    ->whereColumn('role_id', 'roles.id'),
+            ])
+            ->get();
 
         return $this->success(RoleResource::collection($roles), 'Listado de roles');
     }
 
     public function show(int $id): JsonResponse
     {
-        $role = Role::with('permissions')->withCount('users')->find($id);
+        $role = Role::with('permissions')
+            ->addSelect([
+                'roles.*',
+                'users_count' => DB::table('model_has_roles')
+                    ->selectRaw('count(*)')
+                    ->whereColumn('role_id', 'roles.id'),
+            ])
+            ->find($id);
 
         if (! $role) {
             return $this->error('Rol no encontrado', 404);
