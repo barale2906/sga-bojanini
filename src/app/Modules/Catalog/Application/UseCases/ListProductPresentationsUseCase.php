@@ -14,7 +14,22 @@ class ListProductPresentationsUseCase
         private readonly ProductPresentationRepositoryInterface $presentationRepository,
     ) {}
 
-    public function execute(int $productId): array
+    /**
+     * Lista todas las presentaciones existentes (independientes de producto).
+     *
+     * @return \App\Modules\Catalog\Domain\Entities\ProductPresentation[]
+     */
+    public function execute(): array
+    {
+        return $this->presentationRepository->findAll();
+    }
+
+    /**
+     * Lista las presentaciones asignadas a un producto específico.
+     *
+     * @return \App\Modules\Catalog\Domain\Entities\ProductPresentation[]
+     */
+    public function executeForProduct(int $productId): array
     {
         if ($this->productRepository->findById($productId) === null) {
             throw new \DomainException('Producto no encontrado.');

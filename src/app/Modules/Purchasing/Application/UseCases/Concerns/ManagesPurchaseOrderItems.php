@@ -52,12 +52,18 @@ trait ManagesPurchaseOrderItems
                 throw new \DomainException("No se pueden incluir productos tipo kit en órdenes de compra (línea {$index}).");
             }
 
-            $presentation = ProductPresentationModel::where('id', $item['product_presentation_id'])
-                ->where('product_id', $product->id)
-                ->first();
+            $presentation = ProductPresentationModel::find($item['product_presentation_id']);
 
             if ($presentation === null) {
-                throw new \DomainException("La presentación no pertenece al producto (línea {$index}).");
+                throw new \DomainException("Presentación no encontrada (línea {$index}).");
+            }
+
+            $assignedToProduct = $product->presentations()
+                ->where('product_presentations.id', $presentation->id)
+                ->exists();
+
+            if (! $assignedToProduct) {
+                throw new \DomainException("La presentación no está asignada al producto (línea {$index}).");
             }
 
             $quantity = (int) $item['quantity'];

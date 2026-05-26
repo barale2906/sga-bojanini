@@ -16,6 +16,7 @@ class CatalogSeeder extends Seeder
 {
     public function run(): void
     {
+        // ── Unidades de medida ────────────────────────────────────────────────
         $und = UnitOfMeasureModel::firstOrCreate(
             ['abbreviation' => 'UND'],
             ['name' => 'Unidad', 'is_base' => true, 'is_active' => true]
@@ -33,11 +34,51 @@ class CatalogSeeder extends Seeder
             ['name' => 'Paquete', 'is_base' => false, 'is_active' => true]
         );
 
+        // ── Categoría ─────────────────────────────────────────────────────────
         $cat = CategoryModel::firstOrCreate(
             ['code' => 'INS-MED'],
             ['name' => 'Insumos Médicos', 'is_active' => true]
         );
 
+        // ── Presentaciones compartidas (independientes de producto) ───────────
+        $master = ProductPresentationModel::firstOrCreate(
+            ['code' => 'CJ-M5000'],
+            [
+                'name'                => 'Caja Maestra x5000',
+                'units_of_measure_id' => $caja->id,
+                'factor_to_base'      => 5000,
+                'level'               => 1,
+                'sort_order'          => 1,
+            ]
+        );
+
+        $cajaPres = ProductPresentationModel::firstOrCreate(
+            ['code' => 'CJ-500'],
+            [
+                'parent_id'           => $master->id,
+                'name'                => 'Caja x500',
+                'units_of_measure_id' => $caja->id,
+                'quantity_per_parent' => 10,
+                'factor_to_base'      => 500,
+                'level'               => 2,
+                'sort_order'          => 2,
+            ]
+        );
+
+        $paqPres = ProductPresentationModel::firstOrCreate(
+            ['code' => 'PQ-100'],
+            [
+                'parent_id'           => $cajaPres->id,
+                'name'                => 'Paquete x100',
+                'units_of_measure_id' => $paq->id,
+                'quantity_per_parent' => 5,
+                'factor_to_base'      => 100,
+                'level'               => 3,
+                'sort_order'          => 3,
+            ]
+        );
+
+        // ── Productos ─────────────────────────────────────────────────────────
         $aguja = ProductModel::firstOrCreate(
             ['code' => 'AGU-21G'],
             [
@@ -51,46 +92,12 @@ class CatalogSeeder extends Seeder
             ]
         );
 
-        $master = ProductPresentationModel::firstOrCreate(
-            ['product_id' => $aguja->id, 'code' => 'CJ-M5000'],
-            [
-                'name'                => 'Caja Maestra x5000',
-                'units_of_measure_id' => $caja->id,
-                'factor_to_base'      => 5000,
-                'level'               => 1,
-                'is_purchase_default' => false,
-                'sort_order'          => 1,
-            ]
-        );
-
-        $cajaPres = ProductPresentationModel::firstOrCreate(
-            ['product_id' => $aguja->id, 'code' => 'CJ-500'],
-            [
-                'parent_id'           => $master->id,
-                'name'                => 'Caja x500',
-                'units_of_measure_id' => $caja->id,
-                'quantity_per_parent' => 10,
-                'factor_to_base'      => 500,
-                'level'               => 2,
-                'sort_order'          => 2,
-            ]
-        );
-
-        $defaultPres = ProductPresentationModel::firstOrCreate(
-            ['product_id' => $aguja->id, 'code' => 'PQ-100'],
-            [
-                'parent_id'           => $cajaPres->id,
-                'name'                => 'Paquete x100',
-                'units_of_measure_id' => $paq->id,
-                'quantity_per_parent' => 5,
-                'factor_to_base'      => 100,
-                'level'               => 3,
-                'is_purchase_default' => true,
-                'sort_order'          => 3,
-            ]
-        );
-
-        $aguja->update(['default_purchase_presentation_id' => $defaultPres->id]);
+        // Asignar presentaciones al producto Aguja (M:N)
+        $aguja->presentations()->syncWithoutDetaching([
+            $master->id   => ['is_purchase_default' => false, 'sort_order' => 1],
+            $cajaPres->id => ['is_purchase_default' => false, 'sort_order' => 2],
+            $paqPres->id  => ['is_purchase_default' => true,  'sort_order' => 3],
+        ]);
 
         $gasa = ProductModel::firstOrCreate(
             ['code' => 'GAS-10X10'],
@@ -103,6 +110,13 @@ class CatalogSeeder extends Seeder
             ]
         );
 
+        // La gasa reutiliza las mismas presentaciones que la aguja
+        $gasa->presentations()->syncWithoutDetaching([
+            $cajaPres->id => ['is_purchase_default' => true,  'sort_order' => 1],
+            $paqPres->id  => ['is_purchase_default' => false, 'sort_order' => 2],
+        ]);
+
+        // ── Kit ───────────────────────────────────────────────────────────────
         $kit = ProductModel::firstOrCreate(
             ['code' => 'KIT-CIR-BAS'],
             [

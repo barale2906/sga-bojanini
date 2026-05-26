@@ -6,6 +6,7 @@ namespace App\Modules\Catalog\Infrastructure\Persistence\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ProductPresentationModel extends Model
@@ -13,7 +14,6 @@ class ProductPresentationModel extends Model
     protected $table = 'product_presentations';
 
     protected $fillable = [
-        'product_id',
         'parent_id',
         'name',
         'code',
@@ -21,7 +21,6 @@ class ProductPresentationModel extends Model
         'quantity_per_parent',
         'factor_to_base',
         'level',
-        'is_purchase_default',
         'is_active',
         'sort_order',
     ];
@@ -29,14 +28,8 @@ class ProductPresentationModel extends Model
     protected function casts(): array
     {
         return [
-            'is_purchase_default' => 'boolean',
-            'is_active'           => 'boolean',
+            'is_active' => 'boolean',
         ];
-    }
-
-    public function product(): BelongsTo
-    {
-        return $this->belongsTo(ProductModel::class, 'product_id');
     }
 
     public function parent(): BelongsTo
@@ -52,5 +45,12 @@ class ProductPresentationModel extends Model
     public function unitOfMeasure(): BelongsTo
     {
         return $this->belongsTo(UnitOfMeasureModel::class, 'units_of_measure_id');
+    }
+
+    public function products(): BelongsToMany
+    {
+        return $this->belongsToMany(ProductModel::class, 'product_presentation', 'presentation_id', 'product_id')
+            ->withPivot(['is_purchase_default', 'sort_order'])
+            ->withTimestamps();
     }
 }

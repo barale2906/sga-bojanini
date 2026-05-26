@@ -8,7 +8,6 @@ class ProductPresentation
 {
     public function __construct(
         private ?int $id,
-        private int $productId,
         private ?int $parentId,
         private string $name,
         private string $code,
@@ -16,7 +15,6 @@ class ProductPresentation
         private ?int $quantityPerParent,
         private int $factorToBase,
         private int $level,
-        private bool $isPurchaseDefault = false,
         private bool $isActive = true,
         private int $sortOrder = 0,
     ) {}
@@ -24,11 +22,6 @@ class ProductPresentation
     public function getId(): ?int
     {
         return $this->id;
-    }
-
-    public function getProductId(): int
-    {
-        return $this->productId;
     }
 
     public function getParentId(): ?int
@@ -64,11 +57,6 @@ class ProductPresentation
     public function getLevel(): int
     {
         return $this->level;
-    }
-
-    public function isPurchaseDefault(): bool
-    {
-        return $this->isPurchaseDefault;
     }
 
     public function isActive(): bool

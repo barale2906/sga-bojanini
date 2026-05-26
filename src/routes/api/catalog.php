@@ -44,12 +44,13 @@ Route::middleware(['auth:sanctum', 'user.is_active'])->prefix('v1')->group(funct
     Route::get('products/{product}/kit-availability', [ProductController::class, 'kitAvailability'])
         ->middleware('permission:stock.ver');
 
-    Route::get('products/{productId}/presentations', [ProductPresentationController::class, 'index'])
+    // Presentaciones independientes (catálogo)
+    Route::get('presentations', [ProductPresentationController::class, 'index'])
         ->middleware('permission:productos.ver');
-    Route::get('products/{productId}/presentations/tree', [ProductPresentationController::class, 'tree'])
+    Route::get('presentations/tree', [ProductPresentationController::class, 'tree'])
         ->middleware('permission:productos.ver');
-    Route::post('products/{productId}/presentations', [ProductPresentationController::class, 'store'])
-        ->middleware('permission:productos.editar');
+    Route::post('presentations', [ProductPresentationController::class, 'store'])
+        ->middleware('permission:productos.crear');
     Route::put('presentations/{presentation}', [ProductPresentationController::class, 'update'])
         ->middleware('permission:productos.editar');
     Route::delete('presentations/{presentation}', [ProductPresentationController::class, 'destroy'])
@@ -59,9 +60,21 @@ Route::middleware(['auth:sanctum', 'user.is_active'])->prefix('v1')->group(funct
     Route::post('presentations/convert-to-base', [ProductPresentationController::class, 'convertToBase'])
         ->middleware('permission:productos.ver');
 
+    // Presentaciones por producto (relación M:N)
+    Route::get('products/{productId}/presentations', [ProductPresentationController::class, 'indexByProduct'])
+        ->middleware('permission:productos.ver');
+    Route::get('products/{productId}/presentations/tree', [ProductPresentationController::class, 'treeByProduct'])
+        ->middleware('permission:productos.ver');
+    Route::post('products/{productId}/presentations/{presentationId}', [ProductPresentationController::class, 'attach'])
+        ->middleware('permission:productos.editar');
+    Route::delete('products/{productId}/presentations/{presentationId}', [ProductPresentationController::class, 'detach'])
+        ->middleware('permission:productos.editar');
+
     Route::get('products/{productId}/kit-components', [ProductKitComponentController::class, 'index'])
         ->middleware('permission:productos.ver');
     Route::put('products/{productId}/kit-components', [ProductKitComponentController::class, 'sync'])
+        ->middleware('permission:productos.editar');
+    Route::delete('products/{productId}/kit-components/{componentId}', [ProductKitComponentController::class, 'destroy'])
         ->middleware('permission:productos.editar');
     Route::post('products/{productId}/kit-components/explode', [ProductKitComponentController::class, 'explode'])
         ->middleware('permission:productos.ver');

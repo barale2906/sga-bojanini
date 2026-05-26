@@ -17,7 +17,6 @@ class ProductPresentationResource extends JsonResource
         if ($p instanceof ProductPresentation) {
             return [
                 'id'                  => $p->getId(),
-                'product_id'          => $p->getProductId(),
                 'parent_id'           => $p->getParentId(),
                 'name'                => $p->getName(),
                 'code'                => $p->getCode(),
@@ -25,7 +24,6 @@ class ProductPresentationResource extends JsonResource
                 'quantity_per_parent' => $p->getQuantityPerParent(),
                 'factor_to_base'      => $p->getFactorToBase(),
                 'level'               => $p->getLevel(),
-                'is_purchase_default' => $p->isPurchaseDefault(),
                 'is_active'           => $p->isActive(),
                 'sort_order'          => $p->getSortOrder(),
             ];

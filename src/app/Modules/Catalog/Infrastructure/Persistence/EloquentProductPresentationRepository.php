@@ -6,6 +6,7 @@ namespace App\Modules\Catalog\Infrastructure\Persistence;
 
 use App\Modules\Catalog\Domain\Entities\ProductPresentation;
 use App\Modules\Catalog\Domain\Repositories\ProductPresentationRepositoryInterface;
+use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductModel;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductPresentationModel;
 
 class EloquentProductPresentationRepository implements ProductPresentationRepositoryInterface
@@ -17,11 +18,25 @@ class EloquentProductPresentationRepository implements ProductPresentationReposi
         return $model ? $this->toDomain($model) : null;
     }
 
+    public function findAll(): array
+    {
+        return ProductPresentationModel::orderBy('level')
+            ->orderBy('sort_order')
+            ->get()
+            ->map(fn ($m) => $this->toDomain($m))
+            ->toArray();
+    }
+
     public function findByProductId(int $productId): array
     {
-        return ProductPresentationModel::where('product_id', $productId)
-            ->orderBy('level')
-            ->orderBy('sort_order')
+        $product = ProductModel::find($productId);
+
+        if ($product === null) {
+            return [];
+        }
+
+        return $product->presentations()
+            ->orderByPivot('sort_order')
             ->get()
             ->map(fn ($m) => $this->toDomain($m))
             ->toArray();
@@ -33,17 +48,15 @@ class EloquentProductPresentationRepository implements ProductPresentationReposi
             ? ProductPresentationModel::findOrFail($presentation->getId())
             : new ProductPresentationModel();
 
-        $model->product_id = $presentation->getProductId();
-        $model->parent_id = $presentation->getParentId();
-        $model->name = $presentation->getName();
-        $model->code = $presentation->getCode();
+        $model->parent_id           = $presentation->getParentId();
+        $model->name                = $presentation->getName();
+        $model->code                = $presentation->getCode();
         $model->units_of_measure_id = $presentation->getUnitsOfMeasureId();
         $model->quantity_per_parent = $presentation->getQuantityPerParent();
-        $model->factor_to_base = $presentation->getFactorToBase();
-        $model->level = $presentation->getLevel();
-        $model->is_purchase_default = $presentation->isPurchaseDefault();
-        $model->is_active = $presentation->isActive();
-        $model->sort_order = $presentation->getSortOrder();
+        $model->factor_to_base      = $presentation->getFactorToBase();
+        $model->level               = $presentation->getLevel();
+        $model->is_active           = $presentation->isActive();
+        $model->sort_order          = $presentation->getSortOrder();
         $model->save();
 
         return $this->toDomain($model);
@@ -54,11 +67,54 @@ class EloquentProductPresentationRepository implements ProductPresentationReposi
         ProductPresentationModel::findOrFail($id)->delete();
     }
 
+    public function attachToProduct(
+        int $presentationId,
+        int $productId,
+        bool $isPurchaseDefault = false,
+        int $sortOrder = 0,
+    ): void {
+        $product = ProductModel::findOrFail($productId);
+
+        if ($isPurchaseDefault) {
+            // Desmarcar cualquier otra presentación default para este producto
+            $product->presentations()->newPivotStatement()
+                ->where('product_id', $productId)
+                ->update(['is_purchase_default' => false]);
+        }
+
+        $product->presentations()->syncWithoutDetaching([
+            $presentationId => [
+                'is_purchase_default' => $isPurchaseDefault,
+                'sort_order'          => $sortOrder,
+            ],
+        ]);
+    }
+
+    public function detachFromProduct(int $presentationId, int $productId): void
+    {
+        $product = ProductModel::findOrFail($productId);
+        $product->presentations()->detach($presentationId);
+    }
+
+    public function setProductDefault(int $presentationId, int $productId): void
+    {
+        $product = ProductModel::findOrFail($productId);
+
+        // Quitar el default anterior
+        $product->presentations()->newPivotStatement()
+            ->where('product_id', $productId)
+            ->update(['is_purchase_default' => false]);
+
+        // Establecer el nuevo default
+        $product->presentations()->updateExistingPivot($presentationId, [
+            'is_purchase_default' => true,
+        ]);
+    }
+
     private function toDomain(ProductPresentationModel $model): ProductPresentation
     {
         return new ProductPresentation(
             id: $model->id,
-            productId: $model->product_id,
             parentId: $model->parent_id,
             name: $model->name,
             code: $model->code,
@@ -66,7 +122,6 @@ class EloquentProductPresentationRepository implements ProductPresentationReposi
             quantityPerParent: $model->quantity_per_parent,
             factorToBase: $model->factor_to_base,
             level: $model->level,
-            isPurchaseDefault: (bool) $model->is_purchase_default,
             isActive: (bool) $model->is_active,
             sortOrder: (int) $model->sort_order,
         );

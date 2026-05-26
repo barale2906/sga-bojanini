@@ -13,7 +13,7 @@ class PresentationHierarchyValidator
     ) {}
 
     /**
-     * @param array{product_id: int, parent_id?: int|null, factor_to_base: int, quantity_per_parent?: int|null, level: int} $data
+     * @param array{parent_id?: int|null, factor_to_base: int, quantity_per_parent?: int|null, level: int} $data
      */
     public function validate(array $data, ?int $excludeId = null): void
     {
@@ -38,8 +38,8 @@ class PresentationHierarchyValidator
                 throw new \DomainException('La presentación padre no existe.');
             }
 
-            if ($parent->getProductId() !== $data['product_id']) {
-                throw new \DomainException('La presentación padre debe pertenecer al mismo producto.');
+            if ($excludeId !== null && $parent->getId() === $excludeId) {
+                throw new \DomainException('Una presentación no puede ser su propio padre.');
             }
 
             if ($parent->getLevel() + 1 !== $data['level']) {

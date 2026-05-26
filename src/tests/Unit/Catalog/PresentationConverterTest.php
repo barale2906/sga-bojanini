@@ -21,7 +21,6 @@ class PresentationConverterTest extends TestCase
         $repo = Mockery::mock(ProductPresentationRepositoryInterface::class);
         $repo->shouldReceive('findById')->with(1)->andReturn(new ProductPresentation(
             id: 1,
-            productId: 1,
             parentId: null,
             name: 'Paquete',
             code: 'PQ-100',
@@ -41,7 +40,6 @@ class PresentationConverterTest extends TestCase
         $repo = Mockery::mock(ProductPresentationRepositoryInterface::class);
         $repo->shouldReceive('findById')->with(1)->andReturn(new ProductPresentation(
             id: 1,
-            productId: 1,
             parentId: null,
             name: 'Paquete',
             code: 'PQ-100',
@@ -63,7 +61,6 @@ class PresentationConverterTest extends TestCase
         $repo = Mockery::mock(ProductPresentationRepositoryInterface::class);
         $repo->shouldReceive('findById')->with(1)->andReturn(new ProductPresentation(
             id: 1,
-            productId: 1,
             parentId: null,
             name: 'Paquete',
             code: 'PQ-100',

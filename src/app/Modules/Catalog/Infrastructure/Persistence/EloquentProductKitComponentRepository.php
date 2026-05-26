@@ -24,6 +24,35 @@ class EloquentProductKitComponentRepository implements ProductKitComponentReposi
             ->toArray();
     }
 
+    public function findWithDetailsByKitProductId(int $kitProductId, bool $activeOnly = false): array
+    {
+        $query = ProductKitComponentModel::with('componentProduct')
+            ->where('kit_product_id', $kitProductId);
+
+        if ($activeOnly) {
+            $query->where('is_active', true);
+        }
+
+        return $query->orderBy('sort_order')
+            ->get()
+            ->map(fn ($m) => [
+                'id'                   => $m->id,
+                'kit_product_id'       => $m->kit_product_id,
+                'component_product_id' => $m->component_product_id,
+                'quantity_per_kit'     => $m->quantity_per_kit,
+                'sort_order'           => (int) $m->sort_order,
+                'notes'                => $m->notes,
+                'is_active'            => (bool) $m->is_active,
+                'component'            => $m->componentProduct ? [
+                    'id'   => $m->componentProduct->id,
+                    'name' => $m->componentProduct->name,
+                    'code' => $m->componentProduct->code,
+                    'sku'  => $m->componentProduct->sku,
+                ] : null,
+            ])
+            ->toArray();
+    }
+
     public function save(ProductKitComponent $component): ProductKitComponent
     {
         $model = $component->getId()
@@ -39,6 +68,15 @@ class EloquentProductKitComponentRepository implements ProductKitComponentReposi
         $model->save();
 
         return $this->toDomain($model);
+    }
+
+    public function deleteById(int $componentId, int $kitProductId): bool
+    {
+        $deleted = ProductKitComponentModel::where('id', $componentId)
+            ->where('kit_product_id', $kitProductId)
+            ->delete();
+
+        return $deleted > 0;
     }
 
     public function deleteByKitProductId(int $kitProductId): void

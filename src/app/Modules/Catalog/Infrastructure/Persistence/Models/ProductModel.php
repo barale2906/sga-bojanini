@@ -59,9 +59,12 @@ class ProductModel extends Model
             ->withTimestamps();
     }
 
-    public function presentations(): HasMany
+    public function presentations(): BelongsToMany
     {
-        return $this->hasMany(ProductPresentationModel::class, 'product_id');
+        return $this->belongsToMany(ProductPresentationModel::class, 'product_presentation', 'product_id', 'presentation_id')
+            ->withPivot(['is_purchase_default', 'sort_order'])
+            ->withTimestamps()
+            ->orderByPivot('sort_order');
     }
 
     public function kitComponents(): HasMany

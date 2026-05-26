@@ -19,7 +19,7 @@ class ProductKitComponentController extends Controller
 
     public function index(int $productId, ProductKitComponentRepositoryInterface $repository): JsonResponse
     {
-        $components = $repository->findByKitProductId($productId, false);
+        $components = $repository->findWithDetailsByKitProductId($productId, false);
 
         return $this->success($components, 'Componentes del kit');
     }
@@ -37,6 +37,17 @@ class ProductKitComponentController extends Controller
         $saved = $useCase->execute($productId, $data['components']);
 
         return $this->success($saved, 'Receta del kit sincronizada');
+    }
+
+    public function destroy(int $productId, int $componentId, ProductKitComponentRepositoryInterface $repository): JsonResponse
+    {
+        $deleted = $repository->deleteById($componentId, $productId);
+
+        if (! $deleted) {
+            return $this->error('Componente no encontrado en este kit.', 404);
+        }
+
+        return $this->success(null, 'Componente eliminado del kit.');
     }
 
     public function explode(int $productId, Request $request, KitExplosionService $service): JsonResponse

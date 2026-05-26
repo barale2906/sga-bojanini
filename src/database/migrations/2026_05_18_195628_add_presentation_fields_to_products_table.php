@@ -8,19 +8,19 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('products', function (Blueprint $table) {
-            $table->foreignId('default_purchase_presentation_id')
-                ->nullable()
-                ->after('base_unit_id')
-                ->constrained('product_presentations')
-                ->nullOnDelete();
+        Schema::create('product_presentation', function (Blueprint $table) {
+            $table->foreignId('product_id')->constrained('products')->cascadeOnDelete();
+            $table->foreignId('presentation_id')->constrained('product_presentations')->cascadeOnDelete();
+            $table->boolean('is_purchase_default')->default(false);
+            $table->unsignedInteger('sort_order')->default(0);
+            $table->timestamps();
+
+            $table->primary(['product_id', 'presentation_id']);
         });
     }
 
     public function down(): void
     {
-        Schema::table('products', function (Blueprint $table) {
-            $table->dropConstrainedForeignId('default_purchase_presentation_id');
-        });
+        Schema::dropIfExists('product_presentation');
     }
 };

@@ -24,7 +24,6 @@ class UpdateProductPresentationUseCase
         }
 
         $payload = [
-            'product_id'          => $existing->getProductId(),
             'parent_id'           => $data['parent_id'] ?? $existing->getParentId(),
             'factor_to_base'      => (int) ($data['factor_to_base'] ?? $existing->getFactorToBase()),
             'quantity_per_parent' => $data['quantity_per_parent'] ?? $existing->getQuantityPerParent(),
@@ -35,7 +34,6 @@ class UpdateProductPresentationUseCase
 
         return $this->presentationRepository->save(new ProductPresentation(
             id: $id,
-            productId: $existing->getProductId(),
             parentId: $payload['parent_id'],
             name: $data['name'] ?? $existing->getName(),
             code: $data['code'] ?? $existing->getCode(),
@@ -43,7 +41,6 @@ class UpdateProductPresentationUseCase
             quantityPerParent: $payload['quantity_per_parent'],
             factorToBase: $payload['factor_to_base'],
             level: $payload['level'],
-            isPurchaseDefault: (bool) ($data['is_purchase_default'] ?? $existing->isPurchaseDefault()),
             isActive: (bool) ($data['is_active'] ?? $existing->isActive()),
             sortOrder: (int) ($data['sort_order'] ?? $existing->getSortOrder()),
         ));
