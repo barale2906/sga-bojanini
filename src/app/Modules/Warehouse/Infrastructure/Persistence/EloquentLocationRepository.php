@@ -68,12 +68,13 @@ class EloquentLocationRepository implements LocationRepositoryInterface
             ? LocationModel::findOrFail($location->getId())
             : new LocationModel();
 
-        $model->zone_id = $location->getZoneId();
-        $model->name = $location->getName();
-        $model->code = $location->getCode();
-        $model->capacity = $location->getCapacity();
-        $model->description = $location->getDescription();
-        $model->is_active = $location->isActive();
+        $model->zone_id       = $location->getZoneId();
+        $model->name          = $location->getName();
+        $model->code          = $location->getCode();
+        $model->volume_cm3    = $location->getVolumeCm3();
+        $model->max_weight_kg = $location->getMaxWeightKg();
+        $model->description   = $location->getDescription();
+        $model->is_active     = $location->isActive();
         $model->save();
 
         return $this->toDomain($model);
@@ -87,13 +88,14 @@ class EloquentLocationRepository implements LocationRepositoryInterface
     private function toDomain(LocationModel $model): Location
     {
         return new Location(
-            id: $model->id,
-            zoneId: $model->zone_id,
-            name: $model->name,
-            code: $model->code,
-            capacity: $model->capacity,
+            id:          $model->id,
+            zoneId:      $model->zone_id,
+            name:        $model->name,
+            code:        $model->code,
+            volumeCm3:   $model->volume_cm3    !== null ? (float) $model->volume_cm3    : null,
+            maxWeightKg: $model->max_weight_kg !== null ? (float) $model->max_weight_kg : null,
             description: $model->description,
-            isActive: (bool) $model->is_active,
+            isActive:    (bool) $model->is_active,
         );
     }
 }

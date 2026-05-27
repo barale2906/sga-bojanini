@@ -16,6 +16,8 @@ class ProductData
         public readonly string $code,
         public readonly ?string $sku = null,
         public readonly ?string $description = null,
+        public readonly ?float $volumeCm3 = null,
+        public readonly ?float $weightKg = null,
         public readonly bool $requiresColdChain = false,
         public readonly int $reorderPoint = 0,
         public readonly int $reorderQuantity = 0,

@@ -10,7 +10,8 @@ class LocationData
         public readonly int $zoneId,
         public readonly string $name,
         public readonly string $code,
-        public readonly ?int $capacity = null,
+        public readonly ?float $volumeCm3 = null,
+        public readonly ?float $maxWeightKg = null,
         public readonly ?string $description = null,
     ) {}
 }

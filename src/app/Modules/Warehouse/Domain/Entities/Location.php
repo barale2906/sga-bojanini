@@ -11,10 +11,10 @@ class Location
         private int $zoneId,
         private string $name,
         private string $code,
-        private ?int $capacity = null,
+        private ?float $volumeCm3 = null,
+        private ?float $maxWeightKg = null,
         private ?string $description = null,
         private bool $isActive = true,
-        private int $currentOccupancy = 0,
     ) {}
 
     public function getId(): ?int
@@ -37,9 +37,14 @@ class Location
         return $this->code;
     }
 
-    public function getCapacity(): ?int
+    public function getVolumeCm3(): ?float
     {
-        return $this->capacity;
+        return $this->volumeCm3;
+    }
+
+    public function getMaxWeightKg(): ?float
+    {
+        return $this->maxWeightKg;
     }
 
     public function getDescription(): ?string
@@ -52,26 +57,23 @@ class Location
         return $this->isActive;
     }
 
-    public function getCurrentOccupancy(): int
+    /** Verifica si hay volumen disponible para alojar el volumen indicado (cm³). */
+    public function hasVolumeFor(float $volumeCm3, float $usedVolumeCm3 = 0.0): bool
     {
-        return $this->currentOccupancy;
-    }
-
-    public function hasCapacity(int $quantity = 1): bool
-    {
-        if ($this->capacity === null) {
+        if ($this->volumeCm3 === null) {
             return true;
         }
 
-        return ($this->currentOccupancy + $quantity) <= $this->capacity;
+        return ($usedVolumeCm3 + $volumeCm3) <= $this->volumeCm3;
     }
 
-    public function getAvailableCapacity(): ?int
+    /** Verifica si la ubicación soporta el peso adicional indicado (kg). */
+    public function hasWeightCapacityFor(float $weightKg, float $usedWeightKg = 0.0): bool
     {
-        if ($this->capacity === null) {
-            return null;
+        if ($this->maxWeightKg === null) {
+            return true;
         }
 
-        return max(0, $this->capacity - $this->currentOccupancy);
+        return ($usedWeightKg + $weightKg) <= $this->maxWeightKg;
     }
 }

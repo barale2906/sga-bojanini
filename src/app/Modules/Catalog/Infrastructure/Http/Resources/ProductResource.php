@@ -24,6 +24,8 @@ class ProductResource extends JsonResource
                 'code'                => $product->getCode(),
                 'sku'                 => $product->getSku(),
                 'description'         => $product->getDescription(),
+                'volume_cm3'          => $product->getVolumeCm3(),
+                'weight_kg'           => $product->getWeightKg(),
                 'requires_cold_chain' => $product->requiresColdChain(),
                 'reorder_point'       => $product->getReorderPoint(),
                 'reorder_quantity'    => $product->getReorderQuantity(),
@@ -33,6 +35,7 @@ class ProductResource extends JsonResource
             ];
         }
 
+        // Eloquent model fallback (show con relaciones cargadas)
         return [
             'id'                  => $product->id,
             'name'                => $product->name,
@@ -40,6 +43,8 @@ class ProductResource extends JsonResource
             'sku'                 => $product->sku,
             'description'         => $product->description,
             'product_type'        => $product->product_type,
+            'volume_cm3'          => $product->volume_cm3 !== null ? (float) $product->volume_cm3 : null,
+            'weight_kg'           => $product->weight_kg  !== null ? (float) $product->weight_kg  : null,
             'requires_cold_chain' => (bool) $product->requires_cold_chain,
             'reorder_point'       => $product->reorder_point,
             'reorder_quantity'    => $product->reorder_quantity,
@@ -57,11 +62,11 @@ class ProductResource extends JsonResource
                 'abbreviation' => $product->baseUnit->abbreviation,
             ]),
             'components'          => $this->whenLoaded('kitComponents', fn () => $product->kitComponents->map(fn ($c) => [
-                'id'                    => $c->id,
-                'component_product_id'  => $c->component_product_id,
-                'quantity_per_kit'      => $c->quantity_per_kit,
-                'sort_order'            => $c->sort_order,
-                'component'             => $c->relationLoaded('componentProduct') ? [
+                'id'                   => $c->id,
+                'component_product_id' => $c->component_product_id,
+                'quantity_per_kit'     => $c->quantity_per_kit,
+                'sort_order'           => $c->sort_order,
+                'component'            => $c->relationLoaded('componentProduct') ? [
                     'id'   => $c->componentProduct->id,
                     'name' => $c->componentProduct->name,
                     'code' => $c->componentProduct->code,

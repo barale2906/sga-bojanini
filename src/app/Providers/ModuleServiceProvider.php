@@ -38,9 +38,11 @@ use App\Modules\Monitoring\Domain\Repositories\SensorRepositoryInterface;
 use App\Modules\Monitoring\Infrastructure\Persistence\EloquentAlertRuleRepository;
 use App\Modules\Monitoring\Infrastructure\Persistence\EloquentSensorReadingRepository;
 use App\Modules\Monitoring\Infrastructure\Persistence\EloquentSensorRepository;
+use App\Modules\Warehouse\Domain\Repositories\CapacityRepositoryInterface;
 use App\Modules\Warehouse\Domain\Repositories\LocationRepositoryInterface;
 use App\Modules\Warehouse\Domain\Repositories\WarehouseRepositoryInterface;
 use App\Modules\Warehouse\Domain\Repositories\ZoneRepositoryInterface;
+use App\Modules\Warehouse\Infrastructure\Persistence\EloquentCapacityRepository;
 use App\Modules\Warehouse\Infrastructure\Persistence\EloquentLocationRepository;
 use App\Modules\Warehouse\Infrastructure\Persistence\EloquentWarehouseRepository;
 use App\Modules\Warehouse\Infrastructure\Persistence\EloquentZoneRepository;
@@ -64,6 +66,7 @@ class ModuleServiceProvider extends ServiceProvider
         WarehouseRepositoryInterface::class => EloquentWarehouseRepository::class,
         ZoneRepositoryInterface::class      => EloquentZoneRepository::class,
         LocationRepositoryInterface::class  => EloquentLocationRepository::class,
+        CapacityRepositoryInterface::class  => EloquentCapacityRepository::class,
 
         // Catalog (Fase 3)
         CategoryRepositoryInterface::class      => EloquentCategoryRepository::class,

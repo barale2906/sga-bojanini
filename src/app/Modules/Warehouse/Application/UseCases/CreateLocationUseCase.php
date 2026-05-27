@@ -27,11 +27,12 @@ class CreateLocationUseCase
         }
 
         $location = new Location(
-            id: null,
-            zoneId: $data->zoneId,
-            name: $data->name,
-            code: $data->code,
-            capacity: $data->capacity,
+            id:          null,
+            zoneId:      $data->zoneId,
+            name:        $data->name,
+            code:        $data->code,
+            volumeCm3:   $data->volumeCm3,
+            maxWeightKg: $data->maxWeightKg,
             description: $data->description,
         );
 

@@ -43,19 +43,21 @@ class CreateProductUseCase
         }
 
         $product = new Product(
-            id: null,
-            categoryId: $data->categoryId,
-            baseUnitId: $data->baseUnitId,
-            productType: $data->productType,
-            name: $data->name,
-            code: $data->code,
-            sku: $data->sku,
-            description: $data->description,
+            id:                null,
+            categoryId:        $data->categoryId,
+            baseUnitId:        $data->baseUnitId,
+            productType:       $data->productType,
+            name:              $data->name,
+            code:              $data->code,
+            sku:               $data->sku,
+            description:       $data->description,
+            volumeCm3:         $data->volumeCm3,
+            weightKg:          $data->weightKg,
             requiresColdChain: $data->requiresColdChain,
-            reorderPoint: $data->reorderPoint,
-            reorderQuantity: $data->reorderQuantity,
-            minStock: $data->minStock,
-            maxStock: $data->maxStock,
+            reorderPoint:      $data->reorderPoint,
+            reorderQuantity:   $data->reorderQuantity,
+            minStock:          $data->minStock,
+            maxStock:          $data->maxStock,
         );
 
         $saved = $this->repository->save($product);

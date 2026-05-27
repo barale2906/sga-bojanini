@@ -46,7 +46,7 @@ class BatchController extends Controller
 
     public function show(int $id): JsonResponse
     {
-        $batch = BatchModel::with('product')->find($id);
+        $batch = BatchModel::with(['product', 'locations.zone'])->find($id);
 
         if ($batch === null) {
             return $this->error('Lote no encontrado', 404);
@@ -57,7 +57,7 @@ class BatchController extends Controller
 
     public function byProduct(int $id): JsonResponse
     {
-        $batches = BatchModel::with('product')
+        $batches = BatchModel::with(['product', 'locations.zone'])
             ->where('product_id', $id)
             ->orderBy('expiration_date')
             ->get();

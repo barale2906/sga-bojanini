@@ -17,6 +17,8 @@ class Product
         private string $code,
         private ?string $sku = null,
         private ?string $description = null,
+        private ?float $volumeCm3 = null,
+        private ?float $weightKg = null,
         private bool $requiresColdChain = false,
         private int $reorderPoint = 0,
         private int $reorderQuantity = 0,
@@ -65,6 +67,16 @@ class Product
         return $this->description;
     }
 
+    public function getVolumeCm3(): ?float
+    {
+        return $this->volumeCm3;
+    }
+
+    public function getWeightKg(): ?float
+    {
+        return $this->weightKg;
+    }
+
     public function requiresColdChain(): bool
     {
         return $this->requiresColdChain;
@@ -108,6 +120,26 @@ class Product
     public function isSimple(): bool
     {
         return $this->productType === ProductType::Simple;
+    }
+
+    /** Calcula el volumen total que ocupa una cantidad dada de este producto (cm³). */
+    public function totalVolume(int $quantity): ?float
+    {
+        if ($this->volumeCm3 === null) {
+            return null;
+        }
+
+        return $this->volumeCm3 * $quantity;
+    }
+
+    /** Calcula el peso total que aporta una cantidad dada de este producto (kg). */
+    public function totalWeight(int $quantity): ?float
+    {
+        if ($this->weightKg === null) {
+            return null;
+        }
+
+        return $this->weightKg * $quantity;
     }
 
     public function activate(): void

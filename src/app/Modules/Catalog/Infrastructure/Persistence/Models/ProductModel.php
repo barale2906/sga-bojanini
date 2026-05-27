@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Modules\Catalog\Infrastructure\Persistence\Models;
 
 use App\Modules\Audit\Infrastructure\Traits\Auditable;
-use Illuminate\Database\Eloquent\Model;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\StockSummaryModel;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -26,6 +26,8 @@ class ProductModel extends Model
         'code',
         'sku',
         'description',
+        'volume_cm3',
+        'weight_kg',
         'requires_cold_chain',
         'reorder_point',
         'reorder_quantity',
@@ -39,6 +41,8 @@ class ProductModel extends Model
         return [
             'requires_cold_chain' => 'boolean',
             'is_active'           => 'boolean',
+            'volume_cm3'          => 'decimal:2',
+            'weight_kg'           => 'decimal:2',
         ];
     }
 

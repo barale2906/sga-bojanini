@@ -38,10 +38,15 @@ class LocationController extends Controller
     public function store(StoreLocationRequest $request, CreateLocationUseCase $useCase): JsonResponse
     {
         $data = new LocationData(
-            zoneId: $request->validated('zone_id'),
-            name: $request->validated('name'),
-            code: $request->validated('code'),
-            capacity: $request->validated('capacity'),
+            zoneId:      $request->validated('zone_id'),
+            name:        $request->validated('name'),
+            code:        $request->validated('code'),
+            volumeCm3:   $request->validated('volume_cm3') !== null
+                            ? (float) $request->validated('volume_cm3')
+                            : null,
+            maxWeightKg: $request->validated('max_weight_kg') !== null
+                            ? (float) $request->validated('max_weight_kg')
+                            : null,
             description: $request->validated('description'),
         );
 
@@ -64,10 +69,15 @@ class LocationController extends Controller
     public function update(int $location, UpdateLocationRequest $request, UpdateLocationUseCase $useCase): JsonResponse
     {
         $data = new LocationData(
-            zoneId: $request->validated('zone_id'),
-            name: $request->validated('name'),
-            code: $request->validated('code'),
-            capacity: $request->validated('capacity'),
+            zoneId:      $request->validated('zone_id'),
+            name:        $request->validated('name'),
+            code:        $request->validated('code'),
+            volumeCm3:   $request->validated('volume_cm3') !== null
+                            ? (float) $request->validated('volume_cm3')
+                            : null,
+            maxWeightKg: $request->validated('max_weight_kg') !== null
+                            ? (float) $request->validated('max_weight_kg')
+                            : null,
             description: $request->validated('description'),
         );
 

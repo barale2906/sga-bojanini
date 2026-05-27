@@ -26,6 +26,8 @@ class StoreProductRequest extends FormRequest
             'code'                => ['required', 'string', 'max:50', 'unique:products,code'],
             'sku'                 => ['nullable', 'string', 'max:100', 'unique:products,sku'],
             'description'         => ['nullable', 'string'],
+            'volume_cm3'          => ['nullable', 'numeric', 'min:0'],
+            'weight_kg'           => ['nullable', 'numeric', 'min:0'],
             'requires_cold_chain' => ['nullable', 'boolean'],
             'reorder_point'       => ['nullable', 'integer', 'min:0'],
             'reorder_quantity'    => ['nullable', 'integer', 'min:0'],
@@ -37,15 +39,17 @@ class StoreProductRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'category_id.required'        => 'La categoría es obligatoria.',
-            'category_id.exists'          => 'La categoría seleccionada no existe.',
+            'category_id.required'  => 'La categoría es obligatoria.',
+            'category_id.exists'    => 'La categoría seleccionada no existe.',
             'base_unit_id.required' => 'La unidad de medida base es obligatoria.',
             'base_unit_id.exists'   => 'La unidad de medida base seleccionada no existe.',
-            'product_type.in'             => 'El tipo de producto debe ser simple o kit.',
-            'name.required'               => 'El nombre del producto es obligatorio.',
-            'code.required'                 => 'El código del producto es obligatorio.',
-            'code.unique'                   => 'Ya existe un producto con este código.',
-            'sku.unique'                    => 'Ya existe un producto con este SKU.',
+            'product_type.in'       => 'El tipo de producto debe ser simple o kit.',
+            'name.required'         => 'El nombre del producto es obligatorio.',
+            'code.required'         => 'El código del producto es obligatorio.',
+            'code.unique'           => 'Ya existe un producto con este código.',
+            'sku.unique'            => 'Ya existe un producto con este SKU.',
+            'volume_cm3.min'        => 'El volumen no puede ser negativo.',
+            'weight_kg.min'         => 'El peso no puede ser negativo.',
         ];
     }
 }

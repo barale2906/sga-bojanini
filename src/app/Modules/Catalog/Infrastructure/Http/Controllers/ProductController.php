@@ -42,7 +42,7 @@ class ProductController extends Controller
     public function store(StoreProductRequest $request, CreateProductUseCase $useCase): JsonResponse
     {
         $validated = $request->validated();
-        $product = $useCase->execute(
+        $product   = $useCase->execute(
             $this->toProductData($validated),
             $validated['components'] ?? null,
         );
@@ -103,9 +103,9 @@ class ProductController extends Controller
         $available = $service->getAvailableKits($product, (int) $request->query('warehouse_id'));
 
         return $this->success([
-            'kit_product_id'  => $product,
-            'warehouse_id'    => (int) $request->query('warehouse_id'),
-            'available_kits'  => $available,
+            'kit_product_id' => $product,
+            'warehouse_id'   => (int) $request->query('warehouse_id'),
+            'available_kits' => $available,
         ], 'Disponibilidad del kit');
     }
 
@@ -116,18 +116,20 @@ class ProductController extends Controller
             : ProductType::Simple;
 
         return new ProductData(
-            categoryId: $validated['category_id'],
-            baseUnitId: $validated['base_unit_id'],
-            productType: $productType,
-            name: $validated['name'],
-            code: $validated['code'],
-            sku: $validated['sku'] ?? null,
-            description: $validated['description'] ?? null,
+            categoryId:        $validated['category_id'],
+            baseUnitId:        $validated['base_unit_id'],
+            productType:       $productType,
+            name:              $validated['name'],
+            code:              $validated['code'],
+            sku:               $validated['sku'] ?? null,
+            description:       $validated['description'] ?? null,
+            volumeCm3:         isset($validated['volume_cm3'])  ? (float) $validated['volume_cm3']  : null,
+            weightKg:          isset($validated['weight_kg'])   ? (float) $validated['weight_kg']   : null,
             requiresColdChain: (bool) ($validated['requires_cold_chain'] ?? false),
-            reorderPoint: (int) ($validated['reorder_point'] ?? 0),
-            reorderQuantity: (int) ($validated['reorder_quantity'] ?? 0),
-            minStock: (int) ($validated['min_stock'] ?? 0),
-            maxStock: (int) ($validated['max_stock'] ?? 0),
+            reorderPoint:      (int) ($validated['reorder_point']    ?? 0),
+            reorderQuantity:   (int) ($validated['reorder_quantity'] ?? 0),
+            minStock:          (int) ($validated['min_stock']        ?? 0),
+            maxStock:          (int) ($validated['max_stock']        ?? 0),
         );
     }
 }

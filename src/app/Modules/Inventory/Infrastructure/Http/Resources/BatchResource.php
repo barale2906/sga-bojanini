@@ -47,6 +47,19 @@ class BatchResource extends JsonResource
                 'code' => $batch->product->code,
                 'name' => $batch->product->name,
             ] : null,
+            'locations'           => $batch->relationLoaded('locations')
+                ? $batch->locations->map(fn ($location) => [
+                    'location_id'   => $location->id,
+                    'location_name' => $location->name,
+                    'location_code' => $location->code,
+                    'quantity'      => $location->pivot->quantity,
+                    'zone'          => $location->relationLoaded('zone') && $location->zone ? [
+                        'zone_id'   => $location->zone->id,
+                        'zone_name' => $location->zone->name,
+                        'zone_code' => $location->zone->code,
+                    ] : null,
+                ])->values()->all()
+                : null,
         ];
     }
 }

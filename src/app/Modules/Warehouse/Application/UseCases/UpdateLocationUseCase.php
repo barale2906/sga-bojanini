@@ -29,13 +29,14 @@ class UpdateLocationUseCase
         }
 
         $location = new Location(
-            id: $id,
-            zoneId: $data->zoneId,
-            name: $data->name,
-            code: $data->code,
-            capacity: $data->capacity,
+            id:          $id,
+            zoneId:      $data->zoneId,
+            name:        $data->name,
+            code:        $data->code,
+            volumeCm3:   $data->volumeCm3,
+            maxWeightKg: $data->maxWeightKg,
             description: $data->description,
-            isActive: $existing->isActive(),
+            isActive:    $existing->isActive(),
         );
 
         return $this->repository->save($location);
