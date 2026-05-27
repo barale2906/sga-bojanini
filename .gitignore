@@ -1,7 +1,17 @@
-# Solo se versiona src/ (aplicación Laravel).
-# En la raíz quedan fuera de git: docker/, Makefile, .cursor/, AGENTS.md, etc.
+# Solo se ignoran datos sensibles y generados.
+# Todo lo demás (docker/, Makefile, etc.) se versiona.
 
-/*
-!/.gitignore
-!/src/
-!/src/**
+# Entorno sensible (nunca versionar)
+src/.env
+
+# Dependencias generadas (se instalan con make init)
+src/vendor/
+src/node_modules/
+
+# Logs
+src/storage/logs/
+
+# IDEs y herramientas locales
+.cursor/
+.idea/
+*.iml

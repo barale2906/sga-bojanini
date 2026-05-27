@@ -1,0 +1,7 @@
+src/vendor
+src/node_modules
+src/storage/logs
+src/.env
+.git
+.gitignore
+*.md

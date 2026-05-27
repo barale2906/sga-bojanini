@@ -1,0 +1,4 @@
+CREATE DATABASE IF NOT EXISTS sga_bojanini CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER IF NOT EXISTS 'sga_user'@'%' IDENTIFIED BY 'SgaBojanini2026!';
+GRANT ALL PRIVILEGES ON sga_bojanini.* TO 'sga_user'@'%';
+FLUSH PRIVILEGES;
