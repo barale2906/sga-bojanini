@@ -6,6 +6,7 @@ use App\Modules\Catalog\Infrastructure\Http\Controllers\ProductController;
 use App\Modules\Catalog\Infrastructure\Http\Controllers\ProductKitComponentController;
 use App\Modules\Catalog\Infrastructure\Http\Controllers\ProductPresentationController;
 use App\Modules\Catalog\Infrastructure\Http\Controllers\SupplierController;
+use App\Modules\Catalog\Infrastructure\Http\Controllers\SupplierProductController;
 use App\Modules\Catalog\Infrastructure\Http\Controllers\UnitOfMeasureController;
 use Illuminate\Support\Facades\Route;
 
@@ -87,6 +88,25 @@ Route::middleware(['auth:sanctum', 'user.is_active'])->prefix('v1')->group(funct
         ->middleware('permission:proveedores.editar')->only(['update']);
     Route::apiResource('suppliers', SupplierController::class)
         ->middleware('permission:proveedores.eliminar')->only(['destroy']);
+
+    // Productos del proveedor
+    Route::prefix('suppliers/{supplierId}/products')->group(function () {
+        Route::get('/', [SupplierProductController::class, 'index'])
+            ->middleware('permission:proveedores.ver');
+
+        // Rutas "by-category" ANTES de {productId} para evitar conflictos de routing
+        Route::post('by-category', [SupplierProductController::class, 'attachByCategory'])
+            ->middleware('permission:proveedores.editar');
+        Route::delete('by-category', [SupplierProductController::class, 'detachByCategory'])
+            ->middleware('permission:proveedores.editar');
+
+        Route::post('{productId}', [SupplierProductController::class, 'attach'])
+            ->middleware('permission:proveedores.editar');
+        Route::put('{productId}', [SupplierProductController::class, 'update'])
+            ->middleware('permission:proveedores.editar');
+        Route::delete('{productId}', [SupplierProductController::class, 'detach'])
+            ->middleware('permission:proveedores.editar');
+    });
 
     Route::post('import/products', [ImportController::class, 'importProducts'])
         ->middleware('permission:productos.importar');

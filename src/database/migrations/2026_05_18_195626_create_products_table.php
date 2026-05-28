@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('sku', 100)->nullable()->unique();
             $table->text('description')->nullable();
             $table->decimal('volume_cm3', 12, 2)->nullable()->comment('Volumen de una unidad del producto (cm³)');
-            $table->decimal('weight_kg', 10, 2)->nullable()->comment('Peso de una unidad del producto (kg)');
+            $table->decimal('weight_kg', 10, 3)->nullable()->comment('Peso de una unidad del producto (kg)');
             $table->boolean('requires_cold_chain')->default(false);
             $table->unsignedInteger('reorder_point')->default(0);
             $table->unsignedInteger('reorder_quantity')->default(0);

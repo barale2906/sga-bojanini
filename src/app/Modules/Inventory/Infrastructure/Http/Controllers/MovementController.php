@@ -10,6 +10,7 @@ use App\Modules\Inventory\Application\UseCases\RegisterExitUseCase;
 use App\Modules\Inventory\Application\UseCases\RegisterReturnUseCase;
 use App\Modules\Inventory\Application\UseCases\TransferStockUseCase;
 use App\Modules\Inventory\Application\UseCases\WriteOffExpiredUseCase;
+use Carbon\Carbon;
 use App\Modules\Inventory\Infrastructure\Http\Requests\StoreAdjustmentRequest;
 use App\Modules\Inventory\Infrastructure\Http\Requests\StoreEntryRequest;
 use App\Modules\Inventory\Infrastructure\Http\Requests\StoreExitRequest;
@@ -129,7 +130,24 @@ class MovementController extends Controller
 
     public function index(Request $request): JsonResponse
     {
+        $request->validate([
+            'date_from'     => ['nullable', 'date_format:Y-m-d'],
+            'date_to'       => ['nullable', 'date_format:Y-m-d', 'after_or_equal:date_from'],
+            'warehouse_id'  => ['nullable', 'integer'],
+            'product_id'    => ['nullable', 'integer'],
+            'movement_type' => ['nullable', 'string'],
+            'per_page'      => ['nullable', 'integer', 'min:1'],
+        ]);
+
         $query = StockMovementModel::with(['product', 'batch', 'user']);
+
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', Carbon::parse($request->date_from)->startOfDay());
+        }
+
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', Carbon::parse($request->date_to)->endOfDay());
+        }
 
         if ($request->filled('warehouse_id')) {
             $query->where('warehouse_id', $request->integer('warehouse_id'));
