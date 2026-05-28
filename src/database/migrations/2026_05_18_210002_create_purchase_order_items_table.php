@@ -18,6 +18,8 @@ return new class extends Migration
             $table->unsignedInteger('quantity_received')->default(0);
             $table->unsignedInteger('quantity_received_base')->default(0);
             $table->decimal('unit_price', 12, 2);
+            $table->decimal('tax_rate', 5, 2)->default(0);
+            $table->decimal('tax_amount', 14, 2)->default(0);
             $table->decimal('total_price', 14, 2);
             $table->text('notes')->nullable();
             $table->timestamps();

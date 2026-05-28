@@ -75,14 +75,17 @@ trait ManagesPurchaseOrderItems
             $item['quantity_requested_base'] = $converter->toBase($presentation->id, $quantity);
             $item['quantity_requested'] = $quantity;
             $item['unit_price'] = (float) $item['unit_price'];
-            $item['total_price'] = round($quantity * $item['unit_price'], 2);
+            $item['tax_rate']   = round((float) ($item['tax_rate'] ?? 0), 2);
+
+            $lineSubtotal       = round($quantity * $item['unit_price'], 2);
+            $item['tax_amount'] = round($lineSubtotal * $item['tax_rate'] / 100, 2);
+            $item['total_price'] = round($lineSubtotal + $item['tax_amount'], 2);
             $items[$index] = $item;
 
-            $subtotal += $item['total_price'];
+            $subtotal += $lineSubtotal;
         }
 
-        $taxRate = (float) config('sga.purchasing.tax_rate', 0);
-        $taxAmount = round($subtotal * $taxRate, 2);
+        $taxAmount = round(array_sum(array_column($items, 'tax_amount')), 2);
 
         return [
             'items'        => $items,
@@ -107,6 +110,8 @@ trait ManagesPurchaseOrderItems
                 'quantity_requested'      => $item['quantity_requested'],
                 'quantity_requested_base' => $item['quantity_requested_base'],
                 'unit_price'              => $item['unit_price'],
+                'tax_rate'                => $item['tax_rate'],
+                'tax_amount'              => $item['tax_amount'],
                 'total_price'             => $item['total_price'],
                 'notes'                   => $item['notes'] ?? null,
             ]);

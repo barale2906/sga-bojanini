@@ -22,6 +22,8 @@ class PurchaseOrderItemModel extends Model
         'quantity_received',
         'quantity_received_base',
         'unit_price',
+        'tax_rate',
+        'tax_amount',
         'total_price',
         'notes',
     ];
@@ -30,6 +32,8 @@ class PurchaseOrderItemModel extends Model
     {
         return [
             'unit_price'  => 'decimal:2',
+            'tax_rate'    => 'decimal:2',
+            'tax_amount'  => 'decimal:2',
             'total_price' => 'decimal:2',
         ];
     }

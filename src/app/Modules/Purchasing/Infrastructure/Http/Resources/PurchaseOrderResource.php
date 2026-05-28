@@ -38,6 +38,16 @@ class PurchaseOrderResource extends JsonResource
                 'name' => $this->warehouse->name,
                 'code' => $this->warehouse->code,
             ]),
+            'tax_breakdown' => $this->whenLoaded('items', function () {
+                return $this->items
+                    ->filter(fn ($item) => (float) $item->tax_rate > 0)
+                    ->groupBy(fn ($item) => number_format((float) $item->tax_rate, 2))
+                    ->map(fn ($group, $rate) => [
+                        'tax_rate'   => (float) $rate,
+                        'tax_amount' => round($group->sum(fn ($i) => (float) $i->tax_amount), 2),
+                    ])
+                    ->values();
+            }),
             'items' => PurchaseOrderItemResource::collection($this->whenLoaded('items')),
         ];
     }

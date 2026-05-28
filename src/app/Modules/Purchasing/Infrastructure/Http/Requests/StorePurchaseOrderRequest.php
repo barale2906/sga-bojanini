@@ -25,6 +25,7 @@ class StorePurchaseOrderRequest extends FormRequest
             'items.*.product_presentation_id' => ['required', 'integer', 'exists:product_presentations,id'],
             'items.*.quantity'                => ['required', 'integer', 'min:1'],
             'items.*.unit_price'              => ['required', 'numeric', 'min:0'],
+            'items.*.tax_rate'                => ['nullable', 'numeric', 'min:0', 'max:100'],
             'items.*.notes'                   => ['nullable', 'string'],
         ];
     }

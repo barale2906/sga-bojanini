@@ -38,6 +38,26 @@ class SupplierProductController extends Controller
     }
 
     /**
+     * GET /v1/products/{productId}/suppliers
+     * Lista todos los proveedores asignados a un producto.
+     */
+    public function suppliersByProduct(int $productId): JsonResponse
+    {
+        $product = ProductModel::find($productId);
+
+        if ($product === null) {
+            return $this->error('Producto no encontrado', 404);
+        }
+
+        $suppliers = $product->suppliers()
+            ->orderBy('name')
+            ->get()
+            ->map(fn ($s) => $this->formatSupplier($s));
+
+        return $this->success($suppliers, 'Proveedores del producto');
+    }
+
+    /**
      * POST /v1/suppliers/{supplierId}/products/{productId}
      * Asigna un producto individual al proveedor.
      *
@@ -233,6 +253,26 @@ class SupplierProductController extends Controller
             'removed'  => $removed,
             'category' => $category->name,
         ], 'Productos de la categoría eliminados del proveedor');
+    }
+
+    private function formatSupplier(mixed $supplier): array
+    {
+        return [
+            'id'           => $supplier->id,
+            'name'         => $supplier->name,
+            'tax_id'       => $supplier->tax_id,
+            'contact_name' => $supplier->contact_name,
+            'phone'        => $supplier->phone,
+            'email'        => $supplier->email,
+            'is_active'    => (bool) $supplier->is_active,
+            'pivot' => [
+                'supplier_sku'            => $supplier->pivot->supplier_sku,
+                'product_presentation_id' => $supplier->pivot->product_presentation_id,
+                'lead_time_days'          => (int) $supplier->pivot->lead_time_days,
+                'unit_price'              => (float) $supplier->pivot->unit_price,
+                'is_preferred'            => (bool) $supplier->pivot->is_preferred,
+            ],
+        ];
     }
 
     private function formatProduct(mixed $product): array

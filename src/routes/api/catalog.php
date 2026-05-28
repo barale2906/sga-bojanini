@@ -45,6 +45,9 @@ Route::middleware(['auth:sanctum', 'user.is_active'])->prefix('v1')->group(funct
     Route::get('products/{product}/kit-availability', [ProductController::class, 'kitAvailability'])
         ->middleware('permission:stock.ver');
 
+    Route::get('products/{productId}/suppliers', [SupplierProductController::class, 'suppliersByProduct'])
+        ->middleware('permission:proveedores.ver');
+
     // Presentaciones independientes (catálogo)
     Route::get('presentations', [ProductPresentationController::class, 'index'])
         ->middleware('permission:productos.ver');

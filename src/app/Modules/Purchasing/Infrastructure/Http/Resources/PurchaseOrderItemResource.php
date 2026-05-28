@@ -22,6 +22,8 @@ class PurchaseOrderItemResource extends JsonResource
             'quantity_received'       => $this->quantity_received,
             'quantity_received_base'  => $this->quantity_received_base,
             'unit_price'              => $this->unit_price,
+            'tax_rate'                => $this->tax_rate,
+            'tax_amount'              => $this->tax_amount,
             'total_price'             => $this->total_price,
             'notes'                   => $this->notes,
             'product'                 => $this->whenLoaded('product', fn () => [
