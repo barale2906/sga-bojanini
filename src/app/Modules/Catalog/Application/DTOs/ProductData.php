@@ -14,6 +14,7 @@ class ProductData
         public readonly ProductType $productType,
         public readonly string $name,
         public readonly string $code,
+        public readonly ?int $classificationId = null,
         public readonly ?string $sku = null,
         public readonly ?string $description = null,
         public readonly ?float $volumeCm3 = null,
@@ -23,5 +24,12 @@ class ProductData
         public readonly int $reorderQuantity = 0,
         public readonly int $minStock = 0,
         public readonly int $maxStock = 0,
+        public readonly ?string $concentration = null,
+        public readonly ?string $riskLevel = null,
+        public readonly ?string $labBrand = null,
+        public readonly ?string $pharmaceuticalForm = null,
+        public readonly ?string $commercialPresentation = null,
+        public readonly ?string $serieReference = null,
+        public readonly ?string $usefulLife = null,
     ) {}
 }

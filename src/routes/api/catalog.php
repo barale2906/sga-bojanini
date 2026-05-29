@@ -2,15 +2,27 @@
 
 use App\Modules\Catalog\Infrastructure\Http\Controllers\CategoryController;
 use App\Modules\Catalog\Infrastructure\Http\Controllers\ImportController;
+use App\Modules\Catalog\Infrastructure\Http\Controllers\ProductClassificationController;
 use App\Modules\Catalog\Infrastructure\Http\Controllers\ProductController;
 use App\Modules\Catalog\Infrastructure\Http\Controllers\ProductKitComponentController;
 use App\Modules\Catalog\Infrastructure\Http\Controllers\ProductPresentationController;
+use App\Modules\Catalog\Infrastructure\Http\Controllers\ProductSanitaryRegistrationController;
 use App\Modules\Catalog\Infrastructure\Http\Controllers\SupplierController;
 use App\Modules\Catalog\Infrastructure\Http\Controllers\SupplierProductController;
 use App\Modules\Catalog\Infrastructure\Http\Controllers\UnitOfMeasureController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth:sanctum', 'user.is_active'])->prefix('v1')->group(function () {
+
+    // Clasificaciones de producto
+    Route::apiResource('product-classifications', ProductClassificationController::class)
+        ->middleware('permission:productos.ver')->only(['index', 'show']);
+    Route::apiResource('product-classifications', ProductClassificationController::class)
+        ->middleware('permission:productos.crear')->only(['store']);
+    Route::apiResource('product-classifications', ProductClassificationController::class)
+        ->middleware('permission:productos.editar')->only(['update']);
+    Route::apiResource('product-classifications', ProductClassificationController::class)
+        ->middleware('permission:productos.eliminar')->only(['destroy']);
 
     Route::apiResource('categories', CategoryController::class)
         ->middleware('permission:productos.ver')->only(['index', 'show']);
@@ -44,6 +56,16 @@ Route::middleware(['auth:sanctum', 'user.is_active'])->prefix('v1')->group(funct
 
     Route::get('products/{product}/kit-availability', [ProductController::class, 'kitAvailability'])
         ->middleware('permission:stock.ver');
+
+    // Registros sanitarios por producto
+    Route::get('products/{productId}/sanitary-registrations', [ProductSanitaryRegistrationController::class, 'index'])
+        ->middleware('permission:productos.ver');
+    Route::post('products/{productId}/sanitary-registrations', [ProductSanitaryRegistrationController::class, 'store'])
+        ->middleware('permission:productos.editar');
+    Route::put('products/{productId}/sanitary-registrations/{registration}', [ProductSanitaryRegistrationController::class, 'update'])
+        ->middleware('permission:productos.editar');
+    Route::delete('products/{productId}/sanitary-registrations/{registration}', [ProductSanitaryRegistrationController::class, 'destroy'])
+        ->middleware('permission:productos.editar');
 
     Route::get('products/{productId}/suppliers', [SupplierProductController::class, 'suppliersByProduct'])
         ->middleware('permission:proveedores.ver');

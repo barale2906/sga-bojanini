@@ -7,6 +7,7 @@ namespace App\Modules\Catalog\Application\UseCases;
 use App\Modules\Catalog\Application\DTOs\ProductData;
 use App\Modules\Catalog\Domain\Entities\Product;
 use App\Modules\Catalog\Domain\Repositories\CategoryRepositoryInterface;
+use App\Modules\Catalog\Domain\Repositories\ProductClassificationRepositoryInterface;
 use App\Modules\Catalog\Domain\Repositories\ProductRepositoryInterface;
 use App\Modules\Catalog\Domain\Repositories\UnitOfMeasureRepositoryInterface;
 use App\Modules\Catalog\Domain\Enums\ProductType;
@@ -19,6 +20,7 @@ class CreateProductUseCase
         private readonly CategoryRepositoryInterface $categoryRepository,
         private readonly UnitOfMeasureRepositoryInterface $unitOfMeasureRepository,
         private readonly SyncKitComponentsUseCase $syncKitComponents,
+        private readonly ProductClassificationRepositoryInterface $classificationRepository,
     ) {}
 
     /**
@@ -42,22 +44,42 @@ class CreateProductUseCase
             throw new \DomainException('La unidad de medida base no existe.');
         }
 
+        $classification = null;
+        if ($data->classificationId !== null) {
+            $classification = $this->classificationRepository->findById($data->classificationId);
+            if ($classification === null) {
+                throw new \DomainException('La clasificación de producto no existe.');
+            }
+
+            if ($classification->hasLabBrand() && empty($data->labBrand)) {
+                throw new \DomainException("La clasificación '{$classification->getName()}' requiere el campo laboratorio/marca.");
+            }
+        }
+
         $product = new Product(
-            id:                null,
-            categoryId:        $data->categoryId,
-            baseUnitId:        $data->baseUnitId,
-            productType:       $data->productType,
-            name:              $data->name,
-            code:              $data->code,
-            sku:               $data->sku,
-            description:       $data->description,
-            volumeCm3:         $data->volumeCm3,
-            weightKg:          $data->weightKg,
-            requiresColdChain: $data->requiresColdChain,
-            reorderPoint:      $data->reorderPoint,
-            reorderQuantity:   $data->reorderQuantity,
-            minStock:          $data->minStock,
-            maxStock:          $data->maxStock,
+            id:                     null,
+            categoryId:             $data->categoryId,
+            baseUnitId:             $data->baseUnitId,
+            productType:            $data->productType,
+            name:                   $data->name,
+            code:                   $data->code,
+            classificationId:       $data->classificationId,
+            sku:                    $data->sku,
+            description:            $data->description,
+            volumeCm3:              $data->volumeCm3,
+            weightKg:               $data->weightKg,
+            requiresColdChain:      $data->requiresColdChain,
+            reorderPoint:           $data->reorderPoint,
+            reorderQuantity:        $data->reorderQuantity,
+            minStock:               $data->minStock,
+            maxStock:               $data->maxStock,
+            concentration:          $data->concentration,
+            riskLevel:              $data->riskLevel,
+            labBrand:               $data->labBrand,
+            pharmaceuticalForm:     $data->pharmaceuticalForm,
+            commercialPresentation: $data->commercialPresentation,
+            serieReference:         $data->serieReference,
+            usefulLife:             $data->usefulLife,
         );
 
         $saved = $this->repository->save($product);

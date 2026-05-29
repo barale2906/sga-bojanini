@@ -55,7 +55,13 @@ class ProductController extends Controller
 
     public function show(int $product): JsonResponse
     {
-        $model = ProductModel::with(['category', 'baseUnit', 'kitComponents.componentProduct'])->find($product);
+        $model = ProductModel::with([
+            'category',
+            'baseUnit',
+            'classification',
+            'kitComponents.componentProduct',
+            'sanitaryRegistrations',
+        ])->find($product);
 
         if ($model === null) {
             return $this->error('Producto no encontrado', 404);
@@ -116,20 +122,28 @@ class ProductController extends Controller
             : ProductType::Simple;
 
         return new ProductData(
-            categoryId:        $validated['category_id'],
-            baseUnitId:        $validated['base_unit_id'],
-            productType:       $productType,
-            name:              $validated['name'],
-            code:              $validated['code'],
-            sku:               $validated['sku'] ?? null,
-            description:       $validated['description'] ?? null,
-            volumeCm3:         isset($validated['volume_cm3'])  ? (float) $validated['volume_cm3']  : null,
-            weightKg:          isset($validated['weight_kg'])   ? (float) $validated['weight_kg']   : null,
-            requiresColdChain: (bool) ($validated['requires_cold_chain'] ?? false),
-            reorderPoint:      (int) ($validated['reorder_point']    ?? 0),
-            reorderQuantity:   (int) ($validated['reorder_quantity'] ?? 0),
-            minStock:          (int) ($validated['min_stock']        ?? 0),
-            maxStock:          (int) ($validated['max_stock']        ?? 0),
+            categoryId:             $validated['category_id'],
+            baseUnitId:             $validated['base_unit_id'],
+            productType:            $productType,
+            name:                   $validated['name'],
+            code:                   $validated['code'],
+            classificationId:       isset($validated['classification_id']) ? (int) $validated['classification_id'] : null,
+            sku:                    $validated['sku'] ?? null,
+            description:            $validated['description'] ?? null,
+            volumeCm3:              isset($validated['volume_cm3']) ? (float) $validated['volume_cm3'] : null,
+            weightKg:               isset($validated['weight_kg'])  ? (float) $validated['weight_kg']  : null,
+            requiresColdChain:      (bool) ($validated['requires_cold_chain'] ?? false),
+            reorderPoint:           (int) ($validated['reorder_point']    ?? 0),
+            reorderQuantity:        (int) ($validated['reorder_quantity'] ?? 0),
+            minStock:               (int) ($validated['min_stock']        ?? 0),
+            maxStock:               (int) ($validated['max_stock']        ?? 0),
+            concentration:          $validated['concentration']           ?? null,
+            riskLevel:              $validated['risk_level']              ?? null,
+            labBrand:               $validated['lab_brand']               ?? null,
+            pharmaceuticalForm:     $validated['pharmaceutical_form']     ?? null,
+            commercialPresentation: $validated['commercial_presentation'] ?? null,
+            serieReference:         $validated['serie_reference']         ?? null,
+            usefulLife:             $validated['useful_life']             ?? null,
         );
     }
 }

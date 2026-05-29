@@ -15,6 +15,7 @@ class Product
         private ProductType $productType,
         private string $name,
         private string $code,
+        private ?int $classificationId = null,
         private ?string $sku = null,
         private ?string $description = null,
         private ?float $volumeCm3 = null,
@@ -25,6 +26,13 @@ class Product
         private int $minStock = 0,
         private int $maxStock = 0,
         private bool $isActive = true,
+        private ?string $concentration = null,
+        private ?string $riskLevel = null,
+        private ?string $labBrand = null,
+        private ?string $pharmaceuticalForm = null,
+        private ?string $commercialPresentation = null,
+        private ?string $serieReference = null,
+        private ?string $usefulLife = null,
     ) {}
 
     public function getId(): ?int
@@ -55,6 +63,11 @@ class Product
     public function getCode(): string
     {
         return $this->code;
+    }
+
+    public function getClassificationId(): ?int
+    {
+        return $this->classificationId;
     }
 
     public function getSku(): ?string
@@ -150,5 +163,40 @@ class Product
     public function deactivate(): void
     {
         $this->isActive = false;
+    }
+
+    public function getConcentration(): ?string
+    {
+        return $this->concentration;
+    }
+
+    public function getRiskLevel(): ?string
+    {
+        return $this->riskLevel;
+    }
+
+    public function getLabBrand(): ?string
+    {
+        return $this->labBrand;
+    }
+
+    public function getPharmaceuticalForm(): ?string
+    {
+        return $this->pharmaceuticalForm;
+    }
+
+    public function getCommercialPresentation(): ?string
+    {
+        return $this->commercialPresentation;
+    }
+
+    public function getSerieReference(): ?string
+    {
+        return $this->serieReference;
+    }
+
+    public function getUsefulLife(): ?string
+    {
+        return $this->usefulLife;
     }
 }

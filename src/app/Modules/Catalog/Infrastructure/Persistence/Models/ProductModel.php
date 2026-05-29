@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+
 class ProductModel extends Model
 {
     use Auditable, SoftDeletes;
@@ -20,6 +21,7 @@ class ProductModel extends Model
 
     protected $fillable = [
         'category_id',
+        'classification_id',
         'base_unit_id',
         'product_type',
         'name',
@@ -34,6 +36,13 @@ class ProductModel extends Model
         'min_stock',
         'max_stock',
         'is_active',
+        'concentration',
+        'risk_level',
+        'lab_brand',
+        'pharmaceutical_form',
+        'commercial_presentation',
+        'serie_reference',
+        'useful_life',
     ];
 
     protected function casts(): array
@@ -49,6 +58,17 @@ class ProductModel extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(CategoryModel::class, 'category_id');
+    }
+
+    public function classification(): BelongsTo
+    {
+        return $this->belongsTo(ProductClassificationModel::class, 'classification_id');
+    }
+
+    public function sanitaryRegistrations(): HasMany
+    {
+        return $this->hasMany(ProductSanitaryRegistrationModel::class, 'product_id')
+            ->orderByDesc('expiry_date');
     }
 
     public function baseUnit(): BelongsTo

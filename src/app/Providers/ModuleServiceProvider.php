@@ -7,15 +7,19 @@ namespace App\Providers;
 use App\Modules\Auth\Domain\Repositories\UserRepositoryInterface;
 use App\Modules\Auth\Infrastructure\Persistence\EloquentUserRepository;
 use App\Modules\Catalog\Domain\Repositories\CategoryRepositoryInterface;
+use App\Modules\Catalog\Domain\Repositories\ProductClassificationRepositoryInterface;
 use App\Modules\Catalog\Domain\Repositories\ProductKitComponentRepositoryInterface;
 use App\Modules\Catalog\Domain\Repositories\ProductPresentationRepositoryInterface;
 use App\Modules\Catalog\Domain\Repositories\ProductRepositoryInterface;
+use App\Modules\Catalog\Domain\Repositories\ProductSanitaryRegistrationRepositoryInterface;
 use App\Modules\Catalog\Domain\Repositories\SupplierRepositoryInterface;
 use App\Modules\Catalog\Domain\Repositories\UnitOfMeasureRepositoryInterface;
 use App\Modules\Catalog\Infrastructure\Persistence\EloquentCategoryRepository;
+use App\Modules\Catalog\Infrastructure\Persistence\EloquentProductClassificationRepository;
 use App\Modules\Catalog\Infrastructure\Persistence\EloquentProductKitComponentRepository;
 use App\Modules\Catalog\Infrastructure\Persistence\EloquentProductPresentationRepository;
 use App\Modules\Catalog\Infrastructure\Persistence\EloquentProductRepository;
+use App\Modules\Catalog\Infrastructure\Persistence\EloquentProductSanitaryRegistrationRepository;
 use App\Modules\Catalog\Infrastructure\Persistence\EloquentSupplierRepository;
 use App\Modules\Catalog\Infrastructure\Persistence\EloquentUnitOfMeasureRepository;
 use App\Modules\Audit\Domain\Repositories\AuditLogRepositoryInterface;
@@ -69,12 +73,14 @@ class ModuleServiceProvider extends ServiceProvider
         CapacityRepositoryInterface::class  => EloquentCapacityRepository::class,
 
         // Catalog (Fase 3)
-        CategoryRepositoryInterface::class      => EloquentCategoryRepository::class,
-        UnitOfMeasureRepositoryInterface::class => EloquentUnitOfMeasureRepository::class,
-        ProductRepositoryInterface::class              => EloquentProductRepository::class,
-        ProductPresentationRepositoryInterface::class  => EloquentProductPresentationRepository::class,
-        ProductKitComponentRepositoryInterface::class  => EloquentProductKitComponentRepository::class,
-        SupplierRepositoryInterface::class             => EloquentSupplierRepository::class,
+        CategoryRepositoryInterface::class                    => EloquentCategoryRepository::class,
+        UnitOfMeasureRepositoryInterface::class               => EloquentUnitOfMeasureRepository::class,
+        ProductRepositoryInterface::class                     => EloquentProductRepository::class,
+        ProductClassificationRepositoryInterface::class       => EloquentProductClassificationRepository::class,
+        ProductPresentationRepositoryInterface::class         => EloquentProductPresentationRepository::class,
+        ProductKitComponentRepositoryInterface::class         => EloquentProductKitComponentRepository::class,
+        ProductSanitaryRegistrationRepositoryInterface::class => EloquentProductSanitaryRegistrationRepository::class,
+        SupplierRepositoryInterface::class                    => EloquentSupplierRepository::class,
 
         // Inventory (Fase 4)
         // BatchRepositoryInterface::class       => EloquentBatchRepository::class,
