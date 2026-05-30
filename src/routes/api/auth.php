@@ -3,6 +3,7 @@
 use App\Modules\Auth\Infrastructure\Http\Controllers\AuthController;
 use App\Modules\Auth\Infrastructure\Http\Controllers\RoleController;
 use App\Modules\Auth\Infrastructure\Http\Controllers\UserController;
+use App\Modules\Shared\Infrastructure\Http\Controllers\MenuController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -13,6 +14,7 @@ Route::prefix('v1')->group(function () {
 
         Route::post('auth/logout', [AuthController::class, 'logout']);
         Route::get('auth/me', [AuthController::class, 'me']);
+        Route::get('auth/menu', [MenuController::class, 'index']);
         Route::put('auth/password', [AuthController::class, 'changePassword']);
         Route::post('auth/refresh', [AuthController::class, 'refresh']);
 

@@ -67,6 +67,10 @@ class RolesAndPermissionsSeeder extends Seeder
             'tablero.ver',
             // Notificaciones
             'notificaciones.ver',
+            // Centros de costo
+            'centros_costo.ver', 'centros_costo.crear', 'centros_costo.editar', 'centros_costo.eliminar',
+            // Servicios médicos
+            'servicios_medicos.ver', 'servicios_medicos.crear', 'servicios_medicos.editar', 'servicios_medicos.eliminar',
         ];
 
         foreach ($permissions as $permission) {
@@ -106,6 +110,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'consumos.ver', 'consumos.crear',
             'tablero.ver',
             'notificaciones.ver',
+            'centros_costo.ver', 'centros_costo.crear', 'centros_costo.editar', 'centros_costo.eliminar',
+            'servicios_medicos.ver', 'servicios_medicos.crear', 'servicios_medicos.editar', 'servicios_medicos.eliminar',
         ]);
 
         // 3. Operador de Almacén — Gestiona inventario día a día
@@ -122,6 +128,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'lecturas.ver', 'lecturas.crear',
             'tablero.ver',
             'notificaciones.ver',
+            'centros_costo.ver',
+            'servicios_medicos.ver',
         ]);
 
         // 4. Compras — Gestiona órdenes de compra
@@ -167,6 +175,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'reportes.ver', 'reportes.exportar',
             'tablero.ver',
             'notificaciones.ver',
+            'centros_costo.ver', 'centros_costo.crear', 'centros_costo.editar',
+            'servicios_medicos.ver', 'servicios_medicos.crear', 'servicios_medicos.editar',
         ]);
 
         // 7. Personal Médico — Solo ve stock y registra consumos
@@ -174,9 +184,12 @@ class RolesAndPermissionsSeeder extends Seeder
         $medicalStaff->givePermissionTo([
             'productos.ver',
             'stock.ver',
+            'movimientos.salida',
             'consumos.ver', 'consumos.crear',
             'tablero.ver',
             'notificaciones.ver',
+            'centros_costo.ver',
+            'servicios_medicos.ver',
         ]);
 
         // ─────────────────────────────────────────

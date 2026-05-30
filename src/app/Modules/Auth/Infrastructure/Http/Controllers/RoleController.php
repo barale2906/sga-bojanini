@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace App\Modules\Auth\Infrastructure\Http\Controllers;
 
+use App\Modules\Auth\Infrastructure\Http\Requests\StoreRoleRequest;
+use App\Modules\Auth\Infrastructure\Http\Requests\UpdateRoleRequest;
 use App\Modules\Auth\Infrastructure\Http\Resources\RoleResource;
 use App\Modules\Shared\Infrastructure\Http\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Permission;
@@ -53,18 +54,12 @@ class RoleController extends Controller
         return $this->success(new RoleResource($role), 'Detalle del rol');
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StoreRoleRequest $request): JsonResponse
     {
-        $request->validate([
-            'name'             => ['required', 'string', 'max:100', 'unique:roles,name'],
-            'permission_ids'   => ['nullable', 'array'],
-            'permission_ids.*' => ['integer', 'exists:permissions,id'],
-        ]);
-
-        $role = Role::create(['name' => $request->input('name'), 'guard_name' => 'web']);
+        $role = Role::create(['name' => $request->validated('name'), 'guard_name' => 'web']);
 
         if ($request->has('permission_ids')) {
-            $permissionNames = Permission::whereIn('id', $request->input('permission_ids'))
+            $permissionNames = Permission::whereIn('id', $request->validated('permission_ids'))
                 ->pluck('name')->toArray();
             $role->syncPermissions($permissionNames);
         }
@@ -74,20 +69,14 @@ class RoleController extends Controller
         return $this->created(new RoleResource($role), 'Rol creado exitosamente');
     }
 
-    public function update(int $id, Request $request): JsonResponse
+    public function update(int $id, UpdateRoleRequest $request): JsonResponse
     {
         $role = Role::findOrFail($id);
 
-        $request->validate([
-            'name'             => ['required', 'string', 'max:100', "unique:roles,name,{$id}"],
-            'permission_ids'   => ['nullable', 'array'],
-            'permission_ids.*' => ['integer', 'exists:permissions,id'],
-        ]);
-
-        $role->update(['name' => $request->input('name')]);
+        $role->update(['name' => $request->validated('name')]);
 
         if ($request->has('permission_ids')) {
-            $permissionNames = Permission::whereIn('id', $request->input('permission_ids'))
+            $permissionNames = Permission::whereIn('id', $request->validated('permission_ids'))
                 ->pluck('name')->toArray();
             $role->syncPermissions($permissionNames);
         }

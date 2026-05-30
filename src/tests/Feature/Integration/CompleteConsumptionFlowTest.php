@@ -4,6 +4,8 @@ namespace Tests\Feature\Integration;
 
 use App\Modules\Auth\Infrastructure\Persistence\Models\UserModel;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductModel;
+use App\Modules\CostCenter\Infrastructure\Persistence\Models\CostCenterModel;
+use App\Modules\CostCenter\Infrastructure\Persistence\Models\MedicalServiceModel;
 use App\Modules\Integration\Infrastructure\Jobs\SyncConsumptionToHCJob;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\BatchModel;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\StockMovementModel;
@@ -31,6 +33,7 @@ class CompleteConsumptionFlowTest extends TestCase
 
         $this->artisan('db:seed', ['--class' => 'Database\\Seeders\\RolesAndPermissionsSeeder']);
         $this->artisan('db:seed', ['--class' => 'Database\\Seeders\\CatalogSeeder']);
+        $this->artisan('db:seed', ['--class' => 'Database\\Seeders\\CostCenterSeeder']);
 
         $admin = UserModel::where('email', 'admin@sga.bojanini.com')->firstOrFail();
         $this->auth = $this->bearerAuthFor($admin);
@@ -59,12 +62,17 @@ class CompleteConsumptionFlowTest extends TestCase
         app(\App\Modules\Inventory\Domain\Services\StockCalculator::class)
             ->recalculateSummary($product->id, $setup['warehouse']->id);
 
+        $costCenter = CostCenterModel::where('type', 'external')->first();
+        $service    = MedicalServiceModel::first();
+
         $this->withHeaders($this->auth)
             ->postJson('/api/v1/consumptions', [
                 'appointment_id'     => 'CITA-E2E-001',
                 'patient_identifier' => 'PAC-E2E',
                 'service_type'       => 'Consulta Dermatológica',
                 'warehouse_id'       => $setup['warehouse']->id,
+                'cost_center_id'     => $costCenter->id,
+                'service_id'         => $service->id,
                 'items'              => [
                     ['product_id' => $product->id, 'quantity' => 25],
                 ],

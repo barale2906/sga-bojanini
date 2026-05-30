@@ -4,6 +4,8 @@ namespace Tests\Feature\Integration;
 
 use App\Modules\Auth\Infrastructure\Persistence\Models\UserModel;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductModel;
+use App\Modules\CostCenter\Infrastructure\Persistence\Models\CostCenterModel;
+use App\Modules\CostCenter\Infrastructure\Persistence\Models\MedicalServiceModel;
 use App\Modules\Integration\Domain\Ports\ClinicalRecordsServiceInterface;
 use App\Modules\Integration\Domain\Ports\SchedulingServiceInterface;
 use App\Modules\Integration\Infrastructure\Jobs\SyncConsumptionToHCJob;
@@ -31,6 +33,7 @@ class MockIntegrationTest extends TestCase
 
         $this->artisan('db:seed', ['--class' => 'Database\\Seeders\\RolesAndPermissionsSeeder']);
         $this->artisan('db:seed', ['--class' => 'Database\\Seeders\\CatalogSeeder']);
+        $this->artisan('db:seed', ['--class' => 'Database\\Seeders\\CostCenterSeeder']);
 
         $admin = UserModel::where('email', 'admin@sga.bojanini.com')->firstOrFail();
         Auth::login($admin);
@@ -102,12 +105,17 @@ class MockIntegrationTest extends TestCase
         $this->createBatch($product->id, 'LOT-CONS', now()->addMonths(3)->format('Y-m-d'), 50, $setup['location'], $setup['warehouse']->id);
         $this->recalculateStock($product->id, $setup['warehouse']->id);
 
+        $costCenter = CostCenterModel::where('type', 'external')->first();
+        $service    = MedicalServiceModel::first();
+
         $this->withHeaders($this->auth())
             ->postJson('/api/v1/consumptions', [
                 'appointment_id'     => 'CITA-00001',
                 'patient_identifier' => 'PAC-00001',
                 'service_type'       => 'Consulta Dermatológica',
                 'warehouse_id'       => $setup['warehouse']->id,
+                'cost_center_id'     => $costCenter->id,
+                'service_id'         => $service->id,
                 'items'              => [
                     ['product_id' => $product->id, 'quantity' => 10],
                 ],

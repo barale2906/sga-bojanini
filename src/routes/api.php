@@ -35,3 +35,6 @@ require __DIR__ . '/api/integration.php';
 // Fase 9: Reportes y Dashboard
 require __DIR__ . '/api/reports.php';
 require __DIR__ . '/api/dashboard.php';
+
+// Fase 10: Centros de Costo y Servicios Médicos
+require __DIR__ . '/api/cost-center.php';

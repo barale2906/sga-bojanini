@@ -7,6 +7,7 @@ namespace App\Modules\Auth\Infrastructure\Http\Controllers;
 use App\Modules\Auth\Application\DTOs\UserData;
 use App\Modules\Auth\Application\UseCases\CreateUserUseCase;
 use App\Modules\Auth\Application\UseCases\UpdateUserUseCase;
+use App\Modules\Auth\Infrastructure\Http\Requests\AssignRolesRequest;
 use App\Modules\Auth\Infrastructure\Http\Requests\StoreUserRequest;
 use App\Modules\Auth\Infrastructure\Http\Requests\UpdateUserRequest;
 use App\Modules\Auth\Infrastructure\Http\Resources\UserResource;
@@ -108,15 +109,10 @@ class UserController extends Controller
         return $this->noContent('Usuario eliminado');
     }
 
-    public function assignRoles(int $id, Request $request): JsonResponse
+    public function assignRoles(int $id, AssignRolesRequest $request): JsonResponse
     {
-        $request->validate([
-            'role_ids'   => ['required', 'array'],
-            'role_ids.*' => ['integer', 'exists:roles,id'],
-        ]);
-
         $user = UserModel::findOrFail($id);
-        $roleNames = Role::whereIn('id', $request->input('role_ids'))->pluck('name')->toArray();
+        $roleNames = Role::whereIn('id', $request->validated('role_ids'))->pluck('name')->toArray();
         $user->syncRoles($roleNames);
         $user->load('roles.permissions');
 

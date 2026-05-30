@@ -10,6 +10,7 @@ use App\Modules\Catalog\Application\UseCases\DeleteProductUseCase;
 use App\Modules\Catalog\Application\UseCases\UpdateProductUseCase;
 use App\Modules\Catalog\Domain\Enums\ProductType;
 use App\Modules\Catalog\Domain\Repositories\ProductRepositoryInterface;
+use App\Modules\Catalog\Infrastructure\Http\Requests\KitAvailabilityRequest;
 use App\Modules\Catalog\Infrastructure\Http\Requests\StoreProductRequest;
 use App\Modules\Catalog\Infrastructure\Http\Requests\UpdateProductRequest;
 use App\Modules\Catalog\Infrastructure\Http\Resources\ProductResource;
@@ -90,7 +91,7 @@ class ProductController extends Controller
         return $this->noContent('Producto eliminado');
     }
 
-    public function kitAvailability(int $product, Request $request, KitAvailabilityService $service): JsonResponse
+    public function kitAvailability(int $product, KitAvailabilityRequest $request, KitAvailabilityService $service): JsonResponse
     {
         $model = ProductModel::find($product);
 
@@ -102,15 +103,11 @@ class ProductController extends Controller
             return $this->error('El producto no es de tipo kit.', 422);
         }
 
-        $request->validate([
-            'warehouse_id' => ['required', 'integer', 'exists:warehouses,id'],
-        ]);
-
-        $available = $service->getAvailableKits($product, (int) $request->query('warehouse_id'));
+        $available = $service->getAvailableKits($product, $request->integer('warehouse_id'));
 
         return $this->success([
             'kit_product_id' => $product,
-            'warehouse_id'   => (int) $request->query('warehouse_id'),
+            'warehouse_id'   => $request->integer('warehouse_id'),
             'available_kits' => $available,
         ], 'Disponibilidad del kit');
     }

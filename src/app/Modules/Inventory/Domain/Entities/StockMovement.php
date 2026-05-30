@@ -18,6 +18,10 @@ class StockMovement
         private ?string $reason = null,
         private ?string $referenceType = null,
         private ?int $referenceId = null,
+        private ?int $costCenterId = null,
+        private ?int $serviceId = null,
+        private ?string $patientDocument = null,
+        private ?string $patientExternalId = null,
         private int $userId = 0,
         private ?string $createdAt = null,
     ) {}
@@ -75,6 +79,26 @@ class StockMovement
     public function getReferenceId(): ?int
     {
         return $this->referenceId;
+    }
+
+    public function getCostCenterId(): ?int
+    {
+        return $this->costCenterId;
+    }
+
+    public function getServiceId(): ?int
+    {
+        return $this->serviceId;
+    }
+
+    public function getPatientDocument(): ?string
+    {
+        return $this->patientDocument;
+    }
+
+    public function getPatientExternalId(): ?string
+    {
+        return $this->patientExternalId;
     }
 
     public function getUserId(): int

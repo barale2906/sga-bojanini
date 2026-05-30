@@ -64,16 +64,20 @@ class RegisterKitExitUseCase
                 }
 
                 $movement = StockMovementModel::create([
-                    'warehouse_id'     => $data['warehouse_id'],
-                    'product_id'       => $component['component_product_id'],
-                    'batch_id'         => $selectedBatches[0]['batch_id'],
-                    'location_from_id' => $data['location_id'] ?? null,
-                    'movement_type'    => 'exit',
-                    'quantity'         => -$component['quantity_base'],
-                    'reason'           => $data['reason'] ?? "Salida kit {$product->code}",
-                    'reference_type'   => 'kit_transaction',
-                    'reference_id'     => $kitTransaction->id,
-                    'user_id'          => $data['user_id'],
+                    'warehouse_id'        => $data['warehouse_id'],
+                    'product_id'          => $component['component_product_id'],
+                    'batch_id'            => $selectedBatches[0]['batch_id'],
+                    'location_from_id'    => $data['location_id'] ?? null,
+                    'movement_type'       => 'exit',
+                    'quantity'            => -$component['quantity_base'],
+                    'reason'              => $data['reason'] ?? "Salida kit {$product->code}",
+                    'reference_type'      => 'kit_transaction',
+                    'reference_id'        => $kitTransaction->id,
+                    'cost_center_id'      => $data['cost_center_id'],
+                    'service_id'          => $data['service_id'] ?? null,
+                    'patient_document'    => $data['patient_document'] ?? null,
+                    'patient_external_id' => $data['patient_external_id'] ?? null,
+                    'user_id'             => $data['user_id'],
                 ]);
 
                 event(new StockMovementCreated(

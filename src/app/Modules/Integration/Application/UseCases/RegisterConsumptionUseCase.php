@@ -38,11 +38,17 @@ class RegisterConsumptionUseCase
         try {
             foreach ($data['items'] as $item) {
                 $exitResult = $this->exitUseCase->execute([
-                    'product_id'   => $item['product_id'],
-                    'warehouse_id' => $data['warehouse_id'],
-                    'quantity'     => $item['quantity'],
-                    'reason'       => 'Consumo en procedimiento',
-                    'user_id'      => Auth::id(),
+                    'product_id'          => $item['product_id'],
+                    'warehouse_id'        => $data['warehouse_id'],
+                    'quantity'            => $item['quantity'],
+                    'reason'              => 'Consumo en procedimiento',
+                    'cost_center_id'      => $data['cost_center_id'],
+                    'service_id'          => $data['service_id'] ?? null,
+                    // patient_identifier del registro de consumo mapea al documento en el movimiento
+                    'patient_document'    => $data['patient_identifier'] ?? null,
+                    // appointment_id actúa como identificador del paciente en el sistema externo
+                    'patient_external_id' => $data['appointment_id'] ?? null,
+                    'user_id'             => Auth::id(),
                 ]);
 
                 $batchId = $this->resolveBatchId($exitResult);

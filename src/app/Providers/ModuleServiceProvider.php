@@ -24,6 +24,10 @@ use App\Modules\Catalog\Infrastructure\Persistence\EloquentSupplierRepository;
 use App\Modules\Catalog\Infrastructure\Persistence\EloquentUnitOfMeasureRepository;
 use App\Modules\Audit\Domain\Repositories\AuditLogRepositoryInterface;
 use App\Modules\Audit\Infrastructure\Persistence\EloquentAuditLogRepository;
+use App\Modules\CostCenter\Domain\Repositories\CostCenterRepositoryInterface;
+use App\Modules\CostCenter\Domain\Repositories\MedicalServiceRepositoryInterface;
+use App\Modules\CostCenter\Infrastructure\Persistence\EloquentCostCenterRepository;
+use App\Modules\CostCenter\Infrastructure\Persistence\EloquentMedicalServiceRepository;
 use App\Modules\Integration\Domain\Ports\ClinicalRecordsServiceInterface;
 use App\Modules\Integration\Domain\Ports\SchedulingServiceInterface;
 use App\Modules\Integration\Domain\Repositories\ConsumptionRecordRepositoryInterface;
@@ -81,6 +85,10 @@ class ModuleServiceProvider extends ServiceProvider
         ProductKitComponentRepositoryInterface::class         => EloquentProductKitComponentRepository::class,
         ProductSanitaryRegistrationRepositoryInterface::class => EloquentProductSanitaryRegistrationRepository::class,
         SupplierRepositoryInterface::class                    => EloquentSupplierRepository::class,
+
+        // CostCenter (Fase 10)
+        CostCenterRepositoryInterface::class    => EloquentCostCenterRepository::class,
+        MedicalServiceRepositoryInterface::class => EloquentMedicalServiceRepository::class,
 
         // Inventory (Fase 4)
         // BatchRepositoryInterface::class       => EloquentBatchRepository::class,

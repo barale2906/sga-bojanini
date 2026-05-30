@@ -7,6 +7,8 @@ namespace App\Modules\Inventory\Infrastructure\Persistence\Models;
 use App\Modules\Audit\Infrastructure\Traits\Auditable;
 use App\Modules\Auth\Infrastructure\Persistence\Models\UserModel;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductModel;
+use App\Modules\CostCenter\Infrastructure\Persistence\Models\CostCenterModel;
+use App\Modules\CostCenter\Infrastructure\Persistence\Models\MedicalServiceModel;
 use App\Modules\Warehouse\Infrastructure\Persistence\Models\LocationModel;
 use App\Modules\Warehouse\Infrastructure\Persistence\Models\WarehouseModel;
 use Illuminate\Database\Eloquent\Model;
@@ -31,6 +33,10 @@ class StockMovementModel extends Model
         'reason',
         'reference_type',
         'reference_id',
+        'cost_center_id',
+        'service_id',
+        'patient_document',
+        'patient_external_id',
         'user_id',
     ];
 
@@ -69,5 +75,15 @@ class StockMovementModel extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(UserModel::class, 'user_id');
+    }
+
+    public function costCenter(): BelongsTo
+    {
+        return $this->belongsTo(CostCenterModel::class, 'cost_center_id');
+    }
+
+    public function medicalService(): BelongsTo
+    {
+        return $this->belongsTo(MedicalServiceModel::class, 'service_id');
     }
 }

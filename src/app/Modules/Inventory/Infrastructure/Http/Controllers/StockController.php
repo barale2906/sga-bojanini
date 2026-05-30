@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Inventory\Infrastructure\Http\Controllers;
 
+use App\Modules\Inventory\Infrastructure\Http\Requests\StockSummaryRequest;
 use App\Modules\Inventory\Infrastructure\Http\Resources\StockResource;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\StockSummaryModel;
 use App\Modules\Shared\Infrastructure\Http\Traits\ApiResponse;
@@ -38,13 +39,8 @@ class StockController extends Controller
         );
     }
 
-    public function summary(Request $request): JsonResponse
+    public function summary(StockSummaryRequest $request): JsonResponse
     {
-        $request->validate([
-            'warehouse_id' => ['required', 'integer', 'exists:warehouses,id'],
-            'product_id'   => ['required', 'integer', 'exists:products,id'],
-        ]);
-
         $summary = StockSummaryModel::with(['product', 'warehouse'])
             ->where('warehouse_id', $request->integer('warehouse_id'))
             ->where('product_id', $request->integer('product_id'))

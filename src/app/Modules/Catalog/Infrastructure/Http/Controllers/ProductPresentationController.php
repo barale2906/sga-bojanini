@@ -12,11 +12,15 @@ use App\Modules\Catalog\Application\UseCases\ListProductPresentationsUseCase;
 use App\Modules\Catalog\Application\UseCases\UpdateProductPresentationUseCase;
 use App\Modules\Catalog\Domain\Services\PresentationConverter;
 use App\Modules\Catalog\Domain\Services\PresentationHierarchyValidator;
+use App\Modules\Catalog\Infrastructure\Http\Requests\AttachPresentationToProductRequest;
+use App\Modules\Catalog\Infrastructure\Http\Requests\ConvertPresentationToBaseRequest;
+use App\Modules\Catalog\Infrastructure\Http\Requests\StoreProductPresentationRequest;
+use App\Modules\Catalog\Infrastructure\Http\Requests\UpdateProductPresentationRequest;
+use App\Modules\Catalog\Infrastructure\Http\Requests\ValidatePresentationHierarchyRequest;
 use App\Modules\Catalog\Infrastructure\Http\Resources\ProductPresentationResource;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductPresentationModel;
 use App\Modules\Shared\Infrastructure\Http\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 
 class ProductPresentationController extends Controller
@@ -25,10 +29,6 @@ class ProductPresentationController extends Controller
 
     // ─── CRUD de presentaciones (independientes de producto) ───────────────────
 
-    /**
-     * GET /v1/presentations
-     * Lista todas las presentaciones disponibles.
-     */
     public function index(ListProductPresentationsUseCase $useCase): JsonResponse
     {
         $items = $useCase->execute();
@@ -39,10 +39,6 @@ class ProductPresentationController extends Controller
         );
     }
 
-    /**
-     * GET /v1/presentations/tree
-     * Árbol completo de presentaciones (raíces con hijos anidados).
-     */
     public function tree(): JsonResponse
     {
         $tree = ProductPresentationModel::with('children.children')
@@ -53,24 +49,9 @@ class ProductPresentationController extends Controller
         return $this->success($tree, 'Árbol de presentaciones');
     }
 
-    /**
-     * POST /v1/presentations
-     * Crea una nueva presentación (sin ligarse a un producto).
-     */
-    public function store(Request $request, CreateProductPresentationUseCase $useCase): JsonResponse
+    public function store(StoreProductPresentationRequest $request, CreateProductPresentationUseCase $useCase): JsonResponse
     {
-        $data = $request->validate([
-            'parent_id'           => ['nullable', 'integer', 'exists:product_presentations,id'],
-            'name'                => ['required', 'string', 'max:255'],
-            'code'                => ['required', 'string', 'max:50', 'unique:product_presentations,code'],
-            'units_of_measure_id' => ['required', 'integer', 'exists:units_of_measure,id'],
-            'quantity_per_parent' => ['nullable', 'integer', 'min:1'],
-            'factor_to_base'      => ['required', 'integer', 'min:1'],
-            'level'               => ['required', 'integer', 'min:1'],
-            'sort_order'          => ['nullable', 'integer', 'min:0'],
-        ]);
-
-        $presentation = $useCase->execute($data);
+        $presentation = $useCase->execute($request->validated());
 
         return $this->created(
             new ProductPresentationResource($presentation),
@@ -78,25 +59,9 @@ class ProductPresentationController extends Controller
         );
     }
 
-    /**
-     * PUT /v1/presentations/{presentation}
-     * Actualiza una presentación existente.
-     */
-    public function update(int $presentation, Request $request, UpdateProductPresentationUseCase $useCase): JsonResponse
+    public function update(int $presentation, UpdateProductPresentationRequest $request, UpdateProductPresentationUseCase $useCase): JsonResponse
     {
-        $data = $request->validate([
-            'parent_id'           => ['nullable', 'integer', 'exists:product_presentations,id'],
-            'name'                => ['sometimes', 'string', 'max:255'],
-            'code'                => ['sometimes', 'string', 'max:50', "unique:product_presentations,code,{$presentation}"],
-            'units_of_measure_id' => ['sometimes', 'integer', 'exists:units_of_measure,id'],
-            'quantity_per_parent' => ['nullable', 'integer', 'min:1'],
-            'factor_to_base'      => ['sometimes', 'integer', 'min:1'],
-            'level'               => ['sometimes', 'integer', 'min:1'],
-            'is_active'           => ['nullable', 'boolean'],
-            'sort_order'          => ['nullable', 'integer', 'min:0'],
-        ]);
-
-        $entity = $useCase->execute($presentation, $data);
+        $entity = $useCase->execute($presentation, $request->validated());
 
         return $this->success(
             new ProductPresentationResource($entity),
@@ -104,10 +69,6 @@ class ProductPresentationController extends Controller
         );
     }
 
-    /**
-     * DELETE /v1/presentations/{presentation}
-     * Elimina una presentación.
-     */
     public function destroy(int $presentation, DeleteProductPresentationUseCase $useCase): JsonResponse
     {
         $useCase->execute($presentation);
@@ -117,10 +78,6 @@ class ProductPresentationController extends Controller
 
     // ─── Relación producto ↔ presentación ─────────────────────────────────────
 
-    /**
-     * GET /v1/products/{productId}/presentations
-     * Lista las presentaciones asignadas a un producto.
-     */
     public function indexByProduct(int $productId, ListProductPresentationsUseCase $useCase): JsonResponse
     {
         $items = $useCase->executeForProduct($productId);
@@ -131,10 +88,6 @@ class ProductPresentationController extends Controller
         );
     }
 
-    /**
-     * GET /v1/products/{productId}/presentations/tree
-     * Árbol de presentaciones asignadas a un producto.
-     */
     public function treeByProduct(int $productId): JsonResponse
     {
         $tree = ProductPresentationModel::with('children.children')
@@ -146,30 +99,17 @@ class ProductPresentationController extends Controller
         return $this->success($tree, 'Árbol de presentaciones del producto');
     }
 
-    /**
-     * POST /v1/products/{productId}/presentations/{presentationId}
-     * Asigna una presentación a un producto.
-     */
     public function attach(
         int $productId,
         int $presentationId,
-        Request $request,
+        AttachPresentationToProductRequest $request,
         AttachPresentationToProductUseCase $useCase,
     ): JsonResponse {
-        $data = $request->validate([
-            'is_purchase_default' => ['nullable', 'boolean'],
-            'sort_order'          => ['nullable', 'integer', 'min:0'],
-        ]);
-
-        $useCase->execute($productId, $presentationId, $data);
+        $useCase->execute($productId, $presentationId, $request->validated());
 
         return $this->success(null, 'Presentación asignada al producto');
     }
 
-    /**
-     * DELETE /v1/products/{productId}/presentations/{presentationId}
-     * Desvincula una presentación de un producto.
-     */
     public function detach(
         int $productId,
         int $presentationId,
@@ -182,17 +122,10 @@ class ProductPresentationController extends Controller
 
     // ─── Utilidades ────────────────────────────────────────────────────────────
 
-    public function validateHierarchy(Request $request, PresentationHierarchyValidator $validator): JsonResponse
+    public function validateHierarchy(ValidatePresentationHierarchyRequest $request, PresentationHierarchyValidator $validator): JsonResponse
     {
-        $data = $request->validate([
-            'parent_id'           => ['nullable', 'integer', 'exists:product_presentations,id'],
-            'factor_to_base'      => ['required', 'integer', 'min:1'],
-            'quantity_per_parent' => ['nullable', 'integer', 'min:1'],
-            'level'               => ['required', 'integer', 'min:1'],
-        ]);
-
         try {
-            $validator->validate($data);
+            $validator->validate($request->validated());
 
             return $this->success(['valid' => true], 'Jerarquía válida');
         } catch (\DomainException $e) {
@@ -200,19 +133,15 @@ class ProductPresentationController extends Controller
         }
     }
 
-    public function convertToBase(Request $request, PresentationConverter $converter): JsonResponse
+    public function convertToBase(ConvertPresentationToBaseRequest $request, PresentationConverter $converter): JsonResponse
     {
-        $data = $request->validate([
-            'presentation_id' => ['required', 'integer', 'exists:product_presentations,id'],
-            'quantity'        => ['required', 'integer', 'min:1'],
-        ]);
-
         try {
-            $base = $converter->toBase($data['presentation_id'], $data['quantity']);
+            $base = $converter->toBase(
+                $request->validated('presentation_id'),
+                $request->validated('quantity'),
+            );
 
-            return $this->success([
-                'quantity_base' => $base,
-            ], 'Conversión realizada');
+            return $this->success(['quantity_base' => $base], 'Conversión realizada');
         } catch (\DomainException $e) {
             return $this->error($e->getMessage(), 422);
         }

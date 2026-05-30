@@ -11,15 +11,17 @@ use App\Modules\Inventory\Application\UseCases\RegisterReturnUseCase;
 use App\Modules\Inventory\Application\UseCases\TransferStockUseCase;
 use App\Modules\Inventory\Application\UseCases\WriteOffExpiredUseCase;
 use Carbon\Carbon;
+use App\Modules\Inventory\Infrastructure\Http\Requests\ListMovementsRequest;
 use App\Modules\Inventory\Infrastructure\Http\Requests\StoreAdjustmentRequest;
 use App\Modules\Inventory\Infrastructure\Http\Requests\StoreEntryRequest;
 use App\Modules\Inventory\Infrastructure\Http\Requests\StoreExitRequest;
+use App\Modules\Inventory\Infrastructure\Http\Requests\StoreReturnRequest;
 use App\Modules\Inventory\Infrastructure\Http\Requests\StoreTransferRequest;
+use App\Modules\Inventory\Infrastructure\Http\Requests\StoreWriteOffRequest;
 use App\Modules\Inventory\Infrastructure\Http\Resources\MovementResource;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\StockMovementModel;
 use App\Modules\Shared\Infrastructure\Http\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 
 class MovementController extends Controller
@@ -56,7 +58,7 @@ class MovementController extends Controller
         }
 
         return $this->created(
-            new MovementResource($result->load(['product', 'batch', 'user'])),
+            new MovementResource($result->load(['product', 'batch', 'user', 'costCenter', 'medicalService'])),
             'Salida registrada exitosamente',
         );
     }
@@ -87,18 +89,10 @@ class MovementController extends Controller
         );
     }
 
-    public function returnStock(Request $request, RegisterReturnUseCase $useCase): JsonResponse
+    public function returnStock(StoreReturnRequest $request, RegisterReturnUseCase $useCase): JsonResponse
     {
-        $data = $request->validate([
-            'product_id'   => ['required', 'integer', 'exists:products,id'],
-            'warehouse_id' => ['required', 'integer', 'exists:warehouses,id'],
-            'location_id'  => ['nullable', 'integer', 'exists:locations,id'],
-            'quantity'     => ['required', 'integer', 'min:1'],
-            'reason'       => ['nullable', 'string'],
-        ]);
-
         $movement = $useCase->execute([
-            ...$data,
+            ...$request->validated(),
             'user_id' => $request->user()->id,
         ]);
 
@@ -108,17 +102,10 @@ class MovementController extends Controller
         );
     }
 
-    public function writeOff(Request $request, WriteOffExpiredUseCase $useCase): JsonResponse
+    public function writeOff(StoreWriteOffRequest $request, WriteOffExpiredUseCase $useCase): JsonResponse
     {
-        $data = $request->validate([
-            'batch_id'     => ['required', 'integer', 'exists:batches,id'],
-            'warehouse_id' => ['required', 'integer', 'exists:warehouses,id'],
-            'location_id'  => ['nullable', 'integer', 'exists:locations,id'],
-            'reason'       => ['nullable', 'string'],
-        ]);
-
         $movement = $useCase->execute([
-            ...$data,
+            ...$request->validated(),
             'user_id' => $request->user()->id,
         ]);
 
@@ -128,18 +115,10 @@ class MovementController extends Controller
         );
     }
 
-    public function index(Request $request): JsonResponse
+    public function index(ListMovementsRequest $request): JsonResponse
     {
-        $request->validate([
-            'date_from'     => ['nullable', 'date_format:Y-m-d'],
-            'date_to'       => ['nullable', 'date_format:Y-m-d', 'after_or_equal:date_from'],
-            'warehouse_id'  => ['nullable', 'integer'],
-            'product_id'    => ['nullable', 'integer'],
-            'movement_type' => ['nullable', 'string'],
-            'per_page'      => ['nullable', 'integer', 'min:1'],
-        ]);
 
-        $query = StockMovementModel::with(['product', 'batch', 'user']);
+        $query = StockMovementModel::with(['product', 'batch', 'user', 'costCenter', 'medicalService']);
 
         if ($request->filled('date_from')) {
             $query->whereDate('created_at', '>=', Carbon::parse($request->date_from)->startOfDay());
@@ -161,6 +140,14 @@ class MovementController extends Controller
             $query->where('movement_type', $request->string('movement_type'));
         }
 
+        if ($request->filled('cost_center_id')) {
+            $query->where('cost_center_id', $request->integer('cost_center_id'));
+        }
+
+        if ($request->filled('cost_center_type')) {
+            $query->whereHas('costCenter', fn ($q) => $q->where('type', $request->string('cost_center_type')));
+        }
+
         $perPage = min(
             (int) $request->query('per_page', config('sga.pagination.default_per_page', 25)),
             config('sga.pagination.max_per_page', 100),
@@ -174,7 +161,7 @@ class MovementController extends Controller
 
     public function show(int $id): JsonResponse
     {
-        $movement = StockMovementModel::with(['product', 'batch', 'user'])->find($id);
+        $movement = StockMovementModel::with(['product', 'batch', 'user', 'costCenter', 'medicalService'])->find($id);
 
         if ($movement === null) {
             return $this->error('Movimiento no encontrado', 404);

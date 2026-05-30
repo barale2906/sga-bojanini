@@ -23,11 +23,21 @@ return new class extends Migration
             $table->text('reason')->nullable();
             $table->string('reference_type', 100)->nullable();
             $table->unsignedBigInteger('reference_id')->nullable();
+
+            // Centro de costo: requerido en movimientos de salida
+            $table->foreignId('cost_center_id')->nullable()->constrained('cost_centers');
+            // Servicio médico: requerido cuando el centro de costo es externo (paciente)
+            $table->foreignId('service_id')->nullable()->constrained('medical_services');
+            // Datos del paciente: vienen de la API externa, solo para centros externos
+            $table->string('patient_document', 50)->nullable();
+            $table->string('patient_external_id', 100)->nullable();
+
             $table->foreignId('user_id')->constrained('users');
             $table->timestamp('created_at')->useCurrent();
 
             $table->index(['product_id', 'created_at'], 'idx_mov_product_created');
             $table->index(['movement_type', 'created_at'], 'idx_mov_type_created');
+            $table->index(['cost_center_id', 'created_at'], 'idx_mov_costcenter_created');
         });
     }
 

@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Modules\Auth\Infrastructure\Persistence\Models\UserModel;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductModel;
+use App\Modules\CostCenter\Infrastructure\Persistence\Models\CostCenterModel;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\BatchModel;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\KitTransactionModel;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\StockMovementModel;
@@ -25,6 +26,7 @@ class InventoryTest extends TestCase
         parent::setUp();
         $this->artisan('db:seed', ['--class' => 'Database\\Seeders\\RolesAndPermissionsSeeder']);
         $this->artisan('db:seed', ['--class' => 'Database\\Seeders\\CatalogSeeder']);
+        $this->artisan('db:seed', ['--class' => 'Database\\Seeders\\CostCenterSeeder']);
 
         $admin = UserModel::where('email', 'admin@sga.bojanini.com')->first();
         $this->token = $admin->createToken('test', $admin->getAllPermissions()->pluck('name')->toArray())->plainTextToken;
@@ -75,12 +77,15 @@ class InventoryTest extends TestCase
 
         $this->recalculateStock($product->id, $setup['warehouse']->id);
 
+        $center = CostCenterModel::where('type', 'internal')->first();
+
         $this->withHeaders($this->auth())
             ->postJson('/api/v1/movements/exit', [
-                'product_id'   => $product->id,
-                'warehouse_id' => $setup['warehouse']->id,
-                'location_id'  => $setup['location']->id,
-                'quantity'     => 30,
+                'product_id'     => $product->id,
+                'warehouse_id'   => $setup['warehouse']->id,
+                'location_id'    => $setup['location']->id,
+                'quantity'       => 30,
+                'cost_center_id' => $center->id,
             ])
             ->assertStatus(201)
             ->assertJsonPath('success', true);
@@ -104,12 +109,15 @@ class InventoryTest extends TestCase
         $this->createBatch($product->id, 'LOT-LOW', now()->addDays(30)->format('Y-m-d'), 10, $setup['location'], $setup['warehouse']->id);
         $this->recalculateStock($product->id, $setup['warehouse']->id);
 
+        $center = CostCenterModel::where('type', 'internal')->first();
+
         $this->withHeaders($this->auth())
             ->postJson('/api/v1/movements/exit', [
-                'product_id'   => $product->id,
-                'warehouse_id' => $setup['warehouse']->id,
-                'location_id'  => $setup['location']->id,
-                'quantity'     => 100,
+                'product_id'     => $product->id,
+                'warehouse_id'   => $setup['warehouse']->id,
+                'location_id'    => $setup['location']->id,
+                'quantity'       => 100,
+                'cost_center_id' => $center->id,
             ])
             ->assertStatus(409)
             ->assertJsonPath('success', false);
@@ -127,13 +135,16 @@ class InventoryTest extends TestCase
         $this->recalculateStock($gasa->id, $setup['warehouse']->id);
         $this->recalculateStock($aguja->id, $setup['warehouse']->id);
 
+        $center = CostCenterModel::where('type', 'internal')->first();
+
         $this->withHeaders($this->auth())
             ->postJson('/api/v1/movements/exit', [
-                'product_id'   => $kit->id,
-                'warehouse_id' => $setup['warehouse']->id,
-                'location_id'  => $setup['location']->id,
-                'quantity'     => 2,
-                'reason'       => 'Cirugía test',
+                'product_id'     => $kit->id,
+                'warehouse_id'   => $setup['warehouse']->id,
+                'location_id'    => $setup['location']->id,
+                'quantity'       => 2,
+                'reason'         => 'Cirugía test',
+                'cost_center_id' => $center->id,
             ])
             ->assertStatus(201)
             ->assertJsonPath('success', true)
