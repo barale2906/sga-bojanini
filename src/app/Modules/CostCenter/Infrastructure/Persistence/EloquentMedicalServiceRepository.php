@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\CostCenter\Infrastructure\Persistence;
 
 use App\Modules\CostCenter\Domain\Entities\MedicalService;
+use App\Modules\CostCenter\Domain\Enums\MedicalServiceType;
 use App\Modules\CostCenter\Domain\Repositories\MedicalServiceRepositoryInterface;
 use App\Modules\CostCenter\Infrastructure\Persistence\Models\MedicalServiceModel;
 
@@ -28,6 +29,18 @@ class EloquentMedicalServiceRepository implements MedicalServiceRepositoryInterf
     {
         $query = MedicalServiceModel::query();
 
+        if (isset($filters['type'])) {
+            $query->where('type', $filters['type']);
+        }
+
+        if (isset($filters['parent_id'])) {
+            $query->where('parent_id', $filters['parent_id']);
+        }
+
+        if (array_key_exists('parent_id_null', $filters) && $filters['parent_id_null']) {
+            $query->whereNull('parent_id');
+        }
+
         if (isset($filters['is_active'])) {
             $query->where('is_active', filter_var($filters['is_active'], FILTER_VALIDATE_BOOLEAN));
         }
@@ -42,12 +55,42 @@ class EloquentMedicalServiceRepository implements MedicalServiceRepositoryInterf
         return $query->orderBy('name')->get()->map(fn ($m) => $this->toDomain($m))->toArray();
     }
 
+    public function findTreeWithProcedures(bool $onlyActive = false): array
+    {
+        $query = MedicalServiceModel::with(['children' => function ($q) use ($onlyActive) {
+            if ($onlyActive) {
+                $q->where('is_active', true);
+            }
+            $q->orderBy('name');
+        }])
+            ->whereNull('parent_id')
+            ->where('type', 'service');
+
+        if ($onlyActive) {
+            $query->where('is_active', true);
+        }
+
+        return $query->orderBy('name')->get()->all();
+    }
+
+    public function findProceduresByServiceId(int $serviceId): array
+    {
+        return MedicalServiceModel::where('parent_id', $serviceId)
+            ->where('type', 'procedure')
+            ->orderBy('name')
+            ->get()
+            ->map(fn ($m) => $this->toDomain($m))
+            ->toArray();
+    }
+
     public function save(MedicalService $service): MedicalService
     {
         $model = $service->getId()
             ? MedicalServiceModel::findOrFail($service->getId())
             : new MedicalServiceModel();
 
+        $model->parent_id   = $service->getParentId();
+        $model->type        = $service->getType()->value;
         $model->code        = $service->getCode();
         $model->name        = $service->getName();
         $model->description = $service->getDescription();
@@ -69,6 +112,8 @@ class EloquentMedicalServiceRepository implements MedicalServiceRepositoryInterf
             code:        $model->code,
             name:        $model->name,
             description: $model->description,
+            type:        MedicalServiceType::from($model->type),
+            parentId:    $model->parent_id,
             isActive:    (bool) $model->is_active,
         );
     }

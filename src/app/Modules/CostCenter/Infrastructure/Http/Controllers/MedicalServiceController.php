@@ -7,8 +7,11 @@ namespace App\Modules\CostCenter\Infrastructure\Http\Controllers;
 use App\Modules\CostCenter\Application\DTOs\MedicalServiceData;
 use App\Modules\CostCenter\Application\UseCases\CreateMedicalServiceUseCase;
 use App\Modules\CostCenter\Application\UseCases\DeleteMedicalServiceUseCase;
+use App\Modules\CostCenter\Application\UseCases\GetMedicalServiceTreeUseCase;
 use App\Modules\CostCenter\Application\UseCases\ListMedicalServicesUseCase;
+use App\Modules\CostCenter\Application\UseCases\ListProceduresByServiceUseCase;
 use App\Modules\CostCenter\Application\UseCases\UpdateMedicalServiceUseCase;
+use App\Modules\CostCenter\Domain\Enums\MedicalServiceType;
 use App\Modules\CostCenter\Infrastructure\Http\Requests\StoreMedicalServiceRequest;
 use App\Modules\CostCenter\Infrastructure\Http\Requests\UpdateMedicalServiceRequest;
 use App\Modules\CostCenter\Infrastructure\Http\Resources\MedicalServiceResource;
@@ -19,31 +22,29 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 
 /**
- * @group Servicios Médicos
+ * @group Servicios Médicos y Procedimientos
  *
- * Catálogo de servicios médicos prestados. Se asocian a los movimientos de salida
- * cuyo centro de costo es externo (pacientes), registrando qué procedimiento
- * motivó el consumo del insumo.
+ * Catálogo de servicios médicos y sus procedimientos en árbol.
+ * Los servicios son nodos raíz; los procedimientos son hijos directos de un servicio.
+ * Solo los procedimientos pueden tener tarifas y registros de paciente.
  */
 class MedicalServiceController extends Controller
 {
     use ApiResponse;
 
     /**
-     * Listar servicios médicos.
+     * Listar servicios médicos y/o procedimientos (plano).
      *
+     * @queryParam type string Filtrar por tipo: service | procedure. Example: procedure
+     * @queryParam parent_id integer Filtrar por servicio padre. Example: 1
      * @queryParam is_active boolean Filtrar por estado activo. Example: true
      * @queryParam search string Buscar por código o nombre. Example: cirugia
      *
-     * @response 200 {
-     *   "success": true,
-     *   "message": "Listado de servicios médicos",
-     *   "data": [{"id": 1, "code": "CIR", "name": "Cirugía General", ...}]
-     * }
+     * @response 200 {"success": true, "message": "Listado de servicios médicos", "data": [...]}
      */
     public function index(Request $request, ListMedicalServicesUseCase $useCase): JsonResponse
     {
-        $filters = $request->only(['is_active', 'search']);
+        $filters = $request->only(['type', 'parent_id', 'is_active', 'search']);
         $items   = $useCase->execute($filters);
 
         return $this->success(
@@ -53,11 +54,47 @@ class MedicalServiceController extends Controller
     }
 
     /**
-     * Obtener un servicio médico.
+     * Árbol de servicios con sus procedimientos anidados.
      *
-     * @urlParam id integer required ID del servicio. Example: 1
+     * @queryParam only_active boolean Incluir solo activos. Example: true
      *
-     * @response 200 {"success": true, "data": {"id": 1, "code": "CIR", ...}}
+     * @response 200 {"success": true, "data": [{"id":1,"type":"service","children":[{"id":2,"type":"procedure",...}]}]}
+     */
+    public function tree(Request $request, GetMedicalServiceTreeUseCase $useCase): JsonResponse
+    {
+        $onlyActive = filter_var($request->query('only_active', false), FILTER_VALIDATE_BOOLEAN);
+        $tree       = $useCase->execute($onlyActive);
+
+        return $this->success(
+            MedicalServiceResource::collection(collect($tree)),
+            'Árbol de servicios médicos',
+        );
+    }
+
+    /**
+     * Listar procedimientos de un servicio.
+     *
+     * @urlParam medical_service integer required ID del servicio padre. Example: 1
+     *
+     * @response 200 {"success": true, "data": [{"id": 2, "type": "procedure", ...}]}
+     * @response 409 {"success": false, "message": "Servicio médico con id 99 no encontrado."}
+     */
+    public function procedures(int $medical_service, ListProceduresByServiceUseCase $useCase): JsonResponse
+    {
+        $items = $useCase->execute($medical_service);
+
+        return $this->success(
+            MedicalServiceResource::collection($items),
+            'Procedimientos del servicio',
+        );
+    }
+
+    /**
+     * Obtener un servicio médico o procedimiento.
+     *
+     * @urlParam id integer required ID. Example: 1
+     *
+     * @response 200 {"success": true, "data": {"id": 1, "type": "service", ...}}
      * @response 404 {"success": false, "message": "Recurso no encontrado."}
      */
     public function show(int $id): JsonResponse
@@ -72,16 +109,18 @@ class MedicalServiceController extends Controller
     }
 
     /**
-     * Crear un servicio médico.
+     * Crear un servicio médico o procedimiento.
      *
-     * @bodyParam code string required Código único (máx. 20 caracteres). Example: CIR
-     * @bodyParam name string required Nombre del servicio. Example: Cirugía General
-     * @bodyParam description string Descripción opcional. Example: Procedimientos quirúrgicos generales
+     * @bodyParam type string Tipo: service (default) | procedure. Example: procedure
+     * @bodyParam parent_id integer ID del servicio padre (requerido si type=procedure). Example: 1
+     * @bodyParam code string required Código único (máx. 20 caracteres). Example: CUR-001
+     * @bodyParam name string required Nombre. Example: Curaciones simples
+     * @bodyParam description string Descripción opcional.
      * @bodyParam is_active boolean Estado inicial (default: true). Example: true
      *
-     * @response 201 {"success": true, "data": {"id": 1, "code": "CIR", ...}}
-     * @response 409 {"success": false, "message": "Ya existe un servicio médico con el código 'CIR'."}
-     * @response 422 {"success": false, "message": "Error de validación.", "errors": {...}}
+     * @response 201 {"success": true, "data": {"id": 2, "type": "procedure", "parent_id": 1, ...}}
+     * @response 409 {"success": false, "message": "Ya existe un servicio médico con el código 'CUR-001'."}
+     * @response 422 {"success": false, "errors": {...}}
      */
     public function store(StoreMedicalServiceRequest $request, CreateMedicalServiceUseCase $useCase): JsonResponse
     {
@@ -91,6 +130,8 @@ class MedicalServiceController extends Controller
             code:        $validated['code'],
             name:        $validated['name'],
             description: $validated['description'] ?? null,
+            type:        MedicalServiceType::from($validated['type'] ?? 'service'),
+            parentId:    isset($validated['parent_id']) ? (int) $validated['parent_id'] : null,
             isActive:    (bool) ($validated['is_active'] ?? true),
         ));
 
@@ -98,16 +139,12 @@ class MedicalServiceController extends Controller
     }
 
     /**
-     * Actualizar un servicio médico.
+     * Actualizar un servicio médico o procedimiento.
      *
-     * @urlParam medical_service integer required ID del servicio. Example: 1
-     * @bodyParam code string required Código único. Example: CIR
-     * @bodyParam name string required Nombre. Example: Cirugía General
-     * @bodyParam description string Descripción. Example: null
-     * @bodyParam is_active boolean Estado. Example: true
+     * @urlParam medical_service integer required ID. Example: 1
      *
      * @response 200 {"success": true, "data": {"id": 1, ...}}
-     * @response 409 {"success": false, "message": "Servicio médico con id 99 no encontrado."}
+     * @response 409 {"success": false, "message": "No se puede cambiar el tipo..."}
      */
     public function update(UpdateMedicalServiceRequest $request, int $medical_service, UpdateMedicalServiceUseCase $useCase): JsonResponse
     {
@@ -117,6 +154,8 @@ class MedicalServiceController extends Controller
             code:        $validated['code'],
             name:        $validated['name'],
             description: $validated['description'] ?? null,
+            type:        MedicalServiceType::from($validated['type'] ?? 'service'),
+            parentId:    isset($validated['parent_id']) ? (int) $validated['parent_id'] : null,
             isActive:    (bool) ($validated['is_active'] ?? true),
         ));
 
@@ -124,12 +163,12 @@ class MedicalServiceController extends Controller
     }
 
     /**
-     * Eliminar un servicio médico.
+     * Eliminar un servicio médico o procedimiento (soft delete).
      *
-     * @urlParam medical_service integer required ID del servicio. Example: 1
+     * @urlParam medical_service integer required ID. Example: 1
      *
      * @response 200 {"success": true, "message": "Servicio médico eliminado"}
-     * @response 409 {"success": false, "message": "No se puede eliminar el servicio porque tiene movimientos de inventario asociados."}
+     * @response 409 {"success": false, "message": "No se puede eliminar el servicio porque tiene procedimientos asociados."}
      */
     public function destroy(int $medical_service, DeleteMedicalServiceUseCase $useCase): JsonResponse
     {

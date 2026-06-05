@@ -10,6 +10,8 @@ return new class extends Migration
     {
         Schema::create('medical_services', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('parent_id')->nullable()->constrained('medical_services')->nullOnDelete();
+            $table->enum('type', ['service', 'procedure'])->default('service');
             $table->string('code', 20)->unique();
             $table->string('name', 100);
             $table->text('description')->nullable();

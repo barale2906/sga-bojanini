@@ -7,6 +7,7 @@ namespace App\Modules\CostCenter\Infrastructure\Persistence\Models;
 use App\Modules\Audit\Infrastructure\Traits\Auditable;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\StockMovementModel;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -18,6 +19,8 @@ class MedicalServiceModel extends Model
     protected $table = 'medical_services';
 
     protected $fillable = [
+        'parent_id',
+        'type',
         'code',
         'name',
         'description',
@@ -29,6 +32,26 @@ class MedicalServiceModel extends Model
         return [
             'is_active' => 'boolean',
         ];
+    }
+
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'parent_id');
+    }
+
+    public function children(): HasMany
+    {
+        return $this->hasMany(self::class, 'parent_id')->orderBy('name');
+    }
+
+    public function procedurePrices(): HasMany
+    {
+        return $this->hasMany(ProcedurePriceModel::class, 'medical_service_id');
+    }
+
+    public function patientProcedureRecords(): HasMany
+    {
+        return $this->hasMany(PatientProcedureRecordModel::class, 'medical_service_id');
     }
 
     public function stockMovements(): HasMany

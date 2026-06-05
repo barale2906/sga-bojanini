@@ -26,8 +26,12 @@ use App\Modules\Audit\Domain\Repositories\AuditLogRepositoryInterface;
 use App\Modules\Audit\Infrastructure\Persistence\EloquentAuditLogRepository;
 use App\Modules\CostCenter\Domain\Repositories\CostCenterRepositoryInterface;
 use App\Modules\CostCenter\Domain\Repositories\MedicalServiceRepositoryInterface;
+use App\Modules\CostCenter\Domain\Repositories\PatientProcedureRecordRepositoryInterface;
+use App\Modules\CostCenter\Domain\Repositories\ProcedurePriceRepositoryInterface;
 use App\Modules\CostCenter\Infrastructure\Persistence\EloquentCostCenterRepository;
 use App\Modules\CostCenter\Infrastructure\Persistence\EloquentMedicalServiceRepository;
+use App\Modules\CostCenter\Infrastructure\Persistence\EloquentPatientProcedureRecordRepository;
+use App\Modules\CostCenter\Infrastructure\Persistence\EloquentProcedurePriceRepository;
 use App\Modules\Integration\Domain\Ports\ClinicalRecordsServiceInterface;
 use App\Modules\Integration\Domain\Ports\SchedulingServiceInterface;
 use App\Modules\Integration\Domain\Repositories\ConsumptionRecordRepositoryInterface;
@@ -87,8 +91,10 @@ class ModuleServiceProvider extends ServiceProvider
         SupplierRepositoryInterface::class                    => EloquentSupplierRepository::class,
 
         // CostCenter (Fase 10)
-        CostCenterRepositoryInterface::class    => EloquentCostCenterRepository::class,
-        MedicalServiceRepositoryInterface::class => EloquentMedicalServiceRepository::class,
+        CostCenterRepositoryInterface::class                  => EloquentCostCenterRepository::class,
+        MedicalServiceRepositoryInterface::class              => EloquentMedicalServiceRepository::class,
+        ProcedurePriceRepositoryInterface::class              => EloquentProcedurePriceRepository::class,
+        PatientProcedureRecordRepositoryInterface::class      => EloquentPatientProcedureRecordRepository::class,
 
         // Inventory (Fase 4)
         // BatchRepositoryInterface::class       => EloquentBatchRepository::class,

@@ -15,12 +15,30 @@ class DeleteMedicalServiceUseCase
 
     public function execute(int $id): void
     {
-        if ($this->repository->findById($id) === null) {
+        $service = $this->repository->findById($id);
+
+        if ($service === null) {
             throw new \DomainException("Servicio médico con id {$id} no encontrado.");
         }
 
-        if (MedicalServiceModel::findOrFail($id)->stockMovements()->exists()) {
+        $model = MedicalServiceModel::findOrFail($id);
+
+        if ($model->stockMovements()->exists()) {
             throw new \DomainException('No se puede eliminar el servicio porque tiene movimientos de inventario asociados.');
+        }
+
+        if ($service->isService() && $model->children()->exists()) {
+            throw new \DomainException('No se puede eliminar el servicio porque tiene procedimientos asociados. Elimine primero los procedimientos.');
+        }
+
+        if ($service->isProcedure()) {
+            if ($model->procedurePrices()->exists()) {
+                throw new \DomainException('No se puede eliminar el procedimiento porque tiene tarifas registradas. Elimine primero las tarifas.');
+            }
+
+            if ($model->patientProcedureRecords()->exists()) {
+                throw new \DomainException('No se puede eliminar el procedimiento porque tiene registros de pacientes asociados.');
+            }
         }
 
         $this->repository->delete($id);

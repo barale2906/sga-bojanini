@@ -19,10 +19,20 @@ class UpdateMedicalServiceRequest extends FormRequest
         $id = (int) $this->route('medical_service');
 
         return [
+            'type'        => ['sometimes', 'string', Rule::in(['service', 'procedure'])],
+            'parent_id'   => ['nullable', 'integer', Rule::exists('medical_services', 'id')->whereNot('id', $id)],
             'code'        => ['required', 'string', 'max:20', Rule::unique('medical_services', 'code')->ignore($id)],
             'name'        => ['required', 'string', 'max:100'],
             'description' => ['nullable', 'string'],
             'is_active'   => ['sometimes', 'boolean'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'parent_id.exists' => 'El servicio padre seleccionado no existe o es el mismo registro.',
+            'type.in'          => 'El tipo debe ser "service" (servicio) o "procedure" (procedimiento).',
         ];
     }
 }

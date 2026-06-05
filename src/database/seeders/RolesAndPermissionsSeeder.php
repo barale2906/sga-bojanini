@@ -71,6 +71,10 @@ class RolesAndPermissionsSeeder extends Seeder
             'centros_costo.ver', 'centros_costo.crear', 'centros_costo.editar', 'centros_costo.eliminar',
             // Servicios médicos
             'servicios_medicos.ver', 'servicios_medicos.crear', 'servicios_medicos.editar', 'servicios_medicos.eliminar',
+            // Tarifas de procedimientos
+            'procedimientos.ver', 'procedimientos.crear', 'procedimientos.editar', 'procedimientos.eliminar',
+            // Registros de procedimientos por paciente
+            'registros_procedimientos.ver', 'registros_procedimientos.crear', 'registros_procedimientos.editar', 'registros_procedimientos.eliminar',
         ];
 
         foreach ($permissions as $permission) {
@@ -112,6 +116,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'notificaciones.ver',
             'centros_costo.ver', 'centros_costo.crear', 'centros_costo.editar', 'centros_costo.eliminar',
             'servicios_medicos.ver', 'servicios_medicos.crear', 'servicios_medicos.editar', 'servicios_medicos.eliminar',
+            'procedimientos.ver', 'procedimientos.crear', 'procedimientos.editar', 'procedimientos.eliminar',
+            'registros_procedimientos.ver', 'registros_procedimientos.crear', 'registros_procedimientos.editar', 'registros_procedimientos.eliminar',
         ]);
 
         // 3. Operador de Almacén — Gestiona inventario día a día
@@ -130,6 +136,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'notificaciones.ver',
             'centros_costo.ver',
             'servicios_medicos.ver',
+            'procedimientos.ver',
+            'registros_procedimientos.ver', 'registros_procedimientos.crear',
         ]);
 
         // 4. Compras — Gestiona órdenes de compra
@@ -177,6 +185,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'notificaciones.ver',
             'centros_costo.ver', 'centros_costo.crear', 'centros_costo.editar',
             'servicios_medicos.ver', 'servicios_medicos.crear', 'servicios_medicos.editar',
+            'procedimientos.ver', 'procedimientos.crear', 'procedimientos.editar',
+            'registros_procedimientos.ver', 'registros_procedimientos.crear', 'registros_procedimientos.editar',
         ]);
 
         // 7. Personal Médico — Solo ve stock y registra consumos
@@ -190,6 +200,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'notificaciones.ver',
             'centros_costo.ver',
             'servicios_medicos.ver',
+            'procedimientos.ver',
+            'registros_procedimientos.ver', 'registros_procedimientos.crear',
         ]);
 
         // ─────────────────────────────────────────

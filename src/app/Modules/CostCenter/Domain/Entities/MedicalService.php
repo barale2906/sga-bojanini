@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace App\Modules\CostCenter\Domain\Entities;
 
+use App\Modules\CostCenter\Domain\Enums\MedicalServiceType;
+
 /**
- * Entidad de dominio que representa un servicio médico prestado.
+ * Entidad de dominio que representa un servicio médico o un procedimiento.
  *
- * Los servicios médicos se registran en los movimientos de salida
- * cuando el centro de costo es externo (pacientes), indicando
- * qué procedimiento o atención motivó el consumo del insumo.
+ * Estructura en árbol: un servicio puede tener procedimientos como hijos.
+ * Solo los nodos de tipo PROCEDURE pueden tener precios y registros de paciente.
  */
 class MedicalService
 {
@@ -18,6 +19,8 @@ class MedicalService
         private string $code,
         private string $name,
         private ?string $description,
+        private MedicalServiceType $type = MedicalServiceType::SERVICE,
+        private ?int $parentId = null,
         private bool $isActive = true,
     ) {}
 
@@ -41,9 +44,34 @@ class MedicalService
         return $this->description;
     }
 
+    public function getType(): MedicalServiceType
+    {
+        return $this->type;
+    }
+
+    public function getParentId(): ?int
+    {
+        return $this->parentId;
+    }
+
     public function isActive(): bool
     {
         return $this->isActive;
+    }
+
+    public function isService(): bool
+    {
+        return $this->type->isService();
+    }
+
+    public function isProcedure(): bool
+    {
+        return $this->type->isProcedure();
+    }
+
+    public function isRoot(): bool
+    {
+        return $this->parentId === null;
     }
 
     public function activate(): void
