@@ -20,6 +20,8 @@ class PatientProcedureHistoryResource extends JsonResource
         return [
             'patient_external_id' => $data['patient_external_id'],
             'patient_document'    => $data['patient_document'],
+            'patient_first_name'  => $data['patient_first_name'],
+            'patient_last_name'   => $data['patient_last_name'],
             'summary'             => [
                 'total_records'      => $data['summary']['total_records'],
                 'total_amount'       => $data['summary']['total_amount'],
@@ -38,7 +40,6 @@ class PatientProcedureHistoryResource extends JsonResource
                     'quantity'           => $r['quantity'],
                     'unit_price'         => $r['unit_price'],
                     'total'              => $r['total'],
-                    'notes'              => $r['notes'],
                     'is_active'          => $r['is_active'],
                 ],
                 $data['records'],

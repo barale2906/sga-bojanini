@@ -33,6 +33,8 @@ class UpdatePatientProcedureRecordUseCase
             medicalServiceId:  $data->medicalServiceId,
             patientExternalId: $data->patientExternalId,
             patientDocument:   $data->patientDocument,
+            patientFirstName:  $data->patientFirstName,
+            patientLastName:   $data->patientLastName,
             quantity:          $data->quantity,
             unitPrice:         $data->unitPrice,
             total:             PatientProcedureRecord::calculateTotal($data->quantity, $data->unitPrice),

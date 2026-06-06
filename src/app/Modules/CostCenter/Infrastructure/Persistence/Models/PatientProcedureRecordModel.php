@@ -20,6 +20,8 @@ class PatientProcedureRecordModel extends Model
         'medical_service_id',
         'patient_external_id',
         'patient_document',
+        'patient_first_name',
+        'patient_last_name',
         'quantity',
         'unit_price',
         'total',

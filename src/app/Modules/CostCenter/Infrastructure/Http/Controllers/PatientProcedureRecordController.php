@@ -90,6 +90,8 @@ class PatientProcedureRecordController extends Controller
      * @bodyParam medical_service_id integer required ID del procedimiento (type=procedure). Example: 2
      * @bodyParam patient_external_id string required ID del paciente en sistema externo. Example: PAC-001
      * @bodyParam patient_document string required Documento del paciente. Example: 12345678
+     * @bodyParam patient_first_name string required Nombres del paciente. Example: Juan Carlos
+     * @bodyParam patient_last_name string required Apellidos del paciente. Example: Pérez Gómez
      * @bodyParam quantity number required Cantidad (> 0). Example: 2
      * @bodyParam unit_price number required Precio unitario (>= 0). Example: 50000
      * @bodyParam service_date string required Fecha de atención Y-m-d (no futura). Example: 2026-06-01
@@ -107,6 +109,8 @@ class PatientProcedureRecordController extends Controller
             medicalServiceId:  (int) $validated['medical_service_id'],
             patientExternalId: $validated['patient_external_id'],
             patientDocument:   $validated['patient_document'],
+            patientFirstName:  $validated['patient_first_name'],
+            patientLastName:   $validated['patient_last_name'],
             quantity:          (float) $validated['quantity'],
             unitPrice:         (float) $validated['unit_price'],
             serviceDate:       new DateTimeImmutable($validated['service_date']),
@@ -132,6 +136,8 @@ class PatientProcedureRecordController extends Controller
             medicalServiceId:  (int) $validated['medical_service_id'],
             patientExternalId: $validated['patient_external_id'],
             patientDocument:   $validated['patient_document'],
+            patientFirstName:  $validated['patient_first_name'],
+            patientLastName:   $validated['patient_last_name'],
             quantity:          (float) $validated['quantity'],
             unitPrice:         (float) $validated['unit_price'],
             serviceDate:       new DateTimeImmutable($validated['service_date']),

@@ -19,33 +19,40 @@ class PatientProcedureRecord
         private int $medicalServiceId,
         private string $patientExternalId,
         private string $patientDocument,
+        private string $patientFirstName,
+        private string $patientLastName,
         private float $quantity,
         private float $unitPrice,
         private float $total,
         private DateTimeImmutable $serviceDate,
         private ?string $notes = null,
         private bool $isActive = true,
+        private ?string $medicalServiceName = null,
     ) {}
 
     public static function create(
         int $medicalServiceId,
         string $patientExternalId,
         string $patientDocument,
+        string $patientFirstName,
+        string $patientLastName,
         float $quantity,
         float $unitPrice,
         DateTimeImmutable $serviceDate,
         ?string $notes = null,
     ): self {
         return new self(
-            id:                null,
-            medicalServiceId:  $medicalServiceId,
+            id:               null,
+            medicalServiceId: $medicalServiceId,
             patientExternalId: $patientExternalId,
-            patientDocument:   $patientDocument,
-            quantity:          $quantity,
-            unitPrice:         $unitPrice,
-            total:             self::calculateTotal($quantity, $unitPrice),
-            serviceDate:       $serviceDate,
-            notes:             $notes,
+            patientDocument:  $patientDocument,
+            patientFirstName: $patientFirstName,
+            patientLastName:  $patientLastName,
+            quantity:         $quantity,
+            unitPrice:        $unitPrice,
+            total:            self::calculateTotal($quantity, $unitPrice),
+            serviceDate:      $serviceDate,
+            notes:            $notes,
         );
     }
 
@@ -72,6 +79,16 @@ class PatientProcedureRecord
     public function getPatientDocument(): string
     {
         return $this->patientDocument;
+    }
+
+    public function getPatientFirstName(): string
+    {
+        return $this->patientFirstName;
+    }
+
+    public function getPatientLastName(): string
+    {
+        return $this->patientLastName;
     }
 
     public function getQuantity(): float
@@ -102,6 +119,11 @@ class PatientProcedureRecord
     public function isActive(): bool
     {
         return $this->isActive;
+    }
+
+    public function getMedicalServiceName(): ?string
+    {
+        return $this->medicalServiceName;
     }
 
     public function activate(): void

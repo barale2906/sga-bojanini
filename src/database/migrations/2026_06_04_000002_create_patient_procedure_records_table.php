@@ -15,6 +15,8 @@ return new class extends Migration
                   ->restrictOnDelete();
             $table->string('patient_external_id', 100);
             $table->string('patient_document', 50);
+            $table->string('patient_first_name', 100);
+            $table->string('patient_last_name', 100);
             $table->decimal('quantity', 10, 4);
             $table->decimal('unit_price', 12, 2);
             $table->decimal('total', 14, 2);

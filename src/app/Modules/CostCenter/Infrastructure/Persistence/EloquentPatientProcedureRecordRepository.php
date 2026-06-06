@@ -46,7 +46,8 @@ class EloquentPatientProcedureRecordRepository implements PatientProcedureRecord
             $query->where('is_active', filter_var($filters['is_active'], FILTER_VALIDATE_BOOLEAN));
         }
 
-        return $query->orderByDesc('service_date')
+        return $query->with('medicalService')
+            ->orderByDesc('service_date')
             ->get()
             ->map(fn ($m) => $this->toDomain($m))
             ->toArray();
@@ -84,6 +85,8 @@ class EloquentPatientProcedureRecordRepository implements PatientProcedureRecord
                 'service_name'        => $m->medicalService?->parent?->name,
                 'patient_external_id' => $m->patient_external_id,
                 'patient_document'    => $m->patient_document,
+                'patient_first_name'  => $m->patient_first_name,
+                'patient_last_name'   => $m->patient_last_name,
                 'quantity'            => (float) $m->quantity,
                 'unit_price'          => (float) $m->unit_price,
                 'total'               => (float) $m->total,
@@ -103,6 +106,8 @@ class EloquentPatientProcedureRecordRepository implements PatientProcedureRecord
         $model->medical_service_id  = $record->getMedicalServiceId();
         $model->patient_external_id = $record->getPatientExternalId();
         $model->patient_document    = $record->getPatientDocument();
+        $model->patient_first_name  = $record->getPatientFirstName();
+        $model->patient_last_name   = $record->getPatientLastName();
         $model->quantity            = $record->getQuantity();
         $model->unit_price          = $record->getUnitPrice();
         $model->total               = $record->getTotal();
@@ -122,16 +127,19 @@ class EloquentPatientProcedureRecordRepository implements PatientProcedureRecord
     private function toDomain(PatientProcedureRecordModel $model): PatientProcedureRecord
     {
         return new PatientProcedureRecord(
-            id:                $model->id,
-            medicalServiceId:  $model->medical_service_id,
-            patientExternalId: $model->patient_external_id,
-            patientDocument:   $model->patient_document,
-            quantity:          (float) $model->quantity,
-            unitPrice:         (float) $model->unit_price,
-            total:             (float) $model->total,
-            serviceDate:       new DateTimeImmutable($model->service_date->format('Y-m-d')),
-            notes:             $model->notes,
-            isActive:          (bool) $model->is_active,
+            id:                 $model->id,
+            medicalServiceId:   $model->medical_service_id,
+            patientExternalId:  $model->patient_external_id,
+            patientDocument:    $model->patient_document,
+            patientFirstName:   $model->patient_first_name,
+            patientLastName:    $model->patient_last_name,
+            quantity:           (float) $model->quantity,
+            unitPrice:          (float) $model->unit_price,
+            total:              (float) $model->total,
+            serviceDate:        new DateTimeImmutable($model->service_date->format('Y-m-d')),
+            notes:              $model->notes,
+            isActive:           (bool) $model->is_active,
+            medicalServiceName: $model->relationLoaded('medicalService') ? $model->medicalService?->name : null,
         );
     }
 }

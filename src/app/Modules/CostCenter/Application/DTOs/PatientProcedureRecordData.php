@@ -12,6 +12,8 @@ use DateTimeImmutable;
  * @property-read int               $medicalServiceId  ID del procedimiento (type=procedure)
  * @property-read string            $patientExternalId Identificador del paciente en sistema externo
  * @property-read string            $patientDocument   Documento de identidad del paciente
+ * @property-read string            $patientFirstName  Nombres del paciente
+ * @property-read string            $patientLastName   Apellidos del paciente
  * @property-read float             $quantity          Cantidad de veces ejecutado el procedimiento
  * @property-read float             $unitPrice         Precio unitario cobrado
  * @property-read DateTimeImmutable $serviceDate       Fecha de la atención
@@ -24,6 +26,8 @@ readonly class PatientProcedureRecordData
         public int $medicalServiceId,
         public string $patientExternalId,
         public string $patientDocument,
+        public string $patientFirstName,
+        public string $patientLastName,
         public float $quantity,
         public float $unitPrice,
         public DateTimeImmutable $serviceDate,

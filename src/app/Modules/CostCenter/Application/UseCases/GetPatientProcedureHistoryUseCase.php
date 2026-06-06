@@ -9,8 +9,8 @@ use App\Modules\CostCenter\Domain\Repositories\PatientProcedureRecordRepositoryI
 /**
  * Historial de procedimientos ejecutados a un paciente, con resumen agregado.
  *
- * Retorna los registros enriquecidos (con nombre del procedimiento y del servicio padre)
- * más un bloque de resumen calculado en memoria para evitar múltiples queries.
+ * Retorna los registros enriquecidos (con nombre del procedimiento, del servicio padre
+ * y nombres del paciente) más un bloque de resumen calculado en memoria.
  */
 class GetPatientProcedureHistoryUseCase
 {
@@ -22,6 +22,8 @@ class GetPatientProcedureHistoryUseCase
      * @return array{
      *   patient_external_id: string,
      *   patient_document: string|null,
+     *   patient_first_name: string|null,
+     *   patient_last_name: string|null,
      *   summary: array{
      *     total_records: int,
      *     total_amount: float,
@@ -35,17 +37,19 @@ class GetPatientProcedureHistoryUseCase
     {
         $records = $this->repository->findByPatientWithService($patientExternalId, $filters);
 
-        $patientDocument = $records[0]['patient_document'] ?? null;
+        $first = $records[0] ?? [];
 
         $dates  = array_column($records, 'service_date');
         $totals = array_column($records, 'total');
 
         return [
             'patient_external_id' => $patientExternalId,
-            'patient_document'    => $patientDocument,
+            'patient_document'    => $first['patient_document'] ?? null,
+            'patient_first_name'  => $first['patient_first_name'] ?? null,
+            'patient_last_name'   => $first['patient_last_name'] ?? null,
             'summary'             => [
-                'total_records'     => count($records),
-                'total_amount'      => round(array_sum($totals), 2),
+                'total_records'      => count($records),
+                'total_amount'       => round(array_sum($totals), 2),
                 'first_service_date' => ! empty($dates) ? min($dates) : null,
                 'last_service_date'  => ! empty($dates) ? max($dates) : null,
             ],

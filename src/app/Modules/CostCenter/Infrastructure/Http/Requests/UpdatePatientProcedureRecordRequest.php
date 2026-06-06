@@ -19,6 +19,8 @@ class UpdatePatientProcedureRecordRequest extends FormRequest
             'medical_service_id'  => ['required', 'integer', 'exists:medical_services,id'],
             'patient_external_id' => ['required', 'string', 'max:100'],
             'patient_document'    => ['required', 'string', 'max:50'],
+            'patient_first_name'  => ['required', 'string', 'max:100'],
+            'patient_last_name'   => ['required', 'string', 'max:100'],
             'quantity'            => ['required', 'numeric', 'min:0.0001'],
             'unit_price'          => ['required', 'numeric', 'min:0'],
             'service_date'        => ['required', 'date_format:Y-m-d', 'before_or_equal:today'],
@@ -30,9 +32,11 @@ class UpdatePatientProcedureRecordRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'quantity.min'              => 'La cantidad debe ser mayor a cero.',
+            'patient_first_name.required'  => 'Los nombres del paciente son obligatorios.',
+            'patient_last_name.required'   => 'Los apellidos del paciente son obligatorios.',
+            'quantity.min'                 => 'La cantidad debe ser mayor a cero.',
             'service_date.before_or_equal' => 'La fecha de atención no puede ser futura.',
-            'medical_service_id.exists' => 'El procedimiento seleccionado no existe.',
+            'medical_service_id.exists'    => 'El procedimiento seleccionado no existe.',
         ];
     }
 }

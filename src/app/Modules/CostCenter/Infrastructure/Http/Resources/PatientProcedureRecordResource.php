@@ -16,30 +16,33 @@ class PatientProcedureRecordResource extends JsonResource
 
         if ($record instanceof PatientProcedureRecord) {
             return [
-                'id'                  => $record->getId(),
-                'medical_service_id'  => $record->getMedicalServiceId(),
-                'patient_external_id' => $record->getPatientExternalId(),
-                'patient_document'    => $record->getPatientDocument(),
-                'quantity'            => $record->getQuantity(),
-                'unit_price'          => $record->getUnitPrice(),
-                'total'               => $record->getTotal(),
-                'service_date'        => $record->getServiceDate()->format('Y-m-d'),
-                'notes'               => $record->getNotes(),
-                'is_active'           => $record->isActive(),
+                'id'                   => $record->getId(),
+                'medical_service_id'   => $record->getMedicalServiceId(),
+                'medical_service_name' => $record->getMedicalServiceName(),
+                'patient_external_id'  => $record->getPatientExternalId(),
+                'patient_document'     => $record->getPatientDocument(),
+                'patient_first_name'   => $record->getPatientFirstName(),
+                'patient_last_name'    => $record->getPatientLastName(),
+                'quantity'             => $record->getQuantity(),
+                'unit_price'           => $record->getUnitPrice(),
+                'total'                => $record->getTotal(),
+                'service_date'         => $record->getServiceDate()->format('Y-m-d'),
+                'is_active'            => $record->isActive(),
             ];
         }
 
         return [
-            'id'                  => $record->id,
-            'medical_service_id'  => $record->medical_service_id,
-            'patient_external_id' => $record->patient_external_id,
-            'patient_document'    => $record->patient_document,
-            'quantity'            => $record->quantity,
-            'unit_price'          => $record->unit_price,
-            'total'               => $record->total,
-            'service_date'        => $record->service_date?->format('Y-m-d'),
-            'notes'               => $record->notes,
-            'is_active'           => $record->is_active,
+            'id'                   => $record->id,
+            'medical_service_id'   => $record->medical_service_id,
+            'patient_external_id'  => $record->patient_external_id,
+            'patient_document'     => $record->patient_document,
+            'patient_first_name'   => $record->patient_first_name,
+            'patient_last_name'    => $record->patient_last_name,
+            'quantity'             => $record->quantity,
+            'unit_price'           => $record->unit_price,
+            'total'                => $record->total,
+            'service_date'         => $record->service_date?->format('Y-m-d'),
+            'is_active'            => $record->is_active,
         ];
     }
 }
