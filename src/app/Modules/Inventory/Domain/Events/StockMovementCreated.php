@@ -17,5 +17,6 @@ class StockMovementCreated
         public readonly int $warehouseId,
         public readonly string $movementType,
         public readonly int $quantity,
+        public readonly ?int $warehouseToId = null,
     ) {}
 }

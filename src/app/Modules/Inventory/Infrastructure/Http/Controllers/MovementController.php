@@ -71,7 +71,7 @@ class MovementController extends Controller
         ]);
 
         return $this->created(
-            new MovementResource($movement->load(['product', 'batch', 'user'])),
+            new MovementResource($movement->load(['product', 'batch', 'user', 'warehouse', 'warehouseTo'])),
             'Traslado registrado exitosamente',
         );
     }
@@ -146,6 +146,10 @@ class MovementController extends Controller
 
         if ($request->filled('cost_center_type')) {
             $query->whereHas('costCenter', fn ($q) => $q->where('type', $request->string('cost_center_type')));
+        }
+
+        if ($request->filled('warehouse_to_id')) {
+            $query->where('warehouse_to_id', $request->integer('warehouse_to_id'));
         }
 
         $perPage = min(

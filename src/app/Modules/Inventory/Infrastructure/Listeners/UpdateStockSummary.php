@@ -15,9 +15,10 @@ class UpdateStockSummary
 
     public function handle(StockMovementCreated $event): void
     {
-        $this->stockCalculator->recalculateSummary(
-            $event->productId,
-            $event->warehouseId,
-        );
+        $this->stockCalculator->recalculateSummary($event->productId, $event->warehouseId);
+
+        if ($event->warehouseToId !== null && $event->warehouseToId !== $event->warehouseId) {
+            $this->stockCalculator->recalculateSummary($event->productId, $event->warehouseToId);
+        }
     }
 }

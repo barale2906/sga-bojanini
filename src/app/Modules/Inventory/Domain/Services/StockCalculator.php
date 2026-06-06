@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Modules\Inventory\Domain\Services;
 
-use App\Modules\Inventory\Infrastructure\Persistence\Models\BatchModel;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\StockSummaryModel;
 use Illuminate\Support\Facades\DB;
 
@@ -41,14 +40,14 @@ class StockCalculator
 
     public function recalculateSummary(int $productId, int $warehouseId): void
     {
-        $totalQuantity = BatchModel::where('product_id', $productId)
-            ->where('status', 'active')
-            ->whereHas('locations', function ($query) use ($warehouseId) {
-                $query->whereHas('zone', function ($q) use ($warehouseId) {
-                    $q->where('warehouse_id', $warehouseId);
-                });
-            })
-            ->sum('quantity_available');
+        $totalQuantity = DB::table('batch_location')
+            ->join('batches', 'batch_location.batch_id', '=', 'batches.id')
+            ->join('locations', 'batch_location.location_id', '=', 'locations.id')
+            ->join('zones', 'locations.zone_id', '=', 'zones.id')
+            ->where('batches.product_id', $productId)
+            ->where('zones.warehouse_id', $warehouseId)
+            ->where('batches.status', 'active')
+            ->sum('batch_location.quantity');
 
         StockSummaryModel::updateOrCreate(
             [

@@ -38,6 +38,7 @@ class MovementResource extends JsonResource
         return [
             'id'                  => $movement->id,
             'warehouse_id'        => $movement->warehouse_id,
+            'warehouse_to_id'     => $movement->warehouse_to_id,
             'product_id'          => $movement->product_id,
             'batch_id'            => $movement->batch_id,
             'location_from_id'    => $movement->location_from_id,
@@ -59,6 +60,9 @@ class MovementResource extends JsonResource
                 : null,
             'user_name'           => $movement->relationLoaded('user') && $movement->user
                 ? $movement->user->name
+                : null,
+            'warehouse_to_name'   => $movement->relationLoaded('warehouseTo') && $movement->warehouseTo
+                ? $movement->warehouseTo->name
                 : null,
             'cost_center'         => $movement->relationLoaded('costCenter') && $movement->costCenter
                 ? ['id' => $movement->costCenter->id, 'code' => $movement->costCenter->code, 'name' => $movement->costCenter->name, 'type' => $movement->costCenter->type]

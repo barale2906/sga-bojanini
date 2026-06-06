@@ -19,9 +19,12 @@ class TransferStockUseCase
     public function execute(array $data): StockMovementModel
     {
         return DB::transaction(function () use ($data) {
+            $warehouseFromId = $data['warehouse_from_id'];
+            $warehouseToId   = $data['warehouse_to_id'];
+
             $selectedBatches = $this->fefoService->selectBatchesForExit(
                 $data['product_id'],
-                $data['warehouse_id'],
+                $warehouseFromId,
                 $data['quantity'],
             );
 
@@ -58,7 +61,8 @@ class TransferStockUseCase
             }
 
             $movement = StockMovementModel::create([
-                'warehouse_id'     => $data['warehouse_id'],
+                'warehouse_id'     => $warehouseFromId,
+                'warehouse_to_id'  => $warehouseToId,
                 'product_id'       => $data['product_id'],
                 'batch_id'         => $selectedBatches[0]['batch_id'],
                 'location_from_id' => $data['location_from_id'],
@@ -72,9 +76,10 @@ class TransferStockUseCase
             event(new StockMovementCreated(
                 movementId: $movement->id,
                 productId: $data['product_id'],
-                warehouseId: $data['warehouse_id'],
+                warehouseId: $warehouseFromId,
                 movementType: 'transfer',
                 quantity: $data['quantity'],
+                warehouseToId: $warehouseToId,
             ));
 
             return $movement;

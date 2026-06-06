@@ -11,6 +11,7 @@ return new class extends Migration
         Schema::create('stock_movements', function (Blueprint $table) {
             $table->id();
             $table->foreignId('warehouse_id')->constrained('warehouses');
+            $table->foreignId('warehouse_to_id')->nullable()->constrained('warehouses');
             $table->foreignId('product_id')->constrained('products');
             $table->foreignId('batch_id')->nullable()->constrained('batches');
             $table->foreignId('location_from_id')->nullable()->constrained('locations');
