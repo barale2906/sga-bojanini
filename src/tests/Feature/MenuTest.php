@@ -48,7 +48,7 @@ class MenuTest extends TestCase
 
     // ─── Super Administrador — ve todo ────────────────────────────────────────
 
-    public function test_super_administrador_ve_once_secciones(): void
+    public function test_super_administrador_ve_seis_secciones(): void
     {
         $admin = UserModel::where('email', 'admin@sga.bojanini.com')->first();
         $token = $this->bearerTokenFor($admin);
@@ -58,12 +58,32 @@ class MenuTest extends TestCase
             ->assertOk()
             ->json('data');
 
-        $this->assertCount(11, $data);
+        $this->assertCount(6, $data);
 
         $keys = array_column($data, 'key');
-        $this->assertContains('dashboard',   $keys);
-        $this->assertContains('cost-center', $keys);
-        $this->assertContains('admin',       $keys);
+        $this->assertContains('dashboard',            $keys);
+        $this->assertContains('inventory-management', $keys);
+        $this->assertContains('purchasing',           $keys);
+        $this->assertContains('monitoring',           $keys);
+        $this->assertContains('management',           $keys);
+        $this->assertContains('configuration',        $keys);
+
+        $configuration = $this->findSectionByKey($data, 'configuration');
+        $configKeys    = array_column($configuration['children'], 'key');
+        $this->assertContains('cost-center', $configKeys);
+        $this->assertContains('admin',       $configKeys);
+        $this->assertContains('integration', $configKeys);
+
+        $inventoryGroup = $this->findSectionByKey($data, 'inventory-management');
+        $inventoryKeys  = array_column($inventoryGroup['children'], 'key');
+        $this->assertContains('catalog',   $inventoryKeys);
+        $this->assertContains('warehouse', $inventoryKeys);
+        $this->assertContains('inventory', $inventoryKeys);
+
+        $management     = $this->findSectionByKey($data, 'management');
+        $managementKeys = array_column($management['children'], 'key');
+        $this->assertContains('reports', $managementKeys);
+        $this->assertContains('audit',   $managementKeys);
     }
 
     public function test_super_administrador_ve_centros_costo_con_acciones_completas(): void
@@ -75,9 +95,12 @@ class MenuTest extends TestCase
             ->getJson('/api/v1/auth/menu')
             ->json('data');
 
-        $section  = $this->findSectionByKey($data, 'cost-center');
+        $configuration = $this->findSectionByKey($data, 'configuration');
+        $this->assertNotNull($configuration);
+
+        $section = $this->findSectionByKey($configuration['children'], 'cost-center');
         $this->assertNotNull($section);
-        $this->assertCount(2, $section['children']);
+        $this->assertCount(4, $section['children']);
 
         $costCentersItem = $this->findSectionByKey($section['children'], 'cost-centers');
         $this->assertTrue($costCentersItem['actions']['create']);
@@ -88,6 +111,16 @@ class MenuTest extends TestCase
         $this->assertTrue($servicesItem['actions']['create']);
         $this->assertTrue($servicesItem['actions']['edit']);
         $this->assertTrue($servicesItem['actions']['delete']);
+
+        $proceduresItem = $this->findSectionByKey($section['children'], 'procedures');
+        $this->assertTrue($proceduresItem['actions']['create']);
+        $this->assertTrue($proceduresItem['actions']['edit']);
+        $this->assertTrue($proceduresItem['actions']['delete']);
+
+        $recordsItem = $this->findSectionByKey($section['children'], 'patient-procedure-records');
+        $this->assertTrue($recordsItem['actions']['create']);
+        $this->assertTrue($recordsItem['actions']['edit']);
+        $this->assertTrue($recordsItem['actions']['delete']);
     }
 
     // ─── Personal Médico ──────────────────────────────────────────────────────
@@ -99,11 +132,13 @@ class MenuTest extends TestCase
 
         $data = $this->withHeaders(['Authorization' => "Bearer {$token}"])
             ->getJson('/api/v1/auth/menu')
-            ->assertOk()
             ->json('data');
 
-        $keys = array_column($data, 'key');
-        $this->assertContains('cost-center', $keys);
+        $configuration = $this->findSectionByKey($data, 'configuration');
+        $this->assertNotNull($configuration);
+
+        $configKeys = array_column($configuration['children'], 'key');
+        $this->assertContains('cost-center', $configKeys);
     }
 
     public function test_personal_medico_no_puede_crear_ni_eliminar_centros(): void
@@ -115,8 +150,9 @@ class MenuTest extends TestCase
             ->getJson('/api/v1/auth/menu')
             ->json('data');
 
-        $section = $this->findSectionByKey($data, 'cost-center');
-        $item    = $this->findSectionByKey($section['children'], 'cost-centers');
+        $configuration = $this->findSectionByKey($data, 'configuration');
+        $section       = $this->findSectionByKey($configuration['children'], 'cost-center');
+        $item          = $this->findSectionByKey($section['children'], 'cost-centers');
 
         $this->assertFalse($item['actions']['create']);
         $this->assertFalse($item['actions']['edit']);
@@ -132,8 +168,13 @@ class MenuTest extends TestCase
             ->getJson('/api/v1/auth/menu')
             ->json('data');
 
-        $keys = array_column($data, 'key');
-        $this->assertNotContains('admin', $keys);
+        $configuration = $this->findSectionByKey($data, 'configuration');
+
+        $configKeys = $configuration !== null
+            ? array_column($configuration['children'], 'key')
+            : [];
+
+        $this->assertNotContains('admin', $configKeys);
     }
 
     public function test_personal_medico_tiene_accion_exit_en_movimientos(): void
@@ -141,12 +182,13 @@ class MenuTest extends TestCase
         $user  = $this->authenticateAsRole('personal_medico');
         $token = $this->bearerTokenFor($user);
 
-        $data      = $this->withHeaders(['Authorization' => "Bearer {$token}"])
+        $data = $this->withHeaders(['Authorization' => "Bearer {$token}"])
             ->getJson('/api/v1/auth/menu')
             ->json('data');
 
-        $inventory = $this->findSectionByKey($data, 'inventory');
-        $movements = $this->findSectionByKey($inventory['children'], 'movements');
+        $inventoryGroup = $this->findSectionByKey($data, 'inventory-management');
+        $inventory      = $this->findSectionByKey($inventoryGroup['children'], 'inventory');
+        $movements      = $this->findSectionByKey($inventory['children'], 'movements');
 
         $this->assertTrue($movements['actions']['exit']);
         $this->assertFalse($movements['actions']['entry']);
@@ -164,7 +206,7 @@ class MenuTest extends TestCase
             ->json('data');
 
         $keys = array_column($data, 'key');
-        $this->assertNotContains('cost-center', $keys);
+        $this->assertNotContains('configuration', $keys);
     }
 
     public function test_auditor_puede_exportar_reportes(): void
@@ -176,7 +218,10 @@ class MenuTest extends TestCase
             ->getJson('/api/v1/auth/menu')
             ->json('data');
 
-        $reports = $this->findSectionByKey($data, 'reports');
+        $management = $this->findSectionByKey($data, 'management');
+        $this->assertNotNull($management);
+
+        $reports = $this->findSectionByKey($management['children'], 'reports');
         $this->assertNotNull($reports);
         $this->assertTrue($reports['actions']['export']);
     }
@@ -192,7 +237,10 @@ class MenuTest extends TestCase
             ->getJson('/api/v1/auth/menu')
             ->json('data');
 
-        $section = $this->findSectionByKey($data, 'cost-center');
+        $configuration = $this->findSectionByKey($data, 'configuration');
+        $this->assertNotNull($configuration);
+
+        $section = $this->findSectionByKey($configuration['children'], 'cost-center');
         $this->assertNotNull($section);
 
         $item = $this->findSectionByKey($section['children'], 'cost-centers');
@@ -212,8 +260,9 @@ class MenuTest extends TestCase
             ->getJson('/api/v1/auth/menu')
             ->json('data');
 
-        $section = $this->findSectionByKey($data, 'cost-center');
-        $item    = $this->findSectionByKey($section['children'], 'cost-centers');
+        $configuration = $this->findSectionByKey($data, 'configuration');
+        $section       = $this->findSectionByKey($configuration['children'], 'cost-center');
+        $item          = $this->findSectionByKey($section['children'], 'cost-centers');
 
         $this->assertTrue($item['actions']['create']);
         $this->assertTrue($item['actions']['edit']);

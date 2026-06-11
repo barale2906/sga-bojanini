@@ -60,28 +60,132 @@ class MenuBuilderTest extends TestCase
         $this->assertNotContains('dashboard', $keys);
     }
 
-    // ─── Centros de Costo ─────────────────────────────────────────────────────
+    // ─── Grupo Inventario (Catálogo, Almacén, Inventario) ─────────────────────
 
-    public function test_seccion_cost_center_visible_con_permiso_ver(): void
+    public function test_grupo_inventario_visible_con_permiso_productos(): void
+    {
+        $menu = $this->builder->build(['productos.ver']);
+
+        $keys = array_column($menu, 'key');
+        $this->assertContains('inventory-management', $keys);
+    }
+
+    public function test_grupo_inventario_no_visible_sin_permisos(): void
+    {
+        // ninguno de los permisos de catalog/warehouse/inventory
+        $menu = $this->builder->build(['tablero.ver']);
+
+        $keys = array_column($menu, 'key');
+        $this->assertNotContains('inventory-management', $keys);
+    }
+
+    public function test_grupo_inventario_contiene_catalogo_almacen_e_inventario_en_orden(): void
+    {
+        $menu = $this->builder->build(['productos.ver', 'almacenes.ver', 'stock.ver']);
+
+        $group     = $this->findByKey($menu, 'inventory-management');
+        $childKeys = array_column($group['children'], 'key');
+
+        $this->assertSame(['catalog', 'warehouse', 'inventory'], $childKeys);
+    }
+
+    public function test_grupo_inventario_solo_incluye_secciones_visibles(): void
+    {
+        $menu = $this->builder->build(['productos.ver']);
+
+        $group     = $this->findByKey($menu, 'inventory-management');
+        $childKeys = array_column($group['children'], 'key');
+
+        $this->assertSame(['catalog'], $childKeys);
+    }
+
+    // ─── Catálogo ──────────────────────────────────────────────────────────────
+
+    public function test_products_visible_dentro_de_catalogo(): void
+    {
+        $menu     = $this->builder->build(['productos.ver']);
+        $group    = $this->findByKey($menu, 'inventory-management');
+        $catalog  = $this->findByKey($group['children'], 'catalog');
+        $itemKeys = array_column($catalog['children'], 'key');
+
+        $this->assertContains('products', $itemKeys);
+    }
+
+    // ─── Almacén ───────────────────────────────────────────────────────────────
+
+    public function test_seccion_warehouse_no_aparece_si_no_hay_children_visibles(): void
+    {
+        // warehouse requiere al menos uno de almacenes.ver | zonas.ver | ubicaciones.ver
+        $menu  = $this->builder->build(['productos.ver']);
+        $group = $this->findByKey($menu, 'inventory-management');
+
+        $childKeys = array_column($group['children'], 'key');
+        $this->assertNotContains('warehouse', $childKeys);
+    }
+
+    // ─── Inventario — acciones de movimientos ─────────────────────────────────
+
+    public function test_movements_actions_reflejan_permisos_individuales(): void
+    {
+        $menu      = $this->builder->build(['stock.ver', 'movimientos.salida', 'movimientos.entrada']);
+        $group     = $this->findByKey($menu, 'inventory-management');
+        $inventory = $this->findByKey($group['children'], 'inventory');
+        $movements = $this->findByKey($inventory['children'], 'movements');
+
+        $this->assertTrue($movements['actions']['entry']);
+        $this->assertTrue($movements['actions']['exit']);
+        $this->assertFalse($movements['actions']['transfer']);
+        $this->assertFalse($movements['actions']['adjust']);
+    }
+
+    // ─── Grupo Configuración (Centros de Costo, Administración, Integraciones) ─
+
+    public function test_grupo_configuracion_visible_con_permiso_centros_costo(): void
     {
         $menu = $this->builder->build(['centros_costo.ver']);
 
         $keys = array_column($menu, 'key');
-        $this->assertContains('cost-center', $keys);
+        $this->assertContains('configuration', $keys);
     }
 
-    public function test_seccion_cost_center_no_visible_sin_permisos(): void
+    public function test_grupo_configuracion_no_visible_sin_permisos(): void
     {
         $menu = $this->builder->build(['tablero.ver', 'stock.ver']);
 
         $keys = array_column($menu, 'key');
-        $this->assertNotContains('cost-center', $keys);
+        $this->assertNotContains('configuration', $keys);
+    }
+
+    public function test_grupo_configuracion_contiene_secciones_en_orden(): void
+    {
+        $menu = $this->builder->build([
+            'centros_costo.ver',
+            'usuarios.ver',
+            'consumos.ver',
+        ]);
+
+        $group     = $this->findByKey($menu, 'configuration');
+        $childKeys = array_column($group['children'], 'key');
+
+        $this->assertSame(['cost-center', 'admin', 'integration'], $childKeys);
+    }
+
+    // ─── Centros de Costo ─────────────────────────────────────────────────────
+
+    public function test_seccion_cost_center_visible_con_permiso_ver(): void
+    {
+        $menu        = $this->builder->build(['centros_costo.ver']);
+        $group       = $this->findByKey($menu, 'configuration');
+        $sectionKeys = array_column($group['children'], 'key');
+
+        $this->assertContains('cost-center', $sectionKeys);
     }
 
     public function test_cost_centers_child_visible_con_permiso_ver(): void
     {
-        $menu     = $this->builder->build(['centros_costo.ver']);
-        $section  = $this->findByKey($menu, 'cost-center');
+        $menu      = $this->builder->build(['centros_costo.ver']);
+        $group     = $this->findByKey($menu, 'configuration');
+        $section   = $this->findByKey($group['children'], 'cost-center');
         $childKeys = array_column($section['children'], 'key');
 
         $this->assertContains('cost-centers', $childKeys);
@@ -89,8 +193,9 @@ class MenuBuilderTest extends TestCase
 
     public function test_medical_services_child_visible_con_permiso_ver(): void
     {
-        $menu     = $this->builder->build(['servicios_medicos.ver']);
-        $section  = $this->findByKey($menu, 'cost-center');
+        $menu      = $this->builder->build(['servicios_medicos.ver']);
+        $group     = $this->findByKey($menu, 'configuration');
+        $section   = $this->findByKey($group['children'], 'cost-center');
         $childKeys = array_column($section['children'], 'key');
 
         $this->assertContains('medical-services', $childKeys);
@@ -99,7 +204,8 @@ class MenuBuilderTest extends TestCase
     public function test_cost_centers_actions_todos_false_sin_permisos_crud(): void
     {
         $menu    = $this->builder->build(['centros_costo.ver']);
-        $section = $this->findByKey($menu, 'cost-center');
+        $group   = $this->findByKey($menu, 'configuration');
+        $section = $this->findByKey($group['children'], 'cost-center');
         $item    = $this->findByKey($section['children'], 'cost-centers');
 
         $this->assertFalse($item['actions']['create']);
@@ -115,7 +221,8 @@ class MenuBuilderTest extends TestCase
             'centros_costo.editar',
             'centros_costo.eliminar',
         ]);
-        $section = $this->findByKey($menu, 'cost-center');
+        $group   = $this->findByKey($menu, 'configuration');
+        $section = $this->findByKey($group['children'], 'cost-center');
         $item    = $this->findByKey($section['children'], 'cost-centers');
 
         $this->assertTrue($item['actions']['create']);
@@ -130,8 +237,61 @@ class MenuBuilderTest extends TestCase
             'servicios_medicos.crear',
             // sin editar ni eliminar
         ]);
-        $section = $this->findByKey($menu, 'cost-center');
+        $group   = $this->findByKey($menu, 'configuration');
+        $section = $this->findByKey($group['children'], 'cost-center');
         $item    = $this->findByKey($section['children'], 'medical-services');
+
+        $this->assertTrue($item['actions']['create']);
+        $this->assertFalse($item['actions']['edit']);
+        $this->assertFalse($item['actions']['delete']);
+    }
+
+    public function test_procedures_child_visible_con_permiso_ver(): void
+    {
+        $menu      = $this->builder->build(['procedimientos.ver']);
+        $group     = $this->findByKey($menu, 'configuration');
+        $section   = $this->findByKey($group['children'], 'cost-center');
+        $childKeys = array_column($section['children'], 'key');
+
+        $this->assertContains('procedures', $childKeys);
+    }
+
+    public function test_procedures_actions_parciales(): void
+    {
+        $menu = $this->builder->build([
+            'procedimientos.ver',
+            'procedimientos.crear',
+            // sin editar ni eliminar
+        ]);
+        $group   = $this->findByKey($menu, 'configuration');
+        $section = $this->findByKey($group['children'], 'cost-center');
+        $item    = $this->findByKey($section['children'], 'procedures');
+
+        $this->assertTrue($item['actions']['create']);
+        $this->assertFalse($item['actions']['edit']);
+        $this->assertFalse($item['actions']['delete']);
+    }
+
+    public function test_patient_procedure_records_child_visible_con_permiso_ver(): void
+    {
+        $menu      = $this->builder->build(['registros_procedimientos.ver']);
+        $group     = $this->findByKey($menu, 'configuration');
+        $section   = $this->findByKey($group['children'], 'cost-center');
+        $childKeys = array_column($section['children'], 'key');
+
+        $this->assertContains('patient-procedure-records', $childKeys);
+    }
+
+    public function test_patient_procedure_records_actions_parciales(): void
+    {
+        $menu = $this->builder->build([
+            'registros_procedimientos.ver',
+            'registros_procedimientos.crear',
+            // sin editar ni eliminar
+        ]);
+        $group   = $this->findByKey($menu, 'configuration');
+        $section = $this->findByKey($group['children'], 'cost-center');
+        $item    = $this->findByKey($section['children'], 'patient-procedure-records');
 
         $this->assertTrue($item['actions']['create']);
         $this->assertFalse($item['actions']['edit']);
@@ -141,58 +301,97 @@ class MenuBuilderTest extends TestCase
     public function test_solo_permiso_services_sin_centers_genera_seccion_con_un_hijo(): void
     {
         $menu    = $this->builder->build(['servicios_medicos.ver']);
-        $section = $this->findByKey($menu, 'cost-center');
+        $group   = $this->findByKey($menu, 'configuration');
+        $section = $this->findByKey($group['children'], 'cost-center');
 
         $this->assertNotNull($section);
         $this->assertCount(1, $section['children']);
         $this->assertSame('medical-services', $section['children'][0]['key']);
     }
 
-    // ─── Inventario — acciones de movimientos ─────────────────────────────────
+    // ─── Grupo Gestión (Reportes, Auditoría) ──────────────────────────────────
 
-    public function test_movements_actions_reflejan_permisos_individuales(): void
+    public function test_grupo_gestion_visible_con_permiso_reportes(): void
     {
-        $menu      = $this->builder->build(['stock.ver', 'movimientos.salida', 'movimientos.entrada']);
-        $inventory = $this->findByKey($menu, 'inventory');
-        $movements = $this->findByKey($inventory['children'], 'movements');
+        $menu = $this->builder->build(['reportes.ver']);
 
-        $this->assertTrue($movements['actions']['entry']);
-        $this->assertTrue($movements['actions']['exit']);
-        $this->assertFalse($movements['actions']['transfer']);
-        $this->assertFalse($movements['actions']['adjust']);
+        $keys = array_column($menu, 'key');
+        $this->assertContains('management', $keys);
+
+        $group     = $this->findByKey($menu, 'management');
+        $childKeys = array_column($group['children'], 'key');
+        $this->assertSame(['reports'], $childKeys);
     }
 
-    // ─── Secciones padre sin children no se incluyen ─────────────────────────
-
-    public function test_seccion_padre_no_aparece_si_no_hay_children_visibles(): void
+    public function test_grupo_gestion_visible_con_permiso_auditoria(): void
     {
-        // warehouse requiere al menos uno de almacenes.ver | zonas.ver | ubicaciones.ver
-        $menu = $this->builder->build(['tablero.ver']);
-        $keys = array_column($menu, 'key');
+        $menu = $this->builder->build(['auditoria.ver']);
 
-        $this->assertNotContains('warehouse', $keys);
+        $group     = $this->findByKey($menu, 'management');
+        $childKeys = array_column($group['children'], 'key');
+        $this->assertSame(['audit'], $childKeys);
+    }
+
+    public function test_grupo_gestion_no_visible_sin_permisos(): void
+    {
+        $menu = $this->builder->build(['tablero.ver']);
+
+        $keys = array_column($menu, 'key');
+        $this->assertNotContains('management', $keys);
+    }
+
+    public function test_grupo_gestion_contiene_reportes_y_auditoria_en_orden(): void
+    {
+        $menu = $this->builder->build(['reportes.ver', 'auditoria.ver']);
+
+        $group     = $this->findByKey($menu, 'management');
+        $childKeys = array_column($group['children'], 'key');
+
+        $this->assertSame(['reports', 'audit'], $childKeys);
+    }
+
+    public function test_auditor_puede_exportar_reportes(): void
+    {
+        $menu = $this->builder->build(['reportes.ver', 'reportes.exportar']);
+
+        $group   = $this->findByKey($menu, 'management');
+        $reports = $this->findByKey($group['children'], 'reports');
+
+        $this->assertTrue($reports['actions']['export']);
     }
 
     // ─── Super administrador ─────────────────────────────────────────────────
 
-    public function test_todos_los_permisos_generan_once_secciones(): void
+    public function test_todos_los_permisos_generan_seis_secciones(): void
     {
         $menu = $this->builder->build($this->allPermissions());
 
-        $this->assertCount(11, $menu);
+        $this->assertCount(6, $menu);
 
         $keys = array_column($menu, 'key');
-        $this->assertContains('dashboard',   $keys);
-        $this->assertContains('warehouse',   $keys);
-        $this->assertContains('catalog',     $keys);
-        $this->assertContains('inventory',   $keys);
-        $this->assertContains('cost-center', $keys);
-        $this->assertContains('purchasing',  $keys);
-        $this->assertContains('monitoring',  $keys);
-        $this->assertContains('integration', $keys);
-        $this->assertContains('reports',     $keys);
-        $this->assertContains('audit',       $keys);
-        $this->assertContains('admin',       $keys);
+        $this->assertContains('dashboard',             $keys);
+        $this->assertContains('inventory-management',  $keys);
+        $this->assertContains('purchasing',             $keys);
+        $this->assertContains('monitoring',             $keys);
+        $this->assertContains('management',             $keys);
+        $this->assertContains('configuration',          $keys);
+
+        $inventoryGroup = $this->findByKey($menu, 'inventory-management');
+        $inventoryKeys  = array_column($inventoryGroup['children'], 'key');
+        $this->assertContains('catalog',   $inventoryKeys);
+        $this->assertContains('warehouse', $inventoryKeys);
+        $this->assertContains('inventory', $inventoryKeys);
+
+        $configGroup = $this->findByKey($menu, 'configuration');
+        $configKeys  = array_column($configGroup['children'], 'key');
+        $this->assertContains('cost-center', $configKeys);
+        $this->assertContains('admin',       $configKeys);
+        $this->assertContains('integration', $configKeys);
+
+        $managementGroup = $this->findByKey($menu, 'management');
+        $managementKeys  = array_column($managementGroup['children'], 'key');
+        $this->assertContains('reports', $managementKeys);
+        $this->assertContains('audit',   $managementKeys);
     }
 
     // ─── Helpers ─────────────────────────────────────────────────────────────
@@ -224,6 +423,8 @@ class MenuBuilderTest extends TestCase
             'movimientos.ajuste', 'movimientos.devolucion', 'movimientos.baja',
             'centros_costo.ver', 'centros_costo.crear', 'centros_costo.editar', 'centros_costo.eliminar',
             'servicios_medicos.ver', 'servicios_medicos.crear', 'servicios_medicos.editar', 'servicios_medicos.eliminar',
+            'procedimientos.ver', 'procedimientos.crear', 'procedimientos.editar', 'procedimientos.eliminar',
+            'registros_procedimientos.ver', 'registros_procedimientos.crear', 'registros_procedimientos.editar', 'registros_procedimientos.eliminar',
             'ordenes_compra.ver', 'ordenes_compra.crear', 'ordenes_compra.aprobar',
             'ordenes_compra.enviar', 'ordenes_compra.recibir',
             'sensores.ver', 'sensores.crear', 'sensores.editar', 'sensores.eliminar',
