@@ -70,7 +70,7 @@ class RolesAndPermissionsSeeder extends Seeder
             // Centros de costo
             'centros_costo.ver', 'centros_costo.crear', 'centros_costo.editar', 'centros_costo.eliminar',
             // Servicios médicos
-            'servicios_medicos.ver', 'servicios_medicos.crear', 'servicios_medicos.editar', 'servicios_medicos.eliminar',
+            'servicios_medicos.ver', 'servicios_medicos.crear', 'servicios_medicos.editar', 'servicios_medicos.eliminar', 'servicios_medicos.importar',
             // Tarifas de procedimientos
             'procedimientos.ver', 'procedimientos.crear', 'procedimientos.editar', 'procedimientos.eliminar',
             // Registros de procedimientos por paciente

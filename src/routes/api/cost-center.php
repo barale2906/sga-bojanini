@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\CostCenter\Infrastructure\Http\Controllers\CostCenterController;
+use App\Modules\CostCenter\Infrastructure\Http\Controllers\ImportController;
 use App\Modules\CostCenter\Infrastructure\Http\Controllers\MedicalServiceController;
 use App\Modules\CostCenter\Infrastructure\Http\Controllers\PatientProcedureRecordController;
 use App\Modules\CostCenter\Infrastructure\Http\Controllers\ProcedurePriceController;
@@ -32,6 +33,12 @@ Route::middleware(['auth:sanctum', 'user.is_active'])->prefix('v1')->group(funct
         ->middleware('permission:servicios_medicos.editar')->only(['update']);
     Route::apiResource('medical-services', MedicalServiceController::class)
         ->middleware('permission:servicios_medicos.eliminar')->only(['destroy']);
+
+    // ─── Importación masiva de Servicios y Procedimientos ────────────────────────
+    Route::post('import/medical-services', [ImportController::class, 'importMedicalServices'])
+        ->middleware('permission:servicios_medicos.importar');
+    Route::get('import/medical-services/template', [ImportController::class, 'downloadTemplate'])
+        ->middleware('permission:servicios_medicos.importar');
 
     // ─── Tarifas de Procedimientos ───────────────────────────────────────────────
     Route::middleware('permission:procedimientos.ver')->group(function () {
