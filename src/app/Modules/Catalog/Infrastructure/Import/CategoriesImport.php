@@ -7,9 +7,8 @@ namespace App\Modules\Catalog\Infrastructure\Import;
 use Maatwebsite\Excel\Concerns\SkipsEmptyRows;
 use Maatwebsite\Excel\Concerns\ToArray;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
-use Maatwebsite\Excel\Concerns\WithMultipleSheets;
 
-class SuppliersImport implements ToArray, WithHeadingRow, SkipsEmptyRows, WithMultipleSheets
+class CategoriesImport implements ToArray, WithHeadingRow, SkipsEmptyRows
 {
     private array $rows = [];
 
@@ -27,14 +26,5 @@ class SuppliersImport implements ToArray, WithHeadingRow, SkipsEmptyRows, WithMu
     public function getRows(): array
     {
         return $this->rows;
-    }
-
-    /**
-     * Solo procesa la primera hoja ("Proveedores"); la hoja de
-     * Instrucciones se ignora.
-     */
-    public function sheets(): array
-    {
-        return [0 => $this];
     }
 }

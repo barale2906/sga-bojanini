@@ -26,9 +26,13 @@ class SupplierImportService
 
             try {
                 $validator = Validator::make($row, [
-                    'name'    => 'required|string|max:255',
-                    'tax_id'  => 'nullable|string|max:50|unique:suppliers,tax_id',
-                    'email'   => 'nullable|email|max:255',
+                    'name'   => 'required|string|max:255',
+                    'tax_id' => 'nullable|string|max:50|unique:suppliers,tax_id',
+                    'email'  => 'nullable|email|max:255',
+                ], [
+                    'name.required' => 'El nombre es obligatorio.',
+                    'tax_id.unique'  => 'Ya existe un proveedor con este NIT/identificación.',
+                    'email.email'    => 'El correo electrónico no tiene un formato válido.',
                 ]);
 
                 if ($validator->fails()) {

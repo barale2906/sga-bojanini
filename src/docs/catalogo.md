@@ -866,40 +866,113 @@ Respuesta:
           "code": ["Ya existe un producto con este código."]
         }
       }
-    ]
+    ],
+    "related_catalogs": {
+      "categories": {
+        "total": 2,
+        "created": 1,
+        "skipped": 1,
+        "failed": 0,
+        "errors": []
+      },
+      "units_of_measure": {
+        "total": 1,
+        "created": 1,
+        "skipped": 0,
+        "failed": 0,
+        "errors": []
+      },
+      "classifications": {
+        "total": 0,
+        "created": 0,
+        "skipped": 0,
+        "failed": 0,
+        "errors": []
+      }
+    }
   }
 }
 ```
+
+`related_catalogs` solo aparece en la respuesta de `/api/v1/import/products` y refleja el resultado de procesar las hojas opcionales **Categorías**, **Unidades de medida** y **Clasificaciones** del mismo archivo (ver más abajo). Si una hoja no viene en el archivo o no tiene filas de datos, su bloque queda con todos los contadores en `0`.
 
 ### Columnas esperadas — productos (fila de encabezado Excel)
 
 | Columna (heading) | Requerido | Notas |
 |-------------------|-----------|--------|
-| `name` | Sí | |
-| `code` | Sí | Único |
-| `sku` | No | Único si se envía |
-| `category_code` | Sí | Debe existir en `categories.code` |
-| `unit_abbreviation` | Sí | Ej. `UND` |
+| `name` | Sí | máx. 255 |
+| `code` | Sí | máx. 50, único en `products.code` |
+| `sku` | No | máx. 100, único en `products.sku` si se envía |
+| `category_code` | Sí | Debe existir en `categories.code` (activa). Puede ser un código creado en la hoja **Categorías** del mismo archivo. |
+| `unit_abbreviation` | Sí | Debe existir en `units_of_measure.abbreviation` (activa). Ej. `UND`. Puede ser una unidad creada en la hoja **Unidades de medida** del mismo archivo. |
+| `classification_code` | No | Si se envía, debe existir en `product_classifications.code` (activa). Puede ser una clasificación creada en la hoja **Clasificaciones** del mismo archivo. |
 | `description` | No | |
-| `requires_cold_chain` | No | boolean |
-| `reorder_point`, `reorder_quantity`, `min_stock`, `max_stock` | No | enteros |
+| `requires_cold_chain` | No | boolean (`TRUE`/`FALSE`, `1`/`0`, `yes`/`no`). Vacío = `FALSE` |
+| `reorder_point`, `reorder_quantity`, `min_stock`, `max_stock` | No | enteros >= 0. Vacío = `0` |
 
-La importación crea solo productos **`simple`**.
+La importación crea solo productos **`simple`**, todos quedan **activos** (`is_active = true`). No actualiza productos existentes ni importa presentaciones, proveedores, registros sanitarios o campos avanzados (concentración, nivel de riesgo, laboratorio/marca, forma farmacéutica, presentación comercial, referencia de serie, vida útil, volumen, peso) — esos se completan luego editando el producto.
+
+Las filas completamente vacías se ignoran. Los valores de texto se recortan (`trim`) antes de validar.
+
+### Hojas de catálogo (Categorías / Unidades de medida / Clasificaciones)
+
+Estas tres hojas son **opcionales** y cumplen doble función: sirven como **referencia** de los códigos vigentes (para copiarlos en `category_code`, `unit_abbreviation` y `classification_code`) y permiten **crear registros nuevos** agregando filas al final, antes de subir el archivo.
+
+Orden de procesamiento de `/api/v1/import/products`:
+
+1. Hoja **Categorías** → crea categorías nuevas.
+2. Hoja **Unidades de medida** → crea unidades de medida nuevas.
+3. Hoja **Clasificaciones** → crea clasificaciones nuevas.
+4. Hoja **Productos** → valida `category_code` / `unit_abbreviation` / `classification_code` contra el catálogo ya actualizado (incluye lo creado en los pasos 1-3) y crea los productos.
+
+Reglas comunes a las tres hojas:
+
+- Si el código (`code` / `abbreviation`) de una fila **ya existe** en la base de datos, la fila se **omite silenciosamente** (cuenta en `skipped`, no es un error). Esto permite reutilizar la plantilla descargada (que ya trae los códigos vigentes) sin generar errores.
+- Si el código no existe, se valida y, si es válido, se **crea** (cuenta en `created`); si la validación falla, cuenta en `failed` y el detalle queda en `errors` (mismo formato `{row, errors}` que la hoja Productos).
+- Las filas completamente vacías se ignoran. Si la hoja no está presente en el archivo, simplemente se omite (no genera error).
+
+**Categorías** — columnas: `code` (req., máx. 50, único), `name` (req., máx. 255), `parent_code` (opcional, debe existir en `categories.code` — puede ser un código de categoría padre ya existente o creado en una **fila anterior** de la misma hoja), `description` (opcional).
+
+**Unidades de medida** — columnas: `abbreviation` (req., máx. 10, única), `name` (req., máx. 100), `is_base` (opcional, boolean `TRUE`/`FALSE`; vacío = `FALSE`).
+
+**Clasificaciones** — columnas: `code` (req., máx. 20, único), `name` (req., máx. 100), `description` (opcional), y los flags booleanos `has_sanitary_registration`, `has_concentration`, `has_risk_level`, `has_pharma_fields`, `has_device_fields`, `has_lab_brand` (todos opcionales, `TRUE`/`FALSE`; vacío = `FALSE`).
+
+### Columnas esperadas — proveedores (fila de encabezado Excel)
+
+| Columna (heading) | Requerido | Notas |
+|-------------------|-----------|--------|
+| `name` | Sí | máx. 255 |
+| `tax_id` | No | máx. 50, único en `suppliers.tax_id` si se envía |
+| `contact_name` | No | máx. 255 |
+| `phone` | No | máx. 50 |
+| `email` | No | máx. 255, formato de correo válido |
+| `address` | No | |
+| `notes` | No | |
+
+Todos los proveedores importados quedan **activos**. No actualiza proveedores existentes.
 
 ### Plantillas
 
 ```http
 GET /api/v1/import/templates/products
+GET /api/v1/import/templates/suppliers
 ```
 
-Descarga binaria (`products_template.xlsx`). Si falta el archivo:
+Descarga binaria generada dinámicamente en cada solicitud (no depende de archivos pregenerados). Incluye varias hojas:
+
+- **Productos** / **Proveedores**: fila de encabezados (en negrita) + fila de ejemplo.
+- **Instrucciones**: por cada columna indica si es obligatoria, el tipo/formato y los valores válidos, además de notas generales.
+- *(solo productos)* **Categorías**, **Unidades de medida**, **Clasificaciones**: catálogos vigentes con sus columnas completas (ver sección "Hojas de catálogo" arriba). Sirven de referencia para `category_code`, `unit_abbreviation` y `classification_code`, y también permiten **agregar filas nuevas** para crear categorías, unidades de medida o clasificaciones adicionales en la misma importación.
+
+Si `{entity}` no es `products` ni `suppliers`:
 
 ```json
 {
   "success": false,
-  "message": "El archivo de plantilla no existe. Ejecute: php artisan sga:generate-import-templates"
+  "message": "Plantilla no encontrada"
 }
 ```
+(HTTP 404)
 
 ---
 
