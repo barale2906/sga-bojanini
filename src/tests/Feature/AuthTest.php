@@ -19,8 +19,8 @@ class AuthTest extends TestCase
     public function test_login_exitoso(): void
     {
         $response = $this->postJson('/api/v1/auth/login', [
-            'email'    => 'admin@sga.bojanini.com',
-            'password' => 'Admin2026!',
+            'email'    => 'alexanderbarajas@gmail.com',
+            'password' => '10203040',
         ]);
 
         $response->assertStatus(200)
@@ -34,7 +34,7 @@ class AuthTest extends TestCase
     public function test_login_credenciales_invalidas(): void
     {
         $response = $this->postJson('/api/v1/auth/login', [
-            'email'    => 'admin@sga.bojanini.com',
+            'email'    => 'alexanderbarajas@gmail.com',
             'password' => 'wrongpassword',
         ]);
 
@@ -50,7 +50,7 @@ class AuthTest extends TestCase
 
     public function test_crud_usuarios(): void
     {
-        $admin = UserModel::where('email', 'admin@sga.bojanini.com')->first();
+        $admin = UserModel::where('email', 'alexanderbarajas@gmail.com')->first();
         $token = $admin->createToken('test', $admin->getAllPermissions()->pluck('name')->toArray())->plainTextToken;
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")

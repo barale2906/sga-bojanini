@@ -23,7 +23,7 @@ class MedicalServiceTest extends TestCase
         $this->artisan('db:seed', ['--class' => 'Database\\Seeders\\CatalogSeeder']);
         $this->artisan('db:seed', ['--class' => 'Database\\Seeders\\CostCenterSeeder']);
 
-        $admin       = UserModel::where('email', 'admin@sga.bojanini.com')->first();
+        $admin       = UserModel::where('email', 'alexanderbarajas@gmail.com')->first();
         $this->token = $admin->createToken('test', $admin->getAllPermissions()->pluck('name')->toArray())->plainTextToken;
     }
 
@@ -40,7 +40,7 @@ class MedicalServiceTest extends TestCase
             ->getJson('/api/v1/medical-services')
             ->assertOk()
             ->assertJsonPath('success', true)
-            ->assertJsonCount(12, 'data'); // 12 servicios del seeder
+            ->assertJsonCount(39, 'data'); // 8 servicios + 31 procedimientos del seeder
     }
 
     public function test_filtrar_servicios_activos(): void
@@ -50,7 +50,7 @@ class MedicalServiceTest extends TestCase
         $this->withHeaders($this->auth())
             ->getJson('/api/v1/medical-services?is_active=1')
             ->assertOk()
-            ->assertJsonCount(11, 'data');
+            ->assertJsonCount(38, 'data');
     }
 
     public function test_buscar_servicio_por_nombre(): void

@@ -59,12 +59,7 @@ class RegisterExitUseCase
 
                 $batch->save();
 
-                if (isset($data['location_id'])) {
-                    DB::table('batch_location')
-                        ->where('batch_id', $batch->id)
-                        ->where('location_id', $data['location_id'])
-                        ->decrement('quantity', $selection['quantity']);
-                }
+                $this->decrementBatchLocations($batch->id, $selection['quantity'], $data['location_id'] ?? null);
             }
 
             $movement = StockMovementModel::create([
@@ -106,6 +101,61 @@ class RegisterExitUseCase
 
             return $movement;
         });
+    }
+
+    /**
+     * Descuenta la cantidad consumida del lote en sus ubicaciones (batch_location).
+     *
+     * Si se indica una ubicación preferida, se descuenta primero de ella; el resto
+     * se reparte entre las demás ubicaciones del lote hasta cubrir la cantidad.
+     */
+    private function decrementBatchLocations(int $batchId, int $quantity, ?int $preferredLocationId): void
+    {
+        $remaining = $quantity;
+
+        if ($preferredLocationId !== null) {
+            $pivot = DB::table('batch_location')
+                ->where('batch_id', $batchId)
+                ->where('location_id', $preferredLocationId)
+                ->first();
+
+            if ($pivot !== null) {
+                $take = min($remaining, $pivot->quantity);
+
+                DB::table('batch_location')
+                    ->where('batch_id', $batchId)
+                    ->where('location_id', $preferredLocationId)
+                    ->decrement('quantity', $take);
+
+                $remaining -= $take;
+            }
+        }
+
+        if ($remaining <= 0) {
+            return;
+        }
+
+        $pivots = DB::table('batch_location')
+            ->where('batch_id', $batchId)
+            ->where('quantity', '>', 0)
+            ->when($preferredLocationId !== null, fn ($query) => $query->where('location_id', '!=', $preferredLocationId))
+            ->orderBy('location_id')
+            ->get();
+
+        foreach ($pivots as $pivot) {
+            if ($remaining <= 0) {
+                break;
+            }
+
+            $take = min($remaining, $pivot->quantity);
+
+            DB::table('batch_location')
+                ->where('batch_id', $batchId)
+                ->where('location_id', $pivot->location_id)
+                ->decrement('quantity', $take);
+
+            $remaining -= $take;
+        }
     }
 
     /** Valida las reglas de negocio del centro de costo sobre los datos de salida. */

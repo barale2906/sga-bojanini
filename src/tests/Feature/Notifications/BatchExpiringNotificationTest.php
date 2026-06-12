@@ -18,7 +18,7 @@ class BatchExpiringNotificationTest extends TestCase
         $this->artisan('db:seed', ['--class' => 'Database\\Seeders\\RolesAndPermissionsSeeder']);
         $this->artisan('db:seed', ['--class' => 'Database\\Seeders\\CatalogSeeder']);
 
-        $admin = UserModel::where('email', 'admin@sga.bojanini.com')->firstOrFail();
+        $admin = UserModel::where('email', 'alexanderbarajas@gmail.com')->firstOrFail();
         $product = ProductModel::where('code', 'AGU-21G')->firstOrFail();
 
         $batch = BatchModel::create([

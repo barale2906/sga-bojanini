@@ -28,7 +28,7 @@ class MenuTest extends TestCase
 
     public function test_respuesta_tiene_estructura_correcta(): void
     {
-        $admin = UserModel::where('email', 'admin@sga.bojanini.com')->first();
+        $admin = UserModel::where('email', 'alexanderbarajas@gmail.com')->first();
         $token = $this->bearerTokenFor($admin);
 
         $response = $this->withHeaders(['Authorization' => "Bearer {$token}"])
@@ -50,7 +50,7 @@ class MenuTest extends TestCase
 
     public function test_super_administrador_ve_seis_secciones(): void
     {
-        $admin = UserModel::where('email', 'admin@sga.bojanini.com')->first();
+        $admin = UserModel::where('email', 'alexanderbarajas@gmail.com')->first();
         $token = $this->bearerTokenFor($admin);
 
         $data = $this->withHeaders(['Authorization' => "Bearer {$token}"])
@@ -88,7 +88,7 @@ class MenuTest extends TestCase
 
     public function test_super_administrador_ve_centros_costo_con_acciones_completas(): void
     {
-        $admin = UserModel::where('email', 'admin@sga.bojanini.com')->first();
+        $admin = UserModel::where('email', 'alexanderbarajas@gmail.com')->first();
         $token = $this->bearerTokenFor($admin);
 
         $data    = $this->withHeaders(['Authorization' => "Bearer {$token}"])

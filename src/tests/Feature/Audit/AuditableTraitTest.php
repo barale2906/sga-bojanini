@@ -24,7 +24,7 @@ class AuditableTraitTest extends TestCase
         $this->artisan('db:seed', ['--class' => 'Database\\Seeders\\RolesAndPermissionsSeeder']);
         $this->artisan('db:seed', ['--class' => 'Database\\Seeders\\CatalogSeeder']);
 
-        $this->admin = UserModel::where('email', 'admin@sga.bojanini.com')->firstOrFail();
+        $this->admin = UserModel::where('email', 'alexanderbarajas@gmail.com')->firstOrFail();
         Auth::login($this->admin);
     }
 

@@ -29,7 +29,7 @@ class PurchasingTest extends TestCase
         $this->artisan('db:seed', ['--class' => 'Database\\Seeders\\CatalogSeeder']);
         $this->artisan('db:seed', ['--class' => 'Database\\Seeders\\PurchasingSeeder']);
 
-        $admin = UserModel::where('email', 'admin@sga.bojanini.com')->first();
+        $admin = UserModel::where('email', 'alexanderbarajas@gmail.com')->first();
         $this->token = $admin->createToken('test', $admin->getAllPermissions()->pluck('name')->toArray())->plainTextToken;
     }
 

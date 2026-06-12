@@ -18,7 +18,7 @@ class InventoryReportTest extends TestCase
         $this->artisan('db:seed', ['--class' => 'Database\\Seeders\\RolesAndPermissionsSeeder']);
         $this->artisan('db:seed', ['--class' => 'Database\\Seeders\\CatalogSeeder']);
 
-        $admin = UserModel::where('email', 'admin@sga.bojanini.com')->firstOrFail();
+        $admin = UserModel::where('email', 'alexanderbarajas@gmail.com')->firstOrFail();
         $this->token = $admin->createToken('test', $admin->getAllPermissions()->pluck('name')->toArray())->plainTextToken;
     }
 

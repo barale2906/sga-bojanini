@@ -30,7 +30,7 @@ class PatientProcedureRecordTest extends TestCase
         $this->artisan('db:seed', ['--class' => 'Database\\Seeders\\CatalogSeeder']);
         $this->artisan('db:seed', ['--class' => 'Database\\Seeders\\CostCenterSeeder']);
 
-        $admin       = UserModel::where('email', 'admin@sga.bojanini.com')->first();
+        $admin       = UserModel::where('email', 'alexanderbarajas@gmail.com')->first();
         $this->token = $admin->createToken('test', $admin->getAllPermissions()->pluck('name')->toArray())->plainTextToken;
 
         $procedure = MedicalServiceModel::where('type', 'procedure')->first();

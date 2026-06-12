@@ -19,7 +19,7 @@ class WarehouseTest extends TestCase
         parent::setUp();
         $this->artisan('db:seed', ['--class' => 'Database\\Seeders\\RolesAndPermissionsSeeder']);
 
-        $admin = UserModel::where('email', 'admin@sga.bojanini.com')->first();
+        $admin = UserModel::where('email', 'alexanderbarajas@gmail.com')->first();
         $this->token = $admin->createToken('test', $admin->getAllPermissions()->pluck('name')->toArray())->plainTextToken;
     }
 

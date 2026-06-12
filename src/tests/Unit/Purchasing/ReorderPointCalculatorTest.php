@@ -34,7 +34,7 @@ class ReorderPointCalculatorTest extends TestCase
         ]);
 
         $warehouse = WarehouseModel::create(['name' => 'Alm Reorder', 'code' => 'ALM-RO', 'is_active' => true]);
-        $userId = UserModel::where('email', 'admin@sga.bojanini.com')->value('id');
+        $userId = UserModel::where('email', 'alexanderbarajas@gmail.com')->value('id');
 
         StockSummaryModel::create([
             'product_id'         => $product->id,

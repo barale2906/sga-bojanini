@@ -37,7 +37,7 @@ class ApprovalEngineTest extends TestCase
 
         $this->assertCount(1, $records);
 
-        $admin = UserModel::where('email', 'admin@sga.bojanini.com')->firstOrFail();
+        $admin = UserModel::where('email', 'alexanderbarajas@gmail.com')->firstOrFail();
         $this->engine->processDecision($records[0]->id, $admin->id, 'approved');
 
         $this->assertTrue($this->engine->isFullyApproved(ApprovalEngine::ENTITY_PURCHASE_ORDER, $order->id));
@@ -90,7 +90,7 @@ class ApprovalEngineTest extends TestCase
 
         $this->assertFalse($this->engine->isFullyApproved(ApprovalEngine::ENTITY_PURCHASE_ORDER, $order->id));
 
-        $admin = UserModel::where('email', 'admin@sga.bojanini.com')->firstOrFail();
+        $admin = UserModel::where('email', 'alexanderbarajas@gmail.com')->firstOrFail();
         $this->engine->processDecision($records[1]->id, $admin->id, 'approved');
 
         $this->assertTrue($this->engine->isFullyApproved(ApprovalEngine::ENTITY_PURCHASE_ORDER, $order->id));
@@ -104,7 +104,7 @@ class ApprovalEngineTest extends TestCase
             'total_amount' => 50000,
         ]);
 
-        $admin = UserModel::where('email', 'admin@sga.bojanini.com')->firstOrFail();
+        $admin = UserModel::where('email', 'alexanderbarajas@gmail.com')->firstOrFail();
         $this->engine->processDecision($records[0]->id, $admin->id, 'rejected', 'No autorizado');
 
         $this->assertTrue($this->engine->isRejected(ApprovalEngine::ENTITY_PURCHASE_ORDER, $order->id));
@@ -113,7 +113,7 @@ class ApprovalEngineTest extends TestCase
 
     private function createPurchaseOrder(string $code, float $total): PurchaseOrderModel
     {
-        $admin = UserModel::where('email', 'admin@sga.bojanini.com')->firstOrFail();
+        $admin = UserModel::where('email', 'alexanderbarajas@gmail.com')->firstOrFail();
         $warehouse = WarehouseModel::create(['name' => 'Alm Test', 'code' => 'ALM-'.$code, 'is_active' => true]);
 
         return PurchaseOrderModel::create([

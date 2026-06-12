@@ -24,7 +24,7 @@ class ProductSanitaryRegistrationTest extends TestCase
         $this->artisan('db:seed', ['--class' => 'Database\\Seeders\\RolesAndPermissionsSeeder']);
         $this->artisan('db:seed', ['--class' => 'Database\\Seeders\\ProductClassificationSeeder']);
 
-        $admin       = UserModel::where('email', 'admin@sga.bojanini.com')->first();
+        $admin       = UserModel::where('email', 'alexanderbarajas@gmail.com')->first();
         $this->token = $admin->createToken('test', $admin->getAllPermissions()->pluck('name')->toArray())->plainTextToken;
 
         $cat  = CategoryModel::firstOrCreate(['code' => 'INS-MED'], ['name' => 'Insumos Médicos', 'is_active' => true]);

@@ -28,7 +28,7 @@ class CompletePurchaseFlowTest extends TestCase
         $this->artisan('db:seed', ['--class' => 'Database\\Seeders\\CatalogSeeder']);
         $this->artisan('db:seed', ['--class' => 'Database\\Seeders\\PurchasingSeeder']);
 
-        $admin = UserModel::where('email', 'admin@sga.bojanini.com')->firstOrFail();
+        $admin = UserModel::where('email', 'alexanderbarajas@gmail.com')->firstOrFail();
         $this->auth = $this->bearerAuthFor($admin);
     }
 

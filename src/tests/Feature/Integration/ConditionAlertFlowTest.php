@@ -23,7 +23,7 @@ class ConditionAlertFlowTest extends TestCase
         $this->artisan('db:seed', ['--class' => 'Database\\Seeders\\RolesAndPermissionsSeeder']);
         $this->artisan('db:seed', ['--class' => 'Database\\Seeders\\MonitoringSeeder']);
 
-        $admin = UserModel::where('email', 'admin@sga.bojanini.com')->firstOrFail();
+        $admin = UserModel::where('email', 'alexanderbarajas@gmail.com')->firstOrFail();
         $this->token = $admin->createToken('test', $admin->getAllPermissions()->pluck('name')->toArray())->plainTextToken;
     }
 
@@ -35,7 +35,7 @@ class ConditionAlertFlowTest extends TestCase
     public function test_condition_alert_flow_creates_notification(): void
     {
         $sensor = SensorModel::where('code', 'TEMP-ZR01-01')->firstOrFail();
-        $admin = UserModel::where('email', 'admin@sga.bojanini.com')->firstOrFail();
+        $admin = UserModel::where('email', 'alexanderbarajas@gmail.com')->firstOrFail();
 
         // Zona refrigerada del seeder: temp_max = 8 °C → 15 °C dispara out_of_range
         $response = $this->withHeaders($this->auth())
