@@ -7,6 +7,8 @@ namespace App\Modules\Inventory\Infrastructure\Persistence\Models;
 use App\Modules\Audit\Infrastructure\Traits\Auditable;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductModel;
 use App\Modules\Warehouse\Infrastructure\Persistence\Models\LocationModel;
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -54,5 +56,25 @@ class BatchModel extends Model
     public function movements(): HasMany
     {
         return $this->hasMany(StockMovementModel::class, 'batch_id');
+    }
+
+    /**
+     * Filtra lotes vigentes: con status 'active' y fecha de vencimiento
+     * igual o posterior a hoy. Se usa para excluir productos vencidos de
+     * la selección FEFO y de los listados de stock disponible.
+     */
+    public function scopeValid(Builder $query): Builder
+    {
+        return $query->where('status', 'active')
+            ->whereDate('expiration_date', '>=', Carbon::today());
+    }
+
+    /**
+     * Filtra lotes disponibles para salida: vigentes y con cantidad
+     * disponible mayor a cero.
+     */
+    public function scopeAvailableForExit(Builder $query): Builder
+    {
+        return $query->valid()->where('quantity_available', '>', 0);
     }
 }

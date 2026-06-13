@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Inventory\Infrastructure\Http\Controllers;
 
+use App\Modules\Inventory\Domain\Services\FEFOService;
 use App\Modules\Inventory\Infrastructure\Http\Requests\StockSummaryRequest;
 use App\Modules\Inventory\Infrastructure\Http\Resources\StockResource;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\StockSummaryModel;
@@ -39,25 +40,43 @@ class StockController extends Controller
         );
     }
 
-    public function summary(StockSummaryRequest $request): JsonResponse
+    /**
+     * Resumen de stock de un producto en un almacén.
+     *
+     * Incluye `expired_quantity`: la suma de unidades de lotes vencidos
+     * (no contabilizadas en `available_quantity`, que solo refleja stock
+     * vigente). El frontend debe sumar ambos campos para determinar si una
+     * devolución, ajuste negativo o baja puede gestionarse, ya que esos
+     * movimientos sí pueden operar sobre stock vencido.
+     */
+    public function summary(StockSummaryRequest $request, FEFOService $fefoService): JsonResponse
     {
+        $productId = $request->integer('product_id');
+        $warehouseId = $request->integer('warehouse_id');
+
         $summary = StockSummaryModel::with(['product', 'warehouse'])
-            ->where('warehouse_id', $request->integer('warehouse_id'))
-            ->where('product_id', $request->integer('product_id'))
+            ->where('warehouse_id', $warehouseId)
+            ->where('product_id', $productId)
             ->first();
+
+        $expiredQuantity = $fefoService->getExpiredQuantity($productId, $warehouseId);
 
         if ($summary === null) {
             return $this->success([
-                'product_id'         => $request->integer('product_id'),
-                'warehouse_id'       => $request->integer('warehouse_id'),
+                'product_id'         => $productId,
+                'warehouse_id'       => $warehouseId,
                 'total_quantity'     => 0,
                 'reserved_quantity'  => 0,
                 'available_quantity' => 0,
+                'expired_quantity'   => $expiredQuantity,
                 'last_movement_at'   => null,
             ], 'Resumen de stock');
         }
 
-        return $this->success(new StockResource($summary), 'Resumen de stock');
+        $data = (new StockResource($summary))->toArray($request);
+        $data['expired_quantity'] = $expiredQuantity;
+
+        return $this->success($data, 'Resumen de stock');
     }
 
     public function low(Request $request): JsonResponse

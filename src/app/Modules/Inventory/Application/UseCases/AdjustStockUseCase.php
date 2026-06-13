@@ -95,10 +95,14 @@ class AdjustStockUseCase
 
     private function applyNegativeAdjustment(array $data, int $quantity): StockMovementModel
     {
+        // Los ajustes negativos también gestionan stock vencido (p. ej.
+        // descartes por conteo físico), por lo que se incluyen lotes con
+        // expiration_date pasada.
         $selectedBatches = $this->fefoService->selectBatchesForExit(
             $data['product_id'],
             $data['warehouse_id'],
             $quantity,
+            includeExpired: true,
         );
 
         foreach ($selectedBatches as $selection) {

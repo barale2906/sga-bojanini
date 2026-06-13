@@ -7,6 +7,7 @@ namespace App\Modules\Inventory\Infrastructure\Http\Controllers;
 use App\Modules\Inventory\Application\UseCases\AdjustStockUseCase;
 use App\Modules\Inventory\Application\UseCases\RegisterEntryUseCase;
 use App\Modules\Inventory\Application\UseCases\RegisterExitUseCase;
+use App\Modules\Inventory\Application\UseCases\RegisterLossUseCase;
 use App\Modules\Inventory\Application\UseCases\RegisterReturnUseCase;
 use App\Modules\Inventory\Application\UseCases\TransferStockUseCase;
 use App\Modules\Inventory\Application\UseCases\WriteOffExpiredUseCase;
@@ -15,6 +16,7 @@ use App\Modules\Inventory\Infrastructure\Http\Requests\ListMovementsRequest;
 use App\Modules\Inventory\Infrastructure\Http\Requests\StoreAdjustmentRequest;
 use App\Modules\Inventory\Infrastructure\Http\Requests\StoreEntryRequest;
 use App\Modules\Inventory\Infrastructure\Http\Requests\StoreExitRequest;
+use App\Modules\Inventory\Infrastructure\Http\Requests\StoreLossRequest;
 use App\Modules\Inventory\Infrastructure\Http\Requests\StoreReturnRequest;
 use App\Modules\Inventory\Infrastructure\Http\Requests\StoreTransferRequest;
 use App\Modules\Inventory\Infrastructure\Http\Requests\StoreWriteOffRequest;
@@ -112,6 +114,19 @@ class MovementController extends Controller
         return $this->created(
             new MovementResource($movement->load(['product', 'batch', 'user'])),
             'Baja por vencimiento registrada exitosamente',
+        );
+    }
+
+    public function loss(StoreLossRequest $request, RegisterLossUseCase $useCase): JsonResponse
+    {
+        $movement = $useCase->execute([
+            ...$request->validated(),
+            'user_id' => $request->user()->id,
+        ]);
+
+        return $this->created(
+            new MovementResource($movement->load(['product', 'batch', 'user'])),
+            'Baja de inventario registrada exitosamente',
         );
     }
 

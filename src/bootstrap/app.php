@@ -79,6 +79,16 @@ return Application::configure(basePath: dirname(__DIR__))
             }
         });
 
+        $exceptions->render(function (\App\Modules\Inventory\Domain\Exceptions\ExpiredStockException $e, $request) {
+            if ($request->is('api/*') || $request->expectsJson()) {
+                return response()->json([
+                    'success'    => false,
+                    'message'    => $e->getMessage(),
+                    'error_code' => 'EXPIRED_STOCK',
+                ], 409);
+            }
+        });
+
         $exceptions->render(function (\DomainException $e, $request) {
             if ($request->is('api/*') || $request->expectsJson()) {
                 return response()->json([

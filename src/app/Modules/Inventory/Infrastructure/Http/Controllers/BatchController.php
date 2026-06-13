@@ -55,12 +55,33 @@ class BatchController extends Controller
         return $this->success(new BatchResource($batch), 'Detalle del lote');
     }
 
-    public function byProduct(int $id): JsonResponse
+    /**
+     * Lista los lotes de un producto.
+     *
+     * Si se envía `available_for_exit=1`, solo se devuelven los lotes
+     * vigentes (status = 'active', expiration_date >= hoy) con cantidad
+     * disponible mayor a cero, útil para los selectores de lote de los
+     * formularios de salida y transferencia.
+     *
+     * Si se envía `warehouse_id`, solo se devuelven los lotes que tienen
+     * stock en alguna ubicación de ese almacén, útil para el selector de
+     * lote del formulario de baja (`movements/loss`).
+     */
+    public function byProduct(int $id, Request $request): JsonResponse
     {
-        $batches = BatchModel::with(['product', 'locations.zone'])
-            ->where('product_id', $id)
-            ->orderBy('expiration_date')
-            ->get();
+        $query = BatchModel::with(['product', 'locations.zone'])
+            ->where('product_id', $id);
+
+        if ($request->boolean('available_for_exit')) {
+            $query->availableForExit();
+        }
+
+        if ($request->filled('warehouse_id')) {
+            $warehouseId = $request->integer('warehouse_id');
+            $query->whereHas('locations.zone', fn ($q) => $q->where('warehouse_id', $warehouseId));
+        }
+
+        $batches = $query->orderBy('expiration_date')->get();
 
         return $this->success(BatchResource::collection($batches), 'Lotes del producto');
     }

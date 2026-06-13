@@ -54,9 +54,10 @@ class BatchResource extends JsonResource
                     'location_code' => $location->code,
                     'quantity'      => $location->pivot->quantity,
                     'zone'          => $location->relationLoaded('zone') && $location->zone ? [
-                        'zone_id'   => $location->zone->id,
-                        'zone_name' => $location->zone->name,
-                        'zone_code' => $location->zone->code,
+                        'zone_id'      => $location->zone->id,
+                        'zone_name'    => $location->zone->name,
+                        'zone_code'    => $location->zone->code,
+                        'warehouse_id' => $location->zone->warehouse_id,
                     ] : null,
                 ])->values()->all()
                 : null,

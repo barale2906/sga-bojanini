@@ -19,10 +19,13 @@ class RegisterReturnUseCase
     public function execute(array $data): StockMovementModel
     {
         return DB::transaction(function () use ($data) {
+            // Las devoluciones a proveedor también gestionan stock vencido,
+            // por lo que se incluyen lotes con expiration_date pasada.
             $selectedBatches = $this->fefoService->selectBatchesForExit(
                 $data['product_id'],
                 $data['warehouse_id'],
                 $data['quantity'],
+                includeExpired: true,
             );
 
             foreach ($selectedBatches as $selection) {
