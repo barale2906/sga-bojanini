@@ -52,11 +52,19 @@ class PresentationHierarchyValidator
                 throw new \DomainException('quantity_per_parent es obligatorio cuando hay padre.');
             }
 
-            $expectedFactor = $parent->getFactorToBase() * $qty;
+            $parentFactor = $parent->getFactorToBase();
+
+            if ($parentFactor % $qty !== 0) {
+                throw new \DomainException(
+                    "quantity_per_parent ({$qty}) debe ser un divisor exacto del factor del padre ({$parentFactor})."
+                );
+            }
+
+            $expectedFactor = intdiv($parentFactor, $qty);
 
             if ($data['factor_to_base'] !== $expectedFactor) {
                 throw new \DomainException(
-                    "factor_to_base debe ser {$expectedFactor} (padre × quantity_per_parent)."
+                    "factor_to_base debe ser {$expectedFactor} (padre ÷ quantity_per_parent)."
                 );
             }
         }
