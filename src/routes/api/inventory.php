@@ -14,6 +14,7 @@ Route::middleware(['auth:sanctum', 'user.is_active'])->prefix('v1')->group(funct
 
     Route::get('stock', [StockController::class, 'index'])->middleware('permission:stock.ver');
     Route::get('stock/summary', [StockController::class, 'summary'])->middleware('permission:stock.ver');
+    Route::get('stock/kit-availability', [StockController::class, 'kitAvailability'])->middleware('permission:stock.ver');
     Route::get('stock/low', [StockController::class, 'low'])->middleware('permission:stock.ver');
 
     Route::post('movements/entry', [MovementController::class, 'entry'])->middleware('permission:movimientos.entrada');

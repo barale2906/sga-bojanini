@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Modules\Inventory\Infrastructure\Http\Controllers;
 
 use App\Modules\Inventory\Domain\Services\FEFOService;
+use App\Modules\Inventory\Domain\Services\KitAvailabilityService;
+use App\Modules\Inventory\Infrastructure\Http\Requests\KitAvailabilityRequest;
 use App\Modules\Inventory\Infrastructure\Http\Requests\StockSummaryRequest;
 use App\Modules\Inventory\Infrastructure\Http\Resources\StockResource;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\StockSummaryModel;
@@ -77,6 +79,35 @@ class StockController extends Controller
         $data['expired_quantity'] = $expiredQuantity;
 
         return $this->success($data, 'Resumen de stock');
+    }
+
+    /**
+     * Returns the number of kit units that can be assembled from current
+     * component stock in a given warehouse.
+     *
+     * The calculation is: min(floor(stock_component / qty_per_kit)) for every
+     * active component of the kit. A result of 0 means at least one component
+     * has insufficient stock to assemble even a single unit.
+     *
+     * Use this endpoint before submitting a kit exit request so the UI can
+     * surface availability information without triggering the exit transaction.
+     */
+    public function kitAvailability(KitAvailabilityRequest $request, KitAvailabilityService $service): JsonResponse
+    {
+        $kitProductId = $request->integer('kit_product_id');
+        $warehouseId  = $request->integer('warehouse_id');
+
+        try {
+            $available = $service->getAvailableKits($kitProductId, $warehouseId);
+        } catch (\DomainException $e) {
+            return $this->error($e->getMessage(), 422);
+        }
+
+        return $this->success([
+            'kit_product_id'  => $kitProductId,
+            'warehouse_id'    => $warehouseId,
+            'available_kits'  => $available,
+        ], 'Disponibilidad de kit');
     }
 
     public function low(Request $request): JsonResponse

@@ -10,6 +10,7 @@ use App\Modules\CostCenter\Infrastructure\Persistence\Models\CostCenterModel;
 use App\Modules\Inventory\Domain\Events\StockBelowReorderPoint;
 use App\Modules\Inventory\Domain\Events\StockMovementCreated;
 use App\Modules\Inventory\Domain\Exceptions\ProductNotFoundException;
+use App\Modules\Inventory\Domain\Services\BatchLocationService;
 use App\Modules\Inventory\Domain\Services\FEFOService;
 use App\Modules\Inventory\Domain\Services\StockCalculator;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\BatchModel;
@@ -22,6 +23,7 @@ class RegisterExitUseCase
         private readonly FEFOService $fefoService,
         private readonly StockCalculator $stockCalculator,
         private readonly RegisterKitExitUseCase $registerKitExitUseCase,
+        private readonly BatchLocationService $batchLocationService,
     ) {}
 
     /**
@@ -59,7 +61,7 @@ class RegisterExitUseCase
 
                 $batch->save();
 
-                $this->decrementBatchLocations($batch->id, $selection['quantity'], $data['location_id'] ?? null);
+                $this->batchLocationService->decrement($batch->id, $selection['quantity'], $data['location_id'] ?? null);
             }
 
             $movement = StockMovementModel::create([
@@ -101,61 +103,6 @@ class RegisterExitUseCase
 
             return $movement;
         });
-    }
-
-    /**
-     * Descuenta la cantidad consumida del lote en sus ubicaciones (batch_location).
-     *
-     * Si se indica una ubicación preferida, se descuenta primero de ella; el resto
-     * se reparte entre las demás ubicaciones del lote hasta cubrir la cantidad.
-     */
-    private function decrementBatchLocations(int $batchId, int $quantity, ?int $preferredLocationId): void
-    {
-        $remaining = $quantity;
-
-        if ($preferredLocationId !== null) {
-            $pivot = DB::table('batch_location')
-                ->where('batch_id', $batchId)
-                ->where('location_id', $preferredLocationId)
-                ->first();
-
-            if ($pivot !== null) {
-                $take = min($remaining, $pivot->quantity);
-
-                DB::table('batch_location')
-                    ->where('batch_id', $batchId)
-                    ->where('location_id', $preferredLocationId)
-                    ->decrement('quantity', $take);
-
-                $remaining -= $take;
-            }
-        }
-
-        if ($remaining <= 0) {
-            return;
-        }
-
-        $pivots = DB::table('batch_location')
-            ->where('batch_id', $batchId)
-            ->where('quantity', '>', 0)
-            ->when($preferredLocationId !== null, fn ($query) => $query->where('location_id', '!=', $preferredLocationId))
-            ->orderBy('location_id')
-            ->get();
-
-        foreach ($pivots as $pivot) {
-            if ($remaining <= 0) {
-                break;
-            }
-
-            $take = min($remaining, $pivot->quantity);
-
-            DB::table('batch_location')
-                ->where('batch_id', $batchId)
-                ->where('location_id', $pivot->location_id)
-                ->decrement('quantity', $take);
-
-            $remaining -= $take;
-        }
     }
 
     /** Valida las reglas de negocio del centro de costo sobre los datos de salida. */

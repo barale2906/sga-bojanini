@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Modules\Auth\Infrastructure\Persistence\Models\UserModel;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductModel;
 use App\Modules\CostCenter\Infrastructure\Persistence\Models\CostCenterModel;
+use App\Modules\Inventory\Domain\Events\StockBelowReorderPoint;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\BatchModel;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\KitTransactionModel;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\StockMovementModel;
@@ -13,6 +14,7 @@ use App\Modules\Warehouse\Infrastructure\Persistence\Models\LocationModel;
 use App\Modules\Warehouse\Infrastructure\Persistence\Models\WarehouseModel;
 use App\Modules\Warehouse\Infrastructure\Persistence\Models\ZoneModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Event;
 use Tests\TestCase;
 
 class InventoryTest extends TestCase
@@ -557,6 +559,372 @@ class InventoryTest extends TestCase
             ->assertJsonValidationErrors(['batch_id']);
     }
 
+    public function test_devolucion_sin_ubicacion_actualiza_resumen_de_stock(): void
+    {
+        $setup = $this->createWarehouseSetup();
+        $product = ProductModel::where('code', 'AGU-21G')->first();
+
+        $batch = $this->createBatch($product->id, 'LOT-RETURN', now()->addDays(30)->format('Y-m-d'), 50, $setup['location'], $setup['warehouse']->id);
+        $this->recalculateStock($product->id, $setup['warehouse']->id);
+
+        $this->withHeaders($this->auth())
+            ->postJson('/api/v1/movements/return', [
+                'product_id'   => $product->id,
+                'warehouse_id' => $setup['warehouse']->id,
+                'quantity'     => 10,
+                'reason'       => 'Devolución sin ubicación específica',
+            ])
+            ->assertStatus(201)
+            ->assertJsonPath('success', true);
+
+        $batch->refresh();
+        $this->assertSame(40, $batch->quantity_available);
+
+        $this->assertDatabaseHas('batch_location', [
+            'batch_id'    => $batch->id,
+            'location_id' => $setup['location']->id,
+            'quantity'    => 40,
+        ]);
+
+        $this->assertDatabaseHas('stock_summaries', [
+            'product_id'         => $product->id,
+            'warehouse_id'       => $setup['warehouse']->id,
+            'available_quantity' => 40,
+        ]);
+    }
+
+    public function test_ajuste_negativo_reparte_descuento_entre_ubicaciones_sin_dejar_negativos(): void
+    {
+        $setup = $this->createWarehouseSetup();
+        $product = ProductModel::where('code', 'AGU-21G')->first();
+        $locationB = $this->createLocation($setup['zone'], 'B');
+
+        $batch = BatchModel::create([
+            'product_id'         => $product->id,
+            'lot_number'         => 'LOT-SPLIT',
+            'expiration_date'    => now()->addDays(30)->format('Y-m-d'),
+            'quantity_received'  => 100,
+            'quantity_available' => 100,
+            'status'             => 'active',
+            'received_at'        => now(),
+        ]);
+        $batch->locations()->attach($setup['location']->id, ['quantity' => 60]);
+        $batch->locations()->attach($locationB->id, ['quantity' => 40]);
+
+        $this->recalculateStock($product->id, $setup['warehouse']->id);
+
+        $this->withHeaders($this->auth())
+            ->postJson('/api/v1/movements/adjustment', [
+                'product_id'   => $product->id,
+                'warehouse_id' => $setup['warehouse']->id,
+                'location_id'  => $setup['location']->id,
+                'quantity'     => -70,
+                'reason'       => 'Conteo físico: faltante repartido entre ubicaciones',
+            ])
+            ->assertStatus(201)
+            ->assertJsonPath('success', true);
+
+        $batch->refresh();
+        $this->assertSame(30, $batch->quantity_available);
+
+        $this->assertDatabaseHas('batch_location', [
+            'batch_id'    => $batch->id,
+            'location_id' => $setup['location']->id,
+            'quantity'    => 0,
+        ]);
+
+        $this->assertDatabaseHas('batch_location', [
+            'batch_id'    => $batch->id,
+            'location_id' => $locationB->id,
+            'quantity'    => 30,
+        ]);
+
+        $this->assertDatabaseHas('stock_summaries', [
+            'product_id'         => $product->id,
+            'warehouse_id'       => $setup['warehouse']->id,
+            'available_quantity' => 30,
+        ]);
+    }
+
+    public function test_transferencia_reparte_descuento_entre_ubicaciones_sin_dejar_negativos(): void
+    {
+        $origen = $this->createWarehouseSetup('-ORIGEN-MULTI');
+        $destino = $this->createWarehouseSetup('-DESTINO-MULTI');
+        $product = ProductModel::where('code', 'AGU-21G')->first();
+        $locationB = $this->createLocation($origen['zone'], 'B-ORIGEN-MULTI');
+
+        $batch = BatchModel::create([
+            'product_id'         => $product->id,
+            'lot_number'         => 'LOT-SPLIT-TRANSFER',
+            'expiration_date'    => now()->addDays(30)->format('Y-m-d'),
+            'quantity_received'  => 100,
+            'quantity_available' => 100,
+            'status'             => 'active',
+            'received_at'        => now(),
+        ]);
+        $batch->locations()->attach($origen['location']->id, ['quantity' => 60]);
+        $batch->locations()->attach($locationB->id, ['quantity' => 40]);
+
+        $this->recalculateStock($product->id, $origen['warehouse']->id);
+
+        $this->withHeaders($this->auth())
+            ->postJson('/api/v1/movements/transfer', [
+                'product_id'        => $product->id,
+                'warehouse_from_id' => $origen['warehouse']->id,
+                'warehouse_to_id'   => $destino['warehouse']->id,
+                'location_from_id'  => $origen['location']->id,
+                'location_to_id'    => $destino['location']->id,
+                'quantity'          => 70,
+            ])
+            ->assertStatus(201)
+            ->assertJsonPath('success', true);
+
+        $batch->refresh();
+        $this->assertSame(100, $batch->quantity_available);
+
+        $this->assertDatabaseHas('batch_location', [
+            'batch_id'    => $batch->id,
+            'location_id' => $origen['location']->id,
+            'quantity'    => 0,
+        ]);
+
+        $this->assertDatabaseHas('batch_location', [
+            'batch_id'    => $batch->id,
+            'location_id' => $locationB->id,
+            'quantity'    => 30,
+        ]);
+
+        $this->assertDatabaseHas('batch_location', [
+            'batch_id'    => $batch->id,
+            'location_id' => $destino['location']->id,
+            'quantity'    => 70,
+        ]);
+
+        $this->assertDatabaseHas('stock_summaries', [
+            'product_id'         => $product->id,
+            'warehouse_id'       => $origen['warehouse']->id,
+            'available_quantity' => 30,
+        ]);
+
+        $this->assertDatabaseHas('stock_summaries', [
+            'product_id'         => $product->id,
+            'warehouse_id'       => $destino['warehouse']->id,
+            'available_quantity' => 70,
+        ]);
+    }
+
+    /**
+     * Verifica que cuando FEFO selecciona múltiples lotes para cubrir la cantidad
+     * requerida por un componente, se crea un StockMovement independiente por
+     * cada lote consumido, garantizando trazabilidad a nivel de lote.
+     *
+     * Escenario: 2 kits KIT-CIR-BAS (5 gasas/kit → 10 gasas totales).
+     * Gasa tiene dos lotes: LOT-GASA-1 con 4 und. (vence antes) y
+     * LOT-GASA-2 con 10 und. FEFO tomará 4 del primero y 6 del segundo,
+     * generando 2 movimientos para gasa y 1 para aguja.
+     */
+    public function test_salida_kit_multi_lote_crea_un_movimiento_por_lote(): void
+    {
+        $setup = $this->createWarehouseSetup();
+        $kit   = ProductModel::where('code', 'KIT-CIR-BAS')->first();
+        $gasa  = ProductModel::where('code', 'GAS-10X10')->first();
+        $aguja = ProductModel::where('code', 'AGU-21G')->first();
+
+        // Gasa: dos lotes (FEFO tomará primero el que vence antes).
+        $gasaLot1 = $this->createBatch($gasa->id, 'LOT-GASA-1', now()->addDays(10)->format('Y-m-d'), 4, $setup['location'], $setup['warehouse']->id);
+        $gasaLot2 = $this->createBatch($gasa->id, 'LOT-GASA-2', now()->addDays(60)->format('Y-m-d'), 10, $setup['location'], $setup['warehouse']->id);
+        $agujaLot = $this->createBatch($aguja->id, 'LOT-AGUJA', now()->addMonths(3)->format('Y-m-d'), 100, $setup['location'], $setup['warehouse']->id);
+
+        $this->recalculateStock($gasa->id, $setup['warehouse']->id);
+        $this->recalculateStock($aguja->id, $setup['warehouse']->id);
+
+        $center = CostCenterModel::where('type', 'internal')->first();
+
+        $this->withHeaders($this->auth())
+            ->postJson('/api/v1/movements/exit', [
+                'product_id'     => $kit->id,
+                'warehouse_id'   => $setup['warehouse']->id,
+                'location_id'    => $setup['location']->id,
+                'quantity'       => 2,
+                'reason'         => 'Cirugía multi-lote',
+                'cost_center_id' => $center->id,
+            ])
+            ->assertStatus(201)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.kit_transaction_id', fn ($id) => $id > 0);
+
+        $this->assertSame(1, KitTransactionModel::count());
+
+        // Gasa: debe haber dos movimientos (uno por cada lote consumido).
+        $gasaMovements = StockMovementModel::where('product_id', $gasa->id)
+            ->where('movement_type', 'exit')
+            ->get();
+
+        $this->assertCount(2, $gasaMovements);
+
+        $this->assertDatabaseHas('stock_movements', [
+            'product_id'     => $gasa->id,
+            'batch_id'       => $gasaLot1->id,
+            'quantity'        => -4,
+            'reference_type' => 'kit_transaction',
+        ]);
+
+        $this->assertDatabaseHas('stock_movements', [
+            'product_id'     => $gasa->id,
+            'batch_id'       => $gasaLot2->id,
+            'quantity'        => -6,
+            'reference_type' => 'kit_transaction',
+        ]);
+
+        // Aguja: un único lote, un único movimiento.
+        $this->assertDatabaseHas('stock_movements', [
+            'product_id'     => $aguja->id,
+            'batch_id'       => $agujaLot->id,
+            'quantity'        => -20,
+            'reference_type' => 'kit_transaction',
+        ]);
+
+        // Estado final de los lotes.
+        $gasaLot1->refresh();
+        $gasaLot2->refresh();
+        $agujaLot->refresh();
+
+        $this->assertSame(0, $gasaLot1->quantity_available);
+        $this->assertSame('depleted', $gasaLot1->status);
+        $this->assertSame(4, $gasaLot2->quantity_available);
+        $this->assertSame(80, $agujaLot->quantity_available);
+    }
+
+    /**
+     * Cuando los componentes no tienen stock suficiente en el almacén, la
+     * respuesta debe ser 409 con un mensaje descriptivo que mencione el kit,
+     * sin que se cree ningún KitTransaction ni StockMovement.
+     */
+    public function test_salida_kit_falla_con_mensaje_descriptivo_cuando_no_hay_stock(): void
+    {
+        $setup  = $this->createWarehouseSetup();
+        $kit    = ProductModel::where('code', 'KIT-CIR-BAS')->first();
+        $center = CostCenterModel::where('type', 'internal')->first();
+
+        // Sin stock de componentes: KitAvailabilityService devuelve 0.
+        $this->withHeaders($this->auth())
+            ->postJson('/api/v1/movements/exit', [
+                'product_id'     => $kit->id,
+                'warehouse_id'   => $setup['warehouse']->id,
+                'quantity'       => 1,
+                'cost_center_id' => $center->id,
+            ])
+            ->assertStatus(409)
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('message', fn ($msg) => str_contains($msg, 'kit'));
+
+        $this->assertSame(0, KitTransactionModel::count());
+        $this->assertSame(0, StockMovementModel::count());
+    }
+
+    /**
+     * El endpoint GET /api/v1/stock/kit-availability devuelve la cantidad de
+     * kits que se pueden armar en el almacén a partir del stock vigente de sus
+     * componentes.
+     *
+     * KIT-CIR-BAS: 5 gasas/kit y 10 agujas/kit.
+     * Con 15 gasas y 30 agujas → min(15/5, 30/10) = min(3, 3) = 3 kits.
+     */
+    public function test_disponibilidad_kit_devuelve_cantidad_correcta(): void
+    {
+        $setup = $this->createWarehouseSetup();
+        $kit   = ProductModel::where('code', 'KIT-CIR-BAS')->first();
+        $gasa  = ProductModel::where('code', 'GAS-10X10')->first();
+        $aguja = ProductModel::where('code', 'AGU-21G')->first();
+
+        $this->createBatch($gasa->id, 'LOT-GASA', now()->addMonths(3)->format('Y-m-d'), 15, $setup['location'], $setup['warehouse']->id);
+        $this->createBatch($aguja->id, 'LOT-AGUJA', now()->addMonths(3)->format('Y-m-d'), 30, $setup['location'], $setup['warehouse']->id);
+
+        $this->recalculateStock($gasa->id, $setup['warehouse']->id);
+        $this->recalculateStock($aguja->id, $setup['warehouse']->id);
+
+        $this->withHeaders($this->auth())
+            ->getJson('/api/v1/stock/kit-availability?' . http_build_query([
+                'kit_product_id' => $kit->id,
+                'warehouse_id'   => $setup['warehouse']->id,
+            ]))
+            ->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.kit_product_id', $kit->id)
+            ->assertJsonPath('data.warehouse_id', $setup['warehouse']->id)
+            ->assertJsonPath('data.available_kits', 3);
+    }
+
+    /**
+     * El endpoint devuelve 0 kits disponibles cuando no hay stock de
+     * componentes en el almacén.
+     */
+    public function test_disponibilidad_kit_retorna_cero_sin_stock_de_componentes(): void
+    {
+        $setup = $this->createWarehouseSetup();
+        $kit   = ProductModel::where('code', 'KIT-CIR-BAS')->first();
+
+        $this->withHeaders($this->auth())
+            ->getJson('/api/v1/stock/kit-availability?' . http_build_query([
+                'kit_product_id' => $kit->id,
+                'warehouse_id'   => $setup['warehouse']->id,
+            ]))
+            ->assertStatus(200)
+            ->assertJsonPath('data.available_kits', 0);
+    }
+
+    /**
+     * Cuando la salida de un kit deja el stock de algún componente en o por
+     * debajo de su punto de reorden, debe dispararse el evento
+     * StockBelowReorderPoint para ese componente, igual que en salidas simples.
+     */
+    public function test_salida_kit_dispara_alerta_de_reorden_en_componente(): void
+    {
+        $setup = $this->createWarehouseSetup();
+        $kit   = ProductModel::where('code', 'KIT-CIR-BAS')->first();
+        $gasa  = ProductModel::where('code', 'GAS-10X10')->first();
+        $aguja = ProductModel::where('code', 'AGU-21G')->first();
+
+        // Gasa tiene reorder_point = 20; con 25 unidades y salida de 5 (1 kit)
+        // quedará en 20, que está ≤ reorder_point → debe disparar la alerta.
+        $gasa->reorder_point = 20;
+        $gasa->save();
+
+        $this->createBatch($gasa->id, 'LOT-GASA', now()->addMonths(3)->format('Y-m-d'), 25, $setup['location'], $setup['warehouse']->id);
+        $this->createBatch($aguja->id, 'LOT-AGUJA', now()->addMonths(3)->format('Y-m-d'), 100, $setup['location'], $setup['warehouse']->id);
+
+        $this->recalculateStock($gasa->id, $setup['warehouse']->id);
+        $this->recalculateStock($aguja->id, $setup['warehouse']->id);
+
+        Event::fake([StockBelowReorderPoint::class]);
+
+        $center = CostCenterModel::where('type', 'internal')->first();
+
+        $this->withHeaders($this->auth())
+            ->postJson('/api/v1/movements/exit', [
+                'product_id'     => $kit->id,
+                'warehouse_id'   => $setup['warehouse']->id,
+                'location_id'    => $setup['location']->id,
+                'quantity'       => 1,
+                'cost_center_id' => $center->id,
+            ])
+            ->assertStatus(201);
+
+        Event::assertDispatched(
+            StockBelowReorderPoint::class,
+            fn ($e) => $e->productId === $gasa->id
+                && $e->warehouseId === $setup['warehouse']->id
+                && $e->currentStock === 20
+                && $e->reorderPoint === 20,
+        );
+
+        // Aguja no tiene reorder_point configurado: no debe disparar alerta.
+        Event::assertNotDispatched(
+            StockBelowReorderPoint::class,
+            fn ($e) => $e->productId === $aguja->id,
+        );
+    }
+
     /**
      * @return array{warehouse: WarehouseModel, zone: ZoneModel, location: LocationModel}
      */
@@ -584,6 +952,16 @@ class InventoryTest extends TestCase
         ]);
 
         return compact('warehouse', 'zone', 'location');
+    }
+
+    private function createLocation(ZoneModel $zone, string $suffix = ''): LocationModel
+    {
+        return LocationModel::create([
+            'zone_id'   => $zone->id,
+            'name'      => "Ubicación Inventario {$suffix}",
+            'code'      => "U-INV-{$suffix}",
+            'is_active' => true,
+        ]);
     }
 
     private function createBatch(int $productId, string $lotNumber, string $expirationDate, int $quantity, LocationModel $location, int $warehouseId): BatchModel

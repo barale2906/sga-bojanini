@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Inventory\Application\UseCases;
 
 use App\Modules\Inventory\Domain\Events\StockMovementCreated;
+use App\Modules\Inventory\Domain\Services\BatchLocationService;
 use App\Modules\Inventory\Domain\Services\FEFOService;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\BatchModel;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\StockMovementModel;
@@ -14,6 +15,7 @@ class RegisterReturnUseCase
 {
     public function __construct(
         private readonly FEFOService $fefoService,
+        private readonly BatchLocationService $batchLocationService,
     ) {}
 
     public function execute(array $data): StockMovementModel
@@ -39,12 +41,7 @@ class RegisterReturnUseCase
 
                 $batch->save();
 
-                if (isset($data['location_id'])) {
-                    DB::table('batch_location')
-                        ->where('batch_id', $batch->id)
-                        ->where('location_id', $data['location_id'])
-                        ->decrement('quantity', $selection['quantity']);
-                }
+                $this->batchLocationService->decrement($batch->id, $selection['quantity'], $data['location_id'] ?? null);
             }
 
             $movement = StockMovementModel::create([
