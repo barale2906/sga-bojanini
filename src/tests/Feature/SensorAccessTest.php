@@ -148,6 +148,27 @@ class SensorAccessTest extends TestCase
         $this->assertTrue($userIds->contains($manager->id));
     }
 
+    public function test_asignar_array_vacio_de_sensores_quita_todos_los_asignados(): void
+    {
+        $zone = $this->createZone('-EMPTY');
+
+        $sensor1 = $this->withHeaders($this->asAdmin())
+            ->postJson('/api/v1/sensors', ['zone_id' => $zone->id, 'code' => 'SENS-EMPTY1', 'name' => 'Sensor Empty', 'type' => 'temperature', 'unit' => 'C'])
+            ->json('data.id');
+
+        $manager = $this->createUserWithRole('jefe_almacen', 'jefe-sens-empty@sga.bojanini.com');
+
+        $this->withHeaders($this->asAdmin())
+            ->putJson("/api/v1/users/{$manager->id}/sensors", ['sensor_ids' => [$sensor1]])
+            ->assertStatus(200)
+            ->assertJsonCount(1, 'data.sensors');
+
+        $this->withHeaders($this->asAdmin())
+            ->putJson("/api/v1/users/{$manager->id}/sensors", ['sensor_ids' => []])
+            ->assertStatus(200)
+            ->assertJsonCount(0, 'data.sensors');
+    }
+
     public function test_usuario_sin_permiso_de_asignacion_no_puede_asignar_sensores(): void
     {
         $zone = $this->createZone('-NOPERM');

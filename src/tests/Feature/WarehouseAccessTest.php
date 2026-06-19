@@ -124,6 +124,25 @@ class WarehouseAccessTest extends TestCase
         $this->assertTrue($userIds->contains($manager->id));
     }
 
+    public function test_asignar_array_vacio_de_almacenes_quita_todos_los_asignados(): void
+    {
+        $warehouse1 = $this->withHeaders($this->asAdmin())
+            ->postJson('/api/v1/warehouses', ['name' => 'Almacén Empty', 'code' => 'ALM-EMPTY'])
+            ->json('data.id');
+
+        $manager = $this->createUserWithRole('jefe_almacen', 'jefe-empty@sga.bojanini.com');
+
+        $this->withHeaders($this->asAdmin())
+            ->putJson("/api/v1/users/{$manager->id}/warehouses", ['warehouse_ids' => [$warehouse1]])
+            ->assertStatus(200)
+            ->assertJsonCount(1, 'data.warehouses');
+
+        $this->withHeaders($this->asAdmin())
+            ->putJson("/api/v1/users/{$manager->id}/warehouses", ['warehouse_ids' => []])
+            ->assertStatus(200)
+            ->assertJsonCount(0, 'data.warehouses');
+    }
+
     public function test_usuario_sin_permiso_de_asignacion_no_puede_asignar_almacenes(): void
     {
         $warehouse1 = $this->withHeaders($this->asAdmin())
