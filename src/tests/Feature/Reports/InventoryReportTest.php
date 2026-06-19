@@ -25,12 +25,20 @@ class InventoryReportTest extends TestCase
     public function test_generates_inventory_pdf_report(): void
     {
         $response = $this->withHeader('Authorization', "Bearer {$this->token}")
-            ->getJson('/api/v1/reports/inventory?format=pdf');
+            ->get('/api/v1/reports/inventory?format=pdf');
 
-        $response->assertStatus(201)
-            ->assertJsonPath('success', true)
-            ->assertJsonStructure(['data' => ['path', 'filename', 'format']]);
+        $response->assertStatus(200);
+        $this->assertSame('application/pdf', $response->headers->get('Content-Type'));
+        $this->assertStringContainsString('attachment', $response->headers->get('Content-Disposition'));
+        $this->assertNotEmpty($response->getContent());
+    }
 
-        $this->assertFileExists($response->json('data.path'));
+    public function test_rejects_invalid_format(): void
+    {
+        $response = $this->withHeader('Authorization', "Bearer {$this->token}")
+            ->getJson('/api/v1/reports/inventory?format=word');
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors('format');
     }
 }

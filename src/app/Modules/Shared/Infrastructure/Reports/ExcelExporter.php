@@ -4,28 +4,24 @@ declare(strict_types=1);
 
 namespace App\Modules\Shared\Infrastructure\Reports;
 
+use App\Modules\Shared\Application\DTOs\GeneratedReportFile;
 use App\Modules\Shared\Application\Services\ReportDataCollector;
-use Maatwebsite\Excel\Facades\Excel;
 use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Excel as ExcelWriterType;
+use Maatwebsite\Excel\Facades\Excel;
 
 class ExcelExporter
 {
+    private const MIME_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
     public function __construct(
         private readonly ReportDataCollector $dataCollector,
     ) {}
 
-    public function export(string $reportType, array $filters): string
+    public function export(string $reportType, array $filters): GeneratedReportFile
     {
         $data = $this->dataCollector->collect($reportType, $filters);
-
-        $directory = storage_path('app/exports');
-        if (!is_dir($directory)) {
-            mkdir($directory, 0755, true);
-        }
-
-        $filename = sprintf('%s_%s.xlsx', $reportType, now()->format('Ymd_His'));
-        $path     = "{$directory}/{$filename}";
 
         $rows = array_map(
             fn (array $row) => array_values($row),
@@ -49,8 +45,8 @@ class ExcelExporter
             }
         };
 
-        Excel::store($export, "exports/{$filename}", 'local');
+        $content = Excel::raw($export, ExcelWriterType::XLSX);
 
-        return storage_path("app/exports/{$filename}");
+        return GeneratedReportFile::make($reportType, 'xlsx', self::MIME_TYPE, $content);
     }
 }

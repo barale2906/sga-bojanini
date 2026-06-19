@@ -33,7 +33,7 @@ class WarehouseController extends Controller
     {
         $warehouses = $repository->findAll([
             'search'    => $request->query('search'),
-            'is_active' => $request->query('is_active'),
+            'is_active' => $request->has('is_active') ? $request->boolean('is_active') : null,
             'ids'       => $this->allowedWarehouseIds($request->user()),
         ]);
 

@@ -23,3 +23,7 @@ Schedule::command('sga:analyze-conditions')
 Schedule::command('sga:generate-condition-reports')
     ->dailyAt('23:00')
     ->name('sga:generate-condition-reports');
+
+Schedule::command('sga:cleanup-report-exports')
+    ->dailyAt('02:00')
+    ->name('sga:cleanup-report-exports');

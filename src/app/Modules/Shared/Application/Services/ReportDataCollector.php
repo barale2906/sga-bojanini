@@ -11,11 +11,14 @@ use App\Modules\Inventory\Infrastructure\Persistence\Models\StockMovementModel;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\StockSummaryModel;
 use App\Modules\Purchasing\Infrastructure\Persistence\Models\PurchaseOrderModel;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 
 class ReportDataCollector
 {
+    /** Filas máximas que entrega el reporte de auditoría, sin importar cuántas existan. */
+    private const AUDIT_ROW_LIMIT = 500;
+
     public function collect(string $reportType, array $filters): array
     {
         return match ($reportType) {
@@ -30,7 +33,26 @@ class ReportDataCollector
         };
     }
 
-    private function inventory(array $filters): array
+    /**
+     * Estima cuántas filas tendrá el reporte sin materializarlas, para que
+     * el llamador decida si conviene generarlo de forma síncrona o en
+     * background. No necesita ser exacto, solo representativo.
+     */
+    public function estimateCount(string $reportType, array $filters): int
+    {
+        return match ($reportType) {
+            'inventory'   => $this->inventoryQuery($filters)->count(),
+            'movements'   => $this->movementsCount($filters),
+            'expiring'    => $this->expiringQuery($filters)->count(),
+            'purchases'   => $this->purchasesQuery($filters)->count(),
+            'consumption' => $this->consumptionCount($filters),
+            'audit'       => min($this->auditQuery($filters)->count(), self::AUDIT_ROW_LIMIT),
+            'conditions'  => 0,
+            default       => throw new \InvalidArgumentException("Tipo de reporte no soportado: {$reportType}"),
+        };
+    }
+
+    private function inventoryQuery(array $filters): Builder
     {
         $query = StockSummaryModel::with(['product.category', 'warehouse']);
 
@@ -42,7 +64,12 @@ class ReportDataCollector
             $query->whereHas('product', fn ($q) => $q->where('category_id', $filters['category_id']));
         }
 
-        $rows = $query->get();
+        return $query;
+    }
+
+    private function inventory(array $filters): array
+    {
+        $rows = $this->inventoryQuery($filters)->get();
         $products = [];
         $stockOk = $stockLow = $stockCritical = 0;
 
@@ -95,11 +122,19 @@ class ReportDataCollector
         ];
     }
 
-    private function movements(array $filters): array
+    /**
+     * @return array{0: Carbon, 1: Carbon}
+     */
+    private function parsedRange(array $filters, int $defaultDays = 30): array
     {
-        $from = Carbon::parse($filters['date_from'] ?? now()->subDays(30)->toDateString())->startOfDay();
+        $from = Carbon::parse($filters['date_from'] ?? now()->subDays($defaultDays)->toDateString())->startOfDay();
         $to   = Carbon::parse($filters['date_to'] ?? now()->toDateString())->endOfDay();
 
+        return [$from, $to];
+    }
+
+    private function movementsQuery(array $filters, Carbon $from, Carbon $to): Builder
+    {
         $query = StockMovementModel::with(['product', 'warehouse', 'user'])
             ->whereBetween('created_at', [$from, $to]);
 
@@ -107,33 +142,57 @@ class ReportDataCollector
             $query->where('movement_type', $filters['type']);
         }
 
-        $rows = $query->orderByDesc('created_at')->get()->map(fn ($m) => [
-            'date'      => $m->created_at->format('Y-m-d H:i'),
-            'type'      => $m->movement_type,
-            'product'   => $m->product?->name ?? '-',
-            'warehouse' => $m->warehouse?->name ?? '-',
-            'quantity'  => $m->quantity,
-            'user'      => $m->user?->name ?? '-',
-        ])->all();
+        return $query;
+    }
+
+    private function movementsCount(array $filters): int
+    {
+        [$from, $to] = $this->parsedRange($filters);
+
+        return $this->movementsQuery($filters, $from, $to)->count();
+    }
+
+    private function movements(array $filters): array
+    {
+        [$from, $to] = $this->parsedRange($filters);
+
+        $rows = $this->movementsQuery($filters, $from, $to)
+            ->orderByDesc('created_at')
+            ->get()
+            ->map(fn ($m) => [
+                'date'      => $m->created_at->format('Y-m-d H:i'),
+                'type'      => $m->movement_type,
+                'product'   => $m->product?->name ?? '-',
+                'warehouse' => $m->warehouse?->name ?? '-',
+                'quantity'  => $m->quantity,
+                'user'      => $m->user?->name ?? '-',
+            ])->all();
 
         return [
-            'generated'   => now()->format('Y-m-d H:i:s'),
-            'date_from'   => $from->toDateString(),
-            'date_to'     => $to->toDateString(),
-            'rows'        => $rows,
-            'headers'     => ['Fecha', 'Tipo', 'Producto', 'Almacén', 'Cantidad', 'Usuario'],
+            'generated' => now()->format('Y-m-d H:i:s'),
+            'date_from' => $from->toDateString(),
+            'date_to'   => $to->toDateString(),
+            'rows'      => $rows,
+            'headers'   => ['Fecha', 'Tipo', 'Producto', 'Almacén', 'Cantidad', 'Usuario'],
         ];
+    }
+
+    private function expiringQuery(array $filters): Builder
+    {
+        $days = (int) ($filters['days'] ?? 30);
+        $limit = Carbon::today()->addDays($days);
+
+        return BatchModel::with('product')
+            ->where('status', 'active')
+            ->where('quantity_available', '>', 0)
+            ->whereDate('expiration_date', '<=', $limit);
     }
 
     private function expiring(array $filters): array
     {
         $days = (int) ($filters['days'] ?? 30);
-        $limit = Carbon::today()->addDays($days);
 
-        $rows = BatchModel::with('product')
-            ->where('status', 'active')
-            ->where('quantity_available', '>', 0)
-            ->whereDate('expiration_date', '<=', $limit)
+        $rows = $this->expiringQuery($filters)
             ->orderBy('expiration_date')
             ->get()
             ->map(fn ($b) => [
@@ -152,7 +211,7 @@ class ReportDataCollector
         ];
     }
 
-    private function purchases(array $filters): array
+    private function purchasesQuery(array $filters): Builder
     {
         $query = PurchaseOrderModel::with(['supplier', 'warehouse']);
 
@@ -168,13 +227,21 @@ class ReportDataCollector
             $query->where('created_at', '<=', Carbon::parse($filters['date_to'])->endOfDay());
         }
 
-        $rows = $query->orderByDesc('created_at')->get()->map(fn ($o) => [
-            'code'     => $o->code,
-            'supplier' => $o->supplier?->name ?? '-',
-            'status'   => $o->status,
-            'total'    => (float) $o->total_amount,
-            'date'     => $o->created_at->format('Y-m-d'),
-        ])->all();
+        return $query;
+    }
+
+    private function purchases(array $filters): array
+    {
+        $rows = $this->purchasesQuery($filters)
+            ->orderByDesc('created_at')
+            ->get()
+            ->map(fn ($o) => [
+                'code'     => $o->code,
+                'supplier' => $o->supplier?->name ?? '-',
+                'status'   => $o->status,
+                'total'    => (float) $o->total_amount,
+                'date'     => $o->created_at->format('Y-m-d'),
+            ])->all();
 
         return [
             'generated' => now()->format('Y-m-d H:i:s'),
@@ -183,13 +250,24 @@ class ReportDataCollector
         ];
     }
 
+    private function consumptionQuery(Carbon $from, Carbon $to): Builder
+    {
+        return ConsumptionRecordModel::with(['product', 'user'])
+            ->whereBetween('consumed_at', [$from, $to]);
+    }
+
+    private function consumptionCount(array $filters): int
+    {
+        [$from, $to] = $this->parsedRange($filters);
+
+        return $this->consumptionQuery($from, $to)->count();
+    }
+
     private function consumption(array $filters): array
     {
-        $from = Carbon::parse($filters['date_from'] ?? now()->subDays(30)->toDateString())->startOfDay();
-        $to   = Carbon::parse($filters['date_to'] ?? now()->toDateString())->endOfDay();
+        [$from, $to] = $this->parsedRange($filters);
 
-        $rows = ConsumptionRecordModel::with(['product', 'user'])
-            ->whereBetween('consumed_at', [$from, $to])
+        $rows = $this->consumptionQuery($from, $to)
             ->orderByDesc('consumed_at')
             ->get()
             ->map(fn ($r) => [
@@ -210,7 +288,7 @@ class ReportDataCollector
         ];
     }
 
-    private function audit(array $filters): array
+    private function auditQuery(array $filters): Builder
     {
         $query = AuditLogModel::with('user')->orderByDesc('created_at');
 
@@ -230,13 +308,21 @@ class ReportDataCollector
             $query->where('created_at', '<=', Carbon::parse($filters['date_to'])->endOfDay());
         }
 
-        $rows = $query->limit(500)->get()->map(fn ($l) => [
-            'date'   => $l->created_at->format('Y-m-d H:i'),
-            'user'   => $l->user?->name ?? 'Sistema',
-            'action' => $l->action,
-            'type'   => $l->auditable_type,
-            'id'     => $l->auditable_id,
-        ])->all();
+        return $query;
+    }
+
+    private function audit(array $filters): array
+    {
+        $rows = $this->auditQuery($filters)
+            ->limit(self::AUDIT_ROW_LIMIT)
+            ->get()
+            ->map(fn ($l) => [
+                'date'   => $l->created_at->format('Y-m-d H:i'),
+                'user'   => $l->user?->name ?? 'Sistema',
+                'action' => $l->action,
+                'type'   => $l->auditable_type,
+                'id'     => $l->auditable_id,
+            ])->all();
 
         return [
             'generated' => now()->format('Y-m-d H:i:s'),

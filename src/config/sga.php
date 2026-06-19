@@ -50,9 +50,18 @@ return [
         ],
     ],
 
-    'exports' => [
-        'pdf_storage_path'   => env('SGA_PDF_STORAGE_PATH', 'exports/pdf'),
-        'excel_storage_path' => env('SGA_EXCEL_STORAGE_PATH', 'exports/excel'),
+    'reports' => [
+        // Por encima de este número estimado de filas, el reporte se genera
+        // en background (cola) en lugar de bloquear la petición HTTP.
+        'async_row_threshold' => (int) env('SGA_REPORT_ASYNC_ROW_THRESHOLD', 1000),
+        // Disco (config/filesystems.php) donde se guardan temporalmente los
+        // reportes generados en background mientras el usuario los descarga.
+        'disk'                => env('SGA_REPORT_DISK', 'local'),
+        // Carpeta dentro del disco anterior.
+        'directory'           => env('SGA_REPORT_DIRECTORY', 'reports'),
+        // Días que se conserva el archivo antes de ser borrado por
+        // sga:cleanup-report-exports.
+        'retention_days'      => (int) env('SGA_REPORT_RETENTION_DAYS', 7),
     ],
 
     'pagination' => [

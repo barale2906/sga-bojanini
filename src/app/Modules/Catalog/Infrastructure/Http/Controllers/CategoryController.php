@@ -26,7 +26,7 @@ class CategoryController extends Controller
     {
         $categories = $repository->findAll([
             'parent_id' => $request->query('parent_id'),
-            'is_active' => $request->query('is_active'),
+            'is_active' => $request->has('is_active') ? $request->boolean('is_active') : null,
             'search'    => $request->query('search'),
         ]);
 

@@ -2,6 +2,7 @@
 
 use App\Modules\Shared\Infrastructure\Http\Controllers\NotificationController;
 use App\Modules\Shared\Infrastructure\Http\Controllers\ReportController;
+use App\Modules\Shared\Infrastructure\Http\Controllers\ReportExportController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth:sanctum', 'user.is_active'])->prefix('v1')->group(function () {
@@ -22,5 +23,10 @@ Route::middleware(['auth:sanctum', 'user.is_active'])->prefix('v1')->group(funct
         Route::get('consumption', [ReportController::class, 'consumption'])->middleware('audit.access');
         Route::get('conditions', [ReportController::class, 'conditions'])->middleware('audit.access');
         Route::get('audit', [ReportController::class, 'audit'])->middleware('audit.access');
+
+        // Reportes generados en background: seguimiento y descarga.
+        Route::get('exports', [ReportExportController::class, 'index']);
+        Route::get('exports/{id}', [ReportExportController::class, 'show']);
+        Route::get('exports/{id}/download', [ReportExportController::class, 'download'])->middleware('audit.access');
     });
 });

@@ -4,65 +4,50 @@ declare(strict_types=1);
 
 namespace App\Modules\Shared\Infrastructure\Http\Controllers;
 
-use App\Modules\Shared\Application\Services\ReportExportService;
-use App\Modules\Shared\Infrastructure\Http\Traits\ApiResponse;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
+use App\Modules\Shared\Application\Services\ReportRequestHandler;
+use App\Modules\Shared\Infrastructure\Http\Requests\GenerateReportRequest;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Auth;
+use Symfony\Component\HttpFoundation\Response;
 
 class ReportController extends Controller
 {
-    use ApiResponse;
+    public function __construct(
+        private readonly ReportRequestHandler $handler,
+    ) {}
 
-    public function inventory(Request $request, ReportExportService $service): JsonResponse
+    public function inventory(GenerateReportRequest $request): Response
     {
-        return $this->exportResponse($service, 'inventory', $request->all());
+        return $this->handler->handle(Auth::user(), 'inventory', $request->validated());
     }
 
-    public function movements(Request $request, ReportExportService $service): JsonResponse
+    public function movements(GenerateReportRequest $request): Response
     {
-        return $this->exportResponse($service, 'movements', $request->all());
+        return $this->handler->handle(Auth::user(), 'movements', $request->validated());
     }
 
-    public function expiring(Request $request, ReportExportService $service): JsonResponse
+    public function expiring(GenerateReportRequest $request): Response
     {
-        return $this->exportResponse($service, 'expiring', $request->all());
+        return $this->handler->handle(Auth::user(), 'expiring', $request->validated());
     }
 
-    public function purchases(Request $request, ReportExportService $service): JsonResponse
+    public function purchases(GenerateReportRequest $request): Response
     {
-        return $this->exportResponse($service, 'purchases', $request->all());
+        return $this->handler->handle(Auth::user(), 'purchases', $request->validated());
     }
 
-    public function consumption(Request $request, ReportExportService $service): JsonResponse
+    public function consumption(GenerateReportRequest $request): Response
     {
-        return $this->exportResponse($service, 'consumption', $request->all());
+        return $this->handler->handle(Auth::user(), 'consumption', $request->validated());
     }
 
-    public function conditions(Request $request, ReportExportService $service): JsonResponse
+    public function conditions(GenerateReportRequest $request): Response
     {
-        return $this->exportResponse($service, 'conditions', $request->all());
+        return $this->handler->handle(Auth::user(), 'conditions', $request->validated());
     }
 
-    public function audit(Request $request, ReportExportService $service): JsonResponse
+    public function audit(GenerateReportRequest $request): Response
     {
-        return $this->exportResponse($service, 'audit', $request->all());
-    }
-
-    private function exportResponse(ReportExportService $service, string $type, array $filters): JsonResponse
-    {
-        $format = $filters['format'] ?? 'pdf';
-
-        if (!in_array($format, ['pdf', 'excel', 'csv'], true)) {
-            return $this->error('Formato no válido. Use pdf, excel o csv.', 422);
-        }
-
-        $path = $service->generate($type, $filters, $format);
-
-        return $this->success([
-            'path'     => $path,
-            'filename' => basename($path),
-            'format'   => $format,
-        ], 'Reporte generado correctamente', 201);
+        return $this->handler->handle(Auth::user(), 'audit', $request->validated());
     }
 }
