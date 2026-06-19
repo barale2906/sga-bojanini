@@ -182,15 +182,29 @@ class ReportDataCollector
         $days = (int) ($filters['days'] ?? 30);
         $limit = Carbon::today()->addDays($days);
 
-        return BatchModel::with('product')
+        $query = BatchModel::with('product')
             ->where('status', 'active')
             ->where('quantity_available', '>', 0)
             ->whereDate('expiration_date', '<=', $limit);
+
+        if (!empty($filters['warehouse_id'])) {
+            // Un lote no tiene warehouse_id propio: se ubica en una o varias
+            // locations (batch_location), y cada location pertenece a una
+            // zona, que a su vez pertenece a un almacén.
+            $query->whereHas(
+                'locations.zone',
+                fn ($q) => $q->where('warehouse_id', $filters['warehouse_id']),
+            );
+        }
+
+        return $query;
     }
 
     private function expiring(array $filters): array
     {
         $days = (int) ($filters['days'] ?? 30);
+        $from = Carbon::today();
+        $to   = $from->copy()->addDays($days);
 
         $rows = $this->expiringQuery($filters)
             ->orderBy('expiration_date')
@@ -206,6 +220,8 @@ class ReportDataCollector
         return [
             'generated' => now()->format('Y-m-d H:i:s'),
             'days'      => $days,
+            'date_from' => $from->toDateString(),
+            'date_to'   => $to->toDateString(),
             'rows'      => $rows,
             'headers'   => ['Lote', 'Producto', 'Vence', 'Cantidad', 'Días restantes'],
         ];

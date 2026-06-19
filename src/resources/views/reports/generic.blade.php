@@ -13,6 +13,9 @@
 <body>
     <h1>{{ $title ?? 'Reporte' }}</h1>
     <p>Generado: {{ $generated ?? now() }}</p>
+    @if(!empty($date_from) && !empty($date_to))
+        <p>Rango de fechas evaluado: {{ $date_from }} a {{ $date_to }}</p>
+    @endif
     <table>
         <thead>
             <tr>

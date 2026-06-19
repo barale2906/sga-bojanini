@@ -59,7 +59,8 @@ class GenerateReportRequest extends FormRequest
                 'type'      => ['sometimes', 'string'],
             ],
             'expiring' => [
-                'days' => ['sometimes', 'integer', 'min:1', 'max:365'],
+                'days'         => ['sometimes', 'integer', 'min:1', 'max:365'],
+                'warehouse_id' => ['sometimes', 'integer', 'exists:warehouses,id'],
             ],
             'purchases' => [
                 'status'    => ['sometimes', 'string'],

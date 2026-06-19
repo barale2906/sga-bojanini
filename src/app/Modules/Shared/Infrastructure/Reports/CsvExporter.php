@@ -18,6 +18,12 @@ class CsvExporter
         $data = $this->dataCollector->collect($reportType, $filters);
 
         $handle = fopen('php://temp', 'w+');
+
+        if (!empty($data['date_from']) && !empty($data['date_to'])) {
+            fputcsv($handle, ["Rango de fechas evaluado: {$data['date_from']} a {$data['date_to']}"]);
+            fputcsv($handle, []);
+        }
+
         fputcsv($handle, $data['headers'] ?? []);
 
         foreach ($data['rows'] ?? [] as $row) {
