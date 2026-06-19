@@ -18,16 +18,30 @@ class DashboardController extends Controller
     public function inventory(): JsonResponse
     {
         $data = Cache::remember('dashboard:inventory', 300, function () {
-            $stockSummary = DB::table('stock_summaries as ss')
+            $productStock = DB::table('stock_summaries as ss')
                 ->join('products as p', 'ss.product_id', '=', 'p.id')
                 ->selectRaw('
-                    COUNT(DISTINCT ss.product_id) as total_products,
-                    SUM(ss.available_quantity) as total_units,
-                    SUM(CASE WHEN ss.available_quantity > COALESCE(p.reorder_point, 0) THEN 1 ELSE 0 END) as stock_ok_count,
-                    SUM(CASE WHEN ss.available_quantity <= COALESCE(p.reorder_point, 0) AND ss.available_quantity > COALESCE(p.min_stock, 0) THEN 1 ELSE 0 END) as stock_low_count,
-                    SUM(CASE WHEN ss.available_quantity <= COALESCE(p.min_stock, 0) THEN 1 ELSE 0 END) as stock_critical_count
+                    ss.product_id,
+                    SUM(ss.available_quantity) as available_quantity,
+                    COALESCE(p.reorder_point, 0) as reorder_point,
+                    COALESCE(p.min_stock, 0) as min_stock
                 ')
-                ->first();
+                ->groupBy('ss.product_id', 'p.reorder_point', 'p.min_stock')
+                ->get();
+
+            $stockSummary = (object) [
+                'total_products' => $productStock->count(),
+                'total_units' => $productStock->sum('available_quantity'),
+                'stock_ok_count' => $productStock->filter(
+                    fn ($p) => $p->available_quantity > $p->reorder_point
+                )->count(),
+                'stock_low_count' => $productStock->filter(
+                    fn ($p) => $p->available_quantity <= $p->reorder_point && $p->available_quantity > $p->min_stock
+                )->count(),
+                'stock_critical_count' => $productStock->filter(
+                    fn ($p) => $p->available_quantity <= $p->min_stock
+                )->count(),
+            ];
 
             $expiringToday = DB::table('batches')
                 ->where('status', 'active')

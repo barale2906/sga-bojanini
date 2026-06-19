@@ -24,7 +24,7 @@ class NotificationController extends Controller
             ->orderByDesc('created_at')
             ->paginate($perPage);
 
-        $items = collect($notifications->items())->map(fn ($n) => [
+        $notifications->through(fn ($n) => [
             'id'         => $n->id,
             'type'       => $n->data['type'] ?? class_basename($n->type),
             'title'      => $n->data['title'] ?? '',
@@ -35,15 +35,7 @@ class NotificationController extends Controller
             'data'       => $n->data,
         ]);
 
-        return $this->success([
-            'items' => $items,
-            'meta'  => [
-                'current_page' => $notifications->currentPage(),
-                'per_page'     => $notifications->perPage(),
-                'total'        => $notifications->total(),
-                'last_page'    => $notifications->lastPage(),
-            ],
-        ]);
+        return $this->paginated($notifications);
     }
 
     public function unreadCount(): JsonResponse
