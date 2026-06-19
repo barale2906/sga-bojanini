@@ -39,6 +39,12 @@ class EloquentWarehouseRepository implements WarehouseRepositoryInterface
             });
         }
 
+        // Restringe el listado a un subconjunto de IDs (control de acceso por
+        // almacén). `null` significa "sin restricción".
+        if (isset($filters['ids']) && is_array($filters['ids'])) {
+            $query->whereIn('id', $filters['ids']);
+        }
+
         return $query->get()->map(fn ($model) => $this->toDomain($model))->toArray();
     }
 

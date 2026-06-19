@@ -18,10 +18,25 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
         });
+
+        // Asignación de almacenes a usuarios: un usuario puede tener acceso a
+        // varios almacenes y un almacén puede ser gestionado por varios usuarios.
+        // El rol super_administrador bypasea esta restricción a nivel de aplicación
+        // (ver WarehouseAccessService), pero igualmente recibe una fila aquí por
+        // cada almacén nuevo para mantener la asignación explícita y consistente.
+        Schema::create('user_warehouse', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+            $table->foreignId('warehouse_id')->constrained('warehouses')->cascadeOnDelete();
+            $table->timestamps();
+
+            $table->unique(['user_id', 'warehouse_id']);
+        });
     }
 
     public function down(): void
     {
+        Schema::dropIfExists('user_warehouse');
         Schema::dropIfExists('warehouses');
     }
 };

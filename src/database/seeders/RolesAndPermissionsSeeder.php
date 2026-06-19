@@ -30,7 +30,7 @@ class RolesAndPermissionsSeeder extends Seeder
             // Roles
             'roles.ver', 'roles.crear', 'roles.editar', 'roles.eliminar',
             // Almacenes
-            'almacenes.ver', 'almacenes.crear', 'almacenes.editar', 'almacenes.eliminar',
+            'almacenes.ver', 'almacenes.crear', 'almacenes.editar', 'almacenes.eliminar', 'almacenes.asignar',
             // Zonas
             'zonas.ver', 'zonas.crear', 'zonas.editar', 'zonas.eliminar',
             // Ubicaciones
@@ -94,7 +94,7 @@ class RolesAndPermissionsSeeder extends Seeder
         $admin->givePermissionTo([
             'usuarios.ver', 'usuarios.crear', 'usuarios.editar', 'usuarios.eliminar',
             'roles.ver', 'roles.crear', 'roles.editar', 'roles.eliminar',
-            'almacenes.ver', 'almacenes.crear', 'almacenes.editar', 'almacenes.eliminar',
+            'almacenes.ver', 'almacenes.crear', 'almacenes.editar', 'almacenes.eliminar', 'almacenes.asignar',
             'zonas.ver', 'zonas.crear', 'zonas.editar', 'zonas.eliminar',
             'ubicaciones.ver', 'ubicaciones.crear', 'ubicaciones.editar', 'ubicaciones.eliminar',
             'productos.ver', 'productos.crear', 'productos.editar', 'productos.eliminar', 'productos.importar',

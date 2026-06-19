@@ -11,6 +11,7 @@ use App\Modules\Integration\Infrastructure\Http\Resources\ConsumptionRecordResou
 use App\Modules\Integration\Infrastructure\Jobs\SyncConsumptionToHCJob;
 use App\Modules\Integration\Infrastructure\Persistence\Models\ConsumptionRecordModel;
 use App\Modules\Shared\Infrastructure\Http\Traits\ApiResponse;
+use App\Modules\Shared\Infrastructure\Http\Traits\ChecksWarehouseAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -18,6 +19,7 @@ use Illuminate\Routing\Controller;
 class ConsumptionController extends Controller
 {
     use ApiResponse;
+    use ChecksWarehouseAccess;
 
     public function index(Request $request, ConsumptionRecordRepositoryInterface $repository): JsonResponse
     {
@@ -39,6 +41,8 @@ class ConsumptionController extends Controller
 
     public function store(StoreConsumptionRequest $request, RegisterConsumptionUseCase $useCase): JsonResponse
     {
+        $this->assertWarehouseAccess($request->user(), (int) $request->validated('warehouse_id'));
+
         $result = $useCase->execute($request->validated());
 
         return $this->created([

@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Modules\Auth\Infrastructure\Persistence\Models;
 
+use App\Modules\Warehouse\Infrastructure\Persistence\Models\WarehouseModel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -49,5 +51,11 @@ class UserModel extends Authenticatable
             'password'          => 'hashed',
             'is_active'         => 'boolean',
         ];
+    }
+
+    /** Almacenes a los que este usuario tiene acceso explícito. */
+    public function warehouses(): BelongsToMany
+    {
+        return $this->belongsToMany(WarehouseModel::class, 'user_warehouse', 'user_id', 'warehouse_id')->withTimestamps();
     }
 }

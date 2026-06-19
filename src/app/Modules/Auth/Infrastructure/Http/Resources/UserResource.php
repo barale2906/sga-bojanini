@@ -26,6 +26,13 @@ class UserResource extends JsonResource
             'permissions' => $this->whenLoaded('roles', fn () =>
                 $this->getAllPermissions()->pluck('name')
             ),
+            'warehouses'  => $this->whenLoaded('warehouses', fn () =>
+                $this->warehouses->map(fn ($warehouse) => [
+                    'id'   => $warehouse->id,
+                    'name' => $warehouse->name,
+                    'code' => $warehouse->code,
+                ])
+            ),
             'created_at'  => $this->created_at?->toIso8601String(),
         ];
     }

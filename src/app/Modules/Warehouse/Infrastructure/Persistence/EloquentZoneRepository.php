@@ -25,6 +25,12 @@ class EloquentZoneRepository implements ZoneRepositoryInterface
             $query->where('warehouse_id', $filters['warehouse_id']);
         }
 
+        // Restringe el listado a los almacenes permitidos (control de acceso
+        // por almacén). `null` significa "sin restricción".
+        if (isset($filters['warehouse_ids']) && is_array($filters['warehouse_ids'])) {
+            $query->whereIn('warehouse_id', $filters['warehouse_ids']);
+        }
+
         if (isset($filters['is_active'])) {
             $query->where('is_active', $filters['is_active']);
         }

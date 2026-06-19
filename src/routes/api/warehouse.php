@@ -22,6 +22,8 @@ Route::middleware(['auth:sanctum', 'user.is_active'])->prefix('v1')->group(funct
         ->middleware('permission:zonas.ver');
     Route::get('warehouses/{id}/locations', [WarehouseController::class, 'locations'])
         ->middleware('permission:ubicaciones.ver');
+    Route::get('warehouses/{id}/users', [WarehouseController::class, 'users'])
+        ->middleware('permission:almacenes.asignar');
 
     // Capacidad del almacén (jerarquía completa)
     Route::get('warehouses/{id}/capacity', [CapacityController::class, 'warehouse'])

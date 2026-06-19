@@ -24,6 +24,8 @@ Route::prefix('v1')->group(function () {
         Route::put('users/{id}', [UserController::class, 'update'])->middleware('permission:usuarios.editar');
         Route::delete('users/{id}', [UserController::class, 'destroy'])->middleware('permission:usuarios.eliminar');
         Route::post('users/{id}/roles', [UserController::class, 'assignRoles'])->middleware('permission:roles.editar');
+        Route::get('users/{id}/warehouses', [UserController::class, 'warehouses'])->middleware('permission:almacenes.asignar');
+        Route::put('users/{id}/warehouses', [UserController::class, 'assignWarehouses'])->middleware('permission:almacenes.asignar');
 
         Route::get('roles', [RoleController::class, 'index'])->middleware('permission:roles.ver');
         Route::post('roles', [RoleController::class, 'store'])->middleware('permission:roles.crear');

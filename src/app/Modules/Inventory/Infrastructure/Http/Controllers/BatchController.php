@@ -7,7 +7,10 @@ namespace App\Modules\Inventory\Infrastructure\Http\Controllers;
 use App\Modules\Inventory\Infrastructure\Http\Resources\BatchResource;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\BatchModel;
 use App\Modules\Shared\Infrastructure\Http\Traits\ApiResponse;
+use App\Modules\Shared\Infrastructure\Http\Traits\ChecksWarehouseAccess;
 use Carbon\Carbon;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -15,6 +18,7 @@ use Illuminate\Routing\Controller;
 class BatchController extends Controller
 {
     use ApiResponse;
+    use ChecksWarehouseAccess;
 
     public function index(Request $request): JsonResponse
     {
@@ -30,7 +34,10 @@ class BatchController extends Controller
 
         if ($request->filled('warehouse_id')) {
             $warehouseId = $request->integer('warehouse_id');
+            $this->assertWarehouseAccess($request->user(), $warehouseId);
             $query->whereHas('locations.zone', fn ($q) => $q->where('warehouse_id', $warehouseId));
+        } else {
+            $this->scopeBatchesToAllowedWarehouses($query, $request);
         }
 
         $perPage = min(
@@ -44,13 +51,15 @@ class BatchController extends Controller
         );
     }
 
-    public function show(int $id): JsonResponse
+    public function show(int $id, Request $request): JsonResponse
     {
         $batch = BatchModel::with(['product', 'locations.zone'])->find($id);
 
         if ($batch === null) {
             return $this->error('Lote no encontrado', 404);
         }
+
+        $this->assertBatchWarehouseAccess($batch, $request);
 
         return $this->success(new BatchResource($batch), 'Detalle del lote');
     }
@@ -78,7 +87,10 @@ class BatchController extends Controller
 
         if ($request->filled('warehouse_id')) {
             $warehouseId = $request->integer('warehouse_id');
+            $this->assertWarehouseAccess($request->user(), $warehouseId);
             $query->whereHas('locations.zone', fn ($q) => $q->where('warehouse_id', $warehouseId));
+        } else {
+            $this->scopeBatchesToAllowedWarehouses($query, $request);
         }
 
         $batches = $query->orderBy('expiration_date')->get();
@@ -91,24 +103,53 @@ class BatchController extends Controller
         $alertDays = (int) $request->query('days', config('sga.fefo.alert_days', 30));
         $alertDate = Carbon::today()->addDays($alertDays);
 
-        $batches = BatchModel::with('product')
+        $query = BatchModel::with('product')
             ->where('status', 'active')
             ->where('quantity_available', '>', 0)
             ->whereDate('expiration_date', '<=', $alertDate)
-            ->whereDate('expiration_date', '>=', Carbon::today())
-            ->orderBy('expiration_date')
-            ->get();
+            ->whereDate('expiration_date', '>=', Carbon::today());
+
+        $this->scopeBatchesToAllowedWarehouses($query, $request);
+
+        $batches = $query->orderBy('expiration_date')->get();
 
         return $this->success(BatchResource::collection($batches), 'Lotes próximos a vencer');
     }
 
-    public function expired(): JsonResponse
+    public function expired(Request $request): JsonResponse
     {
-        $batches = BatchModel::with('product')
-            ->where('status', 'expired')
-            ->orderByDesc('expiration_date')
-            ->get();
+        $query = BatchModel::with('product')->where('status', 'expired');
+
+        $this->scopeBatchesToAllowedWarehouses($query, $request);
+
+        $batches = $query->orderByDesc('expiration_date')->get();
 
         return $this->success(BatchResource::collection($batches), 'Lotes vencidos');
+    }
+
+    /** Restringe el listado a lotes con stock en alguno de los almacenes permitidos. */
+    private function scopeBatchesToAllowedWarehouses(Builder $query, Request $request): void
+    {
+        $allowedIds = $this->allowedWarehouseIds($request->user());
+
+        if ($allowedIds !== null) {
+            $query->whereHas('locations.zone', fn ($q) => $q->whereIn('warehouse_id', $allowedIds));
+        }
+    }
+
+    /** Verifica que el lote tenga stock en al menos un almacén permitido para el usuario. */
+    private function assertBatchWarehouseAccess(BatchModel $batch, Request $request): void
+    {
+        $allowedIds = $this->allowedWarehouseIds($request->user());
+
+        if ($allowedIds === null) {
+            return;
+        }
+
+        $batchWarehouseIds = $batch->locations->pluck('zone.warehouse_id')->unique();
+
+        if ($batchWarehouseIds->isNotEmpty() && $batchWarehouseIds->intersect($allowedIds)->isEmpty()) {
+            throw new AuthorizationException('No tienes acceso al almacén indicado.');
+        }
     }
 }

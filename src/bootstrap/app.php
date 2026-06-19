@@ -42,6 +42,19 @@ return Application::configure(basePath: dirname(__DIR__))
             }
         });
 
+        // Laravel convierte AuthorizationException a AccessDeniedHttpException
+        // antes de evaluar los renderers anteriores, por lo que ese caso se
+        // maneja aquí explícitamente (conserva el mensaje original, p. ej. el
+        // de ChecksWarehouseAccess::assertWarehouseAccess()).
+        $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException $e, $request) {
+            if ($request->is('api/*') || $request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $e->getMessage() ?: 'No tienes permiso para realizar esta acción.',
+                ], 403);
+            }
+        });
+
         $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\NotFoundHttpException $e, $request) {
             if ($request->is('api/*') || $request->expectsJson()) {
                 return response()->json([

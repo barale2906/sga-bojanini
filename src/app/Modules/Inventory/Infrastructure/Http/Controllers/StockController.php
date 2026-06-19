@@ -11,6 +11,7 @@ use App\Modules\Inventory\Infrastructure\Http\Requests\StockSummaryRequest;
 use App\Modules\Inventory\Infrastructure\Http\Resources\StockResource;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\StockSummaryModel;
 use App\Modules\Shared\Infrastructure\Http\Traits\ApiResponse;
+use App\Modules\Shared\Infrastructure\Http\Traits\ChecksWarehouseAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -18,13 +19,17 @@ use Illuminate\Routing\Controller;
 class StockController extends Controller
 {
     use ApiResponse;
+    use ChecksWarehouseAccess;
 
     public function index(Request $request): JsonResponse
     {
         $query = StockSummaryModel::with(['product', 'warehouse']);
 
         if ($request->filled('warehouse_id')) {
+            $this->assertWarehouseAccess($request->user(), $request->integer('warehouse_id'));
             $query->where('warehouse_id', $request->integer('warehouse_id'));
+        } else {
+            $this->scopeQueryToAllowedWarehouses($query, $request->user());
         }
 
         if ($request->filled('product_id')) {
@@ -55,6 +60,8 @@ class StockController extends Controller
     {
         $productId = $request->integer('product_id');
         $warehouseId = $request->integer('warehouse_id');
+
+        $this->assertWarehouseAccess($request->user(), $warehouseId);
 
         $summary = StockSummaryModel::with(['product', 'warehouse'])
             ->where('warehouse_id', $warehouseId)
@@ -97,6 +104,8 @@ class StockController extends Controller
         $kitProductId = $request->integer('kit_product_id');
         $warehouseId  = $request->integer('warehouse_id');
 
+        $this->assertWarehouseAccess($request->user(), $warehouseId);
+
         try {
             $available = $service->getAvailableKits($kitProductId, $warehouseId);
         } catch (\DomainException $e) {
@@ -120,7 +129,10 @@ class StockController extends Controller
             ->select('stock_summaries.*');
 
         if ($request->filled('warehouse_id')) {
+            $this->assertWarehouseAccess($request->user(), $request->integer('warehouse_id'));
             $query->where('stock_summaries.warehouse_id', $request->integer('warehouse_id'));
+        } else {
+            $this->scopeQueryToAllowedWarehouses($query, $request->user(), 'stock_summaries.warehouse_id');
         }
 
         $summaries = $query->get();

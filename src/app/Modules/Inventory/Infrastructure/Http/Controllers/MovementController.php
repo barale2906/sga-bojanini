@@ -23,15 +23,21 @@ use App\Modules\Inventory\Infrastructure\Http\Requests\StoreWriteOffRequest;
 use App\Modules\Inventory\Infrastructure\Http\Resources\MovementResource;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\StockMovementModel;
 use App\Modules\Shared\Infrastructure\Http\Traits\ApiResponse;
+use App\Modules\Shared\Infrastructure\Http\Traits\ChecksWarehouseAccess;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 
 class MovementController extends Controller
 {
     use ApiResponse;
+    use ChecksWarehouseAccess;
 
     public function entry(StoreEntryRequest $request, RegisterEntryUseCase $useCase): JsonResponse
     {
+        $this->assertWarehouseAccess($request->user(), (int) $request->validated('warehouse_id'));
+
         $movement = $useCase->execute([
             ...$request->validated(),
             'user_id' => $request->user()->id,
@@ -45,6 +51,8 @@ class MovementController extends Controller
 
     public function exit(StoreExitRequest $request, RegisterExitUseCase $useCase): JsonResponse
     {
+        $this->assertWarehouseAccess($request->user(), (int) $request->validated('warehouse_id'));
+
         $result = $useCase->execute([
             ...$request->validated(),
             'user_id' => $request->user()->id,
@@ -67,6 +75,9 @@ class MovementController extends Controller
 
     public function transfer(StoreTransferRequest $request, TransferStockUseCase $useCase): JsonResponse
     {
+        $this->assertWarehouseAccess($request->user(), (int) $request->validated('warehouse_from_id'));
+        $this->assertWarehouseAccess($request->user(), (int) $request->validated('warehouse_to_id'));
+
         $movement = $useCase->execute([
             ...$request->validated(),
             'user_id' => $request->user()->id,
@@ -80,6 +91,8 @@ class MovementController extends Controller
 
     public function adjustment(StoreAdjustmentRequest $request, AdjustStockUseCase $useCase): JsonResponse
     {
+        $this->assertWarehouseAccess($request->user(), (int) $request->validated('warehouse_id'));
+
         $movement = $useCase->execute([
             ...$request->validated(),
             'user_id' => $request->user()->id,
@@ -93,6 +106,8 @@ class MovementController extends Controller
 
     public function returnStock(StoreReturnRequest $request, RegisterReturnUseCase $useCase): JsonResponse
     {
+        $this->assertWarehouseAccess($request->user(), (int) $request->validated('warehouse_id'));
+
         $movement = $useCase->execute([
             ...$request->validated(),
             'user_id' => $request->user()->id,
@@ -106,6 +121,8 @@ class MovementController extends Controller
 
     public function writeOff(StoreWriteOffRequest $request, WriteOffExpiredUseCase $useCase): JsonResponse
     {
+        $this->assertWarehouseAccess($request->user(), (int) $request->validated('warehouse_id'));
+
         $movement = $useCase->execute([
             ...$request->validated(),
             'user_id' => $request->user()->id,
@@ -119,6 +136,8 @@ class MovementController extends Controller
 
     public function loss(StoreLossRequest $request, RegisterLossUseCase $useCase): JsonResponse
     {
+        $this->assertWarehouseAccess($request->user(), (int) $request->validated('warehouse_id'));
+
         $movement = $useCase->execute([
             ...$request->validated(),
             'user_id' => $request->user()->id,
@@ -144,6 +163,7 @@ class MovementController extends Controller
         }
 
         if ($request->filled('warehouse_id')) {
+            $this->assertWarehouseAccess($request->user(), $request->integer('warehouse_id'));
             $query->where('warehouse_id', $request->integer('warehouse_id'));
         }
 
@@ -164,7 +184,17 @@ class MovementController extends Controller
         }
 
         if ($request->filled('warehouse_to_id')) {
+            $this->assertWarehouseAccess($request->user(), $request->integer('warehouse_to_id'));
             $query->where('warehouse_to_id', $request->integer('warehouse_to_id'));
+        }
+
+        $allowedIds = $this->allowedWarehouseIds($request->user());
+
+        if ($allowedIds !== null) {
+            $query->where(function ($q) use ($allowedIds) {
+                $q->whereIn('warehouse_id', $allowedIds)
+                    ->orWhereIn('warehouse_to_id', $allowedIds);
+            });
         }
 
         $perPage = min(
@@ -178,7 +208,7 @@ class MovementController extends Controller
         );
     }
 
-    public function show(int $id): JsonResponse
+    public function show(int $id, Request $request): JsonResponse
     {
         $movement = StockMovementModel::with(['product', 'batch', 'user', 'costCenter', 'medicalService'])->find($id);
 
@@ -186,6 +216,31 @@ class MovementController extends Controller
             return $this->error('Movimiento no encontrado', 404);
         }
 
+        $this->assertMovementAccess($request, $movement);
+
         return $this->success(new MovementResource($movement), 'Detalle del movimiento');
+    }
+
+    /** Concede acceso si el usuario puede ver el almacén de origen o el de destino. */
+    private function assertMovementAccess(Request $request, StockMovementModel $movement): void
+    {
+        $user = $request->user();
+        $hasFullAccess = $this->userHasFullWarehouseAccess($user);
+
+        $canAccessSource = $this->warehouseAccessService()->canAccessWarehouse(
+            (int) $user->getAuthIdentifier(),
+            $movement->warehouse_id,
+            $hasFullAccess,
+        );
+
+        $canAccessDestination = $movement->warehouse_to_id !== null && $this->warehouseAccessService()->canAccessWarehouse(
+            (int) $user->getAuthIdentifier(),
+            $movement->warehouse_to_id,
+            $hasFullAccess,
+        );
+
+        if (! $canAccessSource && ! $canAccessDestination) {
+            throw new AuthorizationException('No tienes acceso al almacén indicado.');
+        }
     }
 }

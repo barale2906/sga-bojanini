@@ -8,11 +8,14 @@ use App\Modules\Auth\Application\DTOs\UserData;
 use App\Modules\Auth\Application\UseCases\CreateUserUseCase;
 use App\Modules\Auth\Application\UseCases\UpdateUserUseCase;
 use App\Modules\Auth\Infrastructure\Http\Requests\AssignRolesRequest;
+use App\Modules\Auth\Infrastructure\Http\Requests\AssignWarehousesRequest;
 use App\Modules\Auth\Infrastructure\Http\Requests\StoreUserRequest;
 use App\Modules\Auth\Infrastructure\Http\Requests\UpdateUserRequest;
 use App\Modules\Auth\Infrastructure\Http\Resources\UserResource;
 use App\Modules\Auth\Infrastructure\Persistence\Models\UserModel;
 use App\Modules\Shared\Infrastructure\Http\Traits\ApiResponse;
+use App\Modules\Warehouse\Domain\Repositories\UserWarehouseRepositoryInterface;
+use App\Modules\Warehouse\Infrastructure\Http\Resources\WarehouseResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -117,5 +120,35 @@ class UserController extends Controller
         $user->load('roles.permissions');
 
         return $this->success(new UserResource($user), 'Roles asignados exitosamente');
+    }
+
+    /**
+     * Reemplaza el conjunto completo de almacenes asignados a un usuario.
+     *
+     * Los usuarios con rol super_administrador igualmente tienen acceso a
+     * todos los almacenes (ver WarehouseAccessService); esta asignación
+     * aplica al resto de roles, que solo verán/operarán los almacenes aquí
+     * indicados.
+     */
+    public function assignWarehouses(int $id, AssignWarehousesRequest $request, UserWarehouseRepositoryInterface $repository): JsonResponse
+    {
+        UserModel::findOrFail($id);
+        $repository->syncForUser($id, $request->validated('warehouse_ids'));
+
+        $user = UserModel::with(['roles.permissions', 'warehouses'])->findOrFail($id);
+
+        return $this->success(new UserResource($user), 'Almacenes asignados exitosamente');
+    }
+
+    /** Lista los almacenes asignados a un usuario. */
+    public function warehouses(int $id): JsonResponse
+    {
+        $user = UserModel::with('warehouses')->find($id);
+
+        if (! $user) {
+            return $this->error('Usuario no encontrado', 404);
+        }
+
+        return $this->success(WarehouseResource::collection($user->warehouses), 'Almacenes asignados al usuario');
     }
 }

@@ -52,10 +52,12 @@ use App\Modules\Monitoring\Infrastructure\Persistence\EloquentSensorReadingRepos
 use App\Modules\Monitoring\Infrastructure\Persistence\EloquentSensorRepository;
 use App\Modules\Warehouse\Domain\Repositories\CapacityRepositoryInterface;
 use App\Modules\Warehouse\Domain\Repositories\LocationRepositoryInterface;
+use App\Modules\Warehouse\Domain\Repositories\UserWarehouseRepositoryInterface;
 use App\Modules\Warehouse\Domain\Repositories\WarehouseRepositoryInterface;
 use App\Modules\Warehouse\Domain\Repositories\ZoneRepositoryInterface;
 use App\Modules\Warehouse\Infrastructure\Persistence\EloquentCapacityRepository;
 use App\Modules\Warehouse\Infrastructure\Persistence\EloquentLocationRepository;
+use App\Modules\Warehouse\Infrastructure\Persistence\EloquentUserWarehouseRepository;
 use App\Modules\Warehouse\Infrastructure\Persistence\EloquentWarehouseRepository;
 use App\Modules\Warehouse\Infrastructure\Persistence\EloquentZoneRepository;
 use Illuminate\Support\ServiceProvider;
@@ -75,10 +77,11 @@ class ModuleServiceProvider extends ServiceProvider
         UserRepositoryInterface::class => EloquentUserRepository::class,
 
         // Warehouse (Fase 2)
-        WarehouseRepositoryInterface::class => EloquentWarehouseRepository::class,
-        ZoneRepositoryInterface::class      => EloquentZoneRepository::class,
-        LocationRepositoryInterface::class  => EloquentLocationRepository::class,
-        CapacityRepositoryInterface::class  => EloquentCapacityRepository::class,
+        WarehouseRepositoryInterface::class     => EloquentWarehouseRepository::class,
+        ZoneRepositoryInterface::class          => EloquentZoneRepository::class,
+        LocationRepositoryInterface::class      => EloquentLocationRepository::class,
+        CapacityRepositoryInterface::class      => EloquentCapacityRepository::class,
+        UserWarehouseRepositoryInterface::class => EloquentUserWarehouseRepository::class,
 
         // Catalog (Fase 3)
         CategoryRepositoryInterface::class                    => EloquentCategoryRepository::class,

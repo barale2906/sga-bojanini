@@ -17,6 +17,7 @@ use App\Modules\Catalog\Infrastructure\Http\Resources\ProductResource;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductModel;
 use App\Modules\Inventory\Domain\Services\KitAvailabilityService;
 use App\Modules\Shared\Infrastructure\Http\Traits\ApiResponse;
+use App\Modules\Shared\Infrastructure\Http\Traits\ChecksWarehouseAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -24,6 +25,7 @@ use Illuminate\Routing\Controller;
 class ProductController extends Controller
 {
     use ApiResponse;
+    use ChecksWarehouseAccess;
 
     public function index(Request $request, ProductRepositoryInterface $repository): JsonResponse
     {
@@ -102,6 +104,8 @@ class ProductController extends Controller
         if ($model->product_type !== ProductType::Kit->value) {
             return $this->error('El producto no es de tipo kit.', 422);
         }
+
+        $this->assertWarehouseAccess($request->user(), $request->integer('warehouse_id'));
 
         $available = $service->getAvailableKits($product, $request->integer('warehouse_id'));
 

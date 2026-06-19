@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Warehouse\Infrastructure\Http\Controllers;
 
 use App\Modules\Shared\Infrastructure\Http\Traits\ApiResponse;
+use App\Modules\Shared\Infrastructure\Http\Traits\ChecksWarehouseAccess;
 use App\Modules\Warehouse\Application\DTOs\ZoneData;
 use App\Modules\Warehouse\Application\UseCases\CreateZoneUseCase;
 use App\Modules\Warehouse\Application\UseCases\DeleteZoneUseCase;
@@ -20,14 +21,22 @@ use Illuminate\Routing\Controller;
 class ZoneController extends Controller
 {
     use ApiResponse;
+    use ChecksWarehouseAccess;
 
     public function index(Request $request, ZoneRepositoryInterface $repository): JsonResponse
     {
+        $warehouseId = $request->query('warehouse_id');
+
+        if ($warehouseId !== null) {
+            $this->assertWarehouseAccess($request->user(), (int) $warehouseId);
+        }
+
         $zones = $repository->findAll([
-            'warehouse_id' => $request->query('warehouse_id'),
-            'is_active'    => $request->query('is_active'),
-            'type'         => $request->query('type'),
-            'search'       => $request->query('search'),
+            'warehouse_id'  => $warehouseId,
+            'warehouse_ids' => $this->allowedWarehouseIds($request->user()),
+            'is_active'     => $request->query('is_active'),
+            'type'          => $request->query('type'),
+            'search'        => $request->query('search'),
         ]);
 
         return $this->success(
@@ -38,6 +47,8 @@ class ZoneController extends Controller
 
     public function store(StoreZoneRequest $request, CreateZoneUseCase $useCase): JsonResponse
     {
+        $this->assertWarehouseAccess($request->user(), (int) $request->validated('warehouse_id'));
+
         $data = new ZoneData(
             warehouseId: $request->validated('warehouse_id'),
             name: $request->validated('name'),
@@ -55,7 +66,7 @@ class ZoneController extends Controller
         return $this->created(new ZoneResource($zone), 'Zona creada exitosamente');
     }
 
-    public function show(int $zone, ZoneRepositoryInterface $repository): JsonResponse
+    public function show(int $zone, Request $request, ZoneRepositoryInterface $repository): JsonResponse
     {
         $entity = $repository->findById($zone);
 
@@ -63,11 +74,22 @@ class ZoneController extends Controller
             return $this->error('Zona no encontrada', 404);
         }
 
+        $this->assertWarehouseAccess($request->user(), $entity->getWarehouseId());
+
         return $this->success(new ZoneResource($entity), 'Detalle de la zona');
     }
 
-    public function update(int $zone, UpdateZoneRequest $request, UpdateZoneUseCase $useCase): JsonResponse
+    public function update(int $zone, UpdateZoneRequest $request, UpdateZoneUseCase $useCase, ZoneRepositoryInterface $repository): JsonResponse
     {
+        $existing = $repository->findById($zone);
+
+        if ($existing === null) {
+            return $this->error('Zona no encontrada', 404);
+        }
+
+        $this->assertWarehouseAccess($request->user(), $existing->getWarehouseId());
+        $this->assertWarehouseAccess($request->user(), (int) $request->validated('warehouse_id'));
+
         $data = new ZoneData(
             warehouseId: $request->validated('warehouse_id'),
             name: $request->validated('name'),
@@ -85,8 +107,16 @@ class ZoneController extends Controller
         return $this->success(new ZoneResource($entity), 'Zona actualizada exitosamente');
     }
 
-    public function destroy(int $zone, DeleteZoneUseCase $useCase): JsonResponse
+    public function destroy(int $zone, Request $request, DeleteZoneUseCase $useCase, ZoneRepositoryInterface $repository): JsonResponse
     {
+        $existing = $repository->findById($zone);
+
+        if ($existing === null) {
+            return $this->error('Zona no encontrada', 404);
+        }
+
+        $this->assertWarehouseAccess($request->user(), $existing->getWarehouseId());
+
         $useCase->execute($zone);
 
         return $this->noContent('Zona eliminada');
