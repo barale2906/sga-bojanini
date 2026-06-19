@@ -11,26 +11,24 @@ use App\Modules\Shared\Infrastructure\Http\Traits\ChecksSensorAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\File;
+use Symfony\Component\HttpFoundation\Response;
 
 class ConditionReportController extends Controller
 {
     use ApiResponse;
     use ChecksSensorAccess;
 
-    public function generate(GenerateConditionReportRequest $request, GenerateConditionPdfUseCase $useCase): JsonResponse
+    public function generate(GenerateConditionReportRequest $request, GenerateConditionPdfUseCase $useCase): Response
     {
         $this->assertSensorAccess($request->user(), (int) $request->validated('sensor_id'));
 
-        $path = $useCase->execute(
+        $file = $useCase->execute(
             (int) $request->validated('sensor_id'),
             $request->validated('date_from'),
             $request->validated('date_to'),
         );
 
-        return $this->success([
-            'path' => $path,
-            'filename' => basename($path),
-        ], 'Reporte PDF generado correctamente', 201);
+        return $file->toDownloadResponse();
     }
 
     public function index(): JsonResponse

@@ -109,16 +109,15 @@ class SensorReadingTest extends TestCase
         $sensor = SensorModel::where('code', 'TEMP-ZR01-01')->first();
 
         $response = $this->withHeaders($this->auth())
-            ->postJson('/api/v1/monitoring/reports/generate', [
+            ->post('/api/v1/monitoring/reports/generate', [
                 'sensor_id' => $sensor->id,
                 'date_from' => now()->subDays(7)->format('Y-m-d'),
                 'date_to'   => now()->format('Y-m-d'),
             ]);
 
-        $response->assertStatus(201)
-            ->assertJsonPath('success', true)
-            ->assertJsonStructure(['data' => ['path', 'filename']]);
-
-        $this->assertFileExists($response->json('data.path'));
+        $response->assertStatus(200);
+        $this->assertSame('application/pdf', $response->headers->get('Content-Type'));
+        $this->assertStringContainsString('attachment', $response->headers->get('Content-Disposition'));
+        $this->assertNotEmpty($response->getContent());
     }
 }

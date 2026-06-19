@@ -9,6 +9,7 @@ use App\Modules\Integration\Infrastructure\Persistence\Models\ConsumptionRecordM
 use App\Modules\Inventory\Infrastructure\Persistence\Models\BatchModel;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\StockMovementModel;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\StockSummaryModel;
+use App\Modules\Monitoring\Infrastructure\Persistence\Models\SensorReadingModel;
 use App\Modules\Purchasing\Infrastructure\Persistence\Models\PurchaseOrderModel;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
@@ -47,7 +48,7 @@ class ReportDataCollector
             'purchases'   => $this->purchasesQuery($filters)->count(),
             'consumption' => $this->consumptionCount($filters),
             'audit'       => min($this->auditQuery($filters)->count(), self::AUDIT_ROW_LIMIT),
-            'conditions'  => 0,
+            'conditions'  => $this->conditionsCount($filters),
             default       => throw new \InvalidArgumentException("Tipo de reporte no soportado: {$reportType}"),
         };
     }
@@ -347,13 +348,80 @@ class ReportDataCollector
         ];
     }
 
+    /**
+     * Para PDF, "conditions" se delega al caso de uso del módulo de
+     * Monitoring (gráfico de control, estadísticas, etc., ver
+     * ReportExportService::generateConditionsPdf()). Este método solo
+     * alimenta el formato tabular (Excel/CSV) y la estimación de tamaño.
+     */
+    private function conditionsQuery(array $filters): Builder
+    {
+        [$from, $to] = $this->parsedRange($filters);
+
+        $query = SensorReadingModel::with(['sensor.zone'])
+            ->whereBetween('recorded_at', [$from, $to]);
+
+        if (!empty($filters['sensor_id'])) {
+            $query->where('sensor_id', $filters['sensor_id']);
+        } elseif (!empty($filters['sensor_ids'])) {
+            // Usuario restringido pidiendo "todos": acotar a sus sensores permitidos.
+            $query->whereIn('sensor_id', $filters['sensor_ids']);
+        }
+
+        return $query;
+    }
+
+    private function conditionsCount(array $filters): int
+    {
+        return $this->conditionsQuery($filters)->count();
+    }
+
     private function conditions(array $filters): array
     {
+        [$from, $to] = $this->parsedRange($filters);
+
+        $rows = $this->conditionsQuery($filters)
+            ->orderBy('recorded_at')
+            ->get()
+            ->map(function ($reading) {
+                $sensor = $reading->sensor;
+                $zone = $sensor?->zone;
+                $limits = $this->zoneLimitsFor($sensor, $zone);
+                $value = (float) $reading->value;
+                $outOfRange = $limits !== null && ($value < $limits[0] || $value > $limits[1]);
+
+                return [
+                    'sensor' => $sensor ? "{$sensor->code} — {$sensor->name}" : '-',
+                    'zone'   => $zone?->name ?? '-',
+                    'date'   => $reading->recorded_at->format('Y-m-d H:i'),
+                    'value'  => $value,
+                    'unit'   => $sensor?->unit ?? '-',
+                    'limits' => $limits !== null ? "{$limits[0]} – {$limits[1]}" : '-',
+                    'status' => $outOfRange ? 'Fuera de rango' : 'OK',
+                ];
+            })->all();
+
         return [
             'generated' => now()->format('Y-m-d H:i:s'),
-            'message'   => 'Use el endpoint monitoring/reports/generate para PDF detallado de condiciones.',
-            'rows'      => [],
-            'headers'   => ['Sensor', 'Fecha', 'Valor'],
+            'date_from' => $from->toDateString(),
+            'date_to'   => $to->toDateString(),
+            'rows'      => $rows,
+            'headers'   => ['Sensor', 'Zona', 'Fecha', 'Valor', 'Unidad', 'Límites', 'Estado'],
         ];
+    }
+
+    /**
+     * @return array{0: float, 1: float}|null [mínimo, máximo] según el tipo
+     *         de sensor (temperatura u humedad), o null si no hay zona.
+     */
+    private function zoneLimitsFor($sensor, $zone): ?array
+    {
+        if ($sensor === null || $zone === null) {
+            return null;
+        }
+
+        return $sensor->type === 'temperature'
+            ? [(float) ($zone->temp_min ?? 0), (float) ($zone->temp_max ?? 0)]
+            : [(float) ($zone->humidity_min ?? 0), (float) ($zone->humidity_max ?? 0)];
     }
 }

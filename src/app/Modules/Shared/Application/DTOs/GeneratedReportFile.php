@@ -30,4 +30,17 @@ final class GeneratedReportFile
     {
         return strlen($this->content);
     }
+
+    /**
+     * Respuesta HTTP de descarga directa para este archivo, sin pasar por
+     * almacenamiento en disco.
+     */
+    public function toDownloadResponse(): \Symfony\Component\HttpFoundation\Response
+    {
+        return new \Symfony\Component\HttpFoundation\Response($this->content, 200, [
+            'Content-Type'        => $this->mimeType,
+            'Content-Disposition' => 'attachment; filename="'.$this->filename.'"',
+            'Content-Length'      => (string) $this->sizeInBytes(),
+        ]);
+    }
 }

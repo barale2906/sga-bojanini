@@ -44,10 +44,6 @@ class ReportRequestHandler
 
         $file = $this->exportService->generate($reportType, $filters, $format);
 
-        return response($file->content, 200, [
-            'Content-Type'        => $file->mimeType,
-            'Content-Disposition' => 'attachment; filename="'.$file->filename.'"',
-            'Content-Length'      => (string) $file->sizeInBytes(),
-        ]);
+        return $file->toDownloadResponse();
     }
 }

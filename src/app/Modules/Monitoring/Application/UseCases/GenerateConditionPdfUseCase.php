@@ -7,6 +7,7 @@ namespace App\Modules\Monitoring\Application\UseCases;
 use App\Modules\Monitoring\Domain\Repositories\SensorReadingRepositoryInterface;
 use App\Modules\Monitoring\Domain\Repositories\SensorRepositoryInterface;
 use App\Modules\Monitoring\Domain\Services\StatisticalControlService;
+use App\Modules\Shared\Application\DTOs\GeneratedReportFile;
 use App\Modules\Warehouse\Domain\Repositories\ZoneRepositoryInterface;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
@@ -19,6 +20,10 @@ use Carbon\Carbon;
  * - Tabla de todas las lecturas en el periodo
  * - Estadísticas (media, σ, límites)
  * - Lecturas fuera de rango marcadas en rojo
+ *
+ * No escribe a disco: produce el PDF en memoria. Quien lo invoque decide
+ * qué hacer con él (descarga inmediata o archivado, ver
+ * ConditionReportController::generate() y GenerateConditionReportsCommand).
  */
 class GenerateConditionPdfUseCase
 {
@@ -33,9 +38,8 @@ class GenerateConditionPdfUseCase
      * @param int    $sensorId ID del sensor
      * @param string $dateFrom Fecha inicio (Y-m-d)
      * @param string $dateTo   Fecha fin (Y-m-d)
-     * @return string Ruta absoluta del PDF generado
      */
-    public function execute(int $sensorId, string $dateFrom, string $dateTo): string
+    public function execute(int $sensorId, string $dateFrom, string $dateTo): GeneratedReportFile
     {
         $sensor = $this->sensorRepository->findById($sensorId);
         if ($sensor === null) {
@@ -70,21 +74,8 @@ class GenerateConditionPdfUseCase
             'generated' => now()->format('Y-m-d H:i:s'),
         ]);
 
-        $fileName = sprintf(
-            'condiciones_%s_%s_%s.pdf',
-            $sensor->getCode(),
-            $from->format('Ymd'),
-            $to->format('Ymd'),
-        );
-        $directory = storage_path('app/exports');
-        if (!is_dir($directory)) {
-            mkdir($directory, 0755, true);
-        }
+        $reportName = sprintf('condiciones_%s', $sensor->getCode());
 
-        $path = "{$directory}/{$fileName}";
-
-        $pdf->save($path);
-
-        return $path;
+        return GeneratedReportFile::make($reportName, 'pdf', 'application/pdf', $pdf->output());
     }
 }

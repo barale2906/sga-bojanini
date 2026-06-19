@@ -43,6 +43,8 @@ class GenerateReportRequest extends FormRequest
             'days.min'              => 'Los días deben ser al menos 1.',
             'days.max'              => 'Los días no pueden superar 365.',
             'user_id.exists'        => 'El usuario seleccionado no existe.',
+            'sensor_id.required'    => 'Debe seleccionar un sensor.',
+            'sensor_id.exists'      => 'El sensor seleccionado no existe.',
         ];
     }
 
@@ -74,6 +76,18 @@ class GenerateReportRequest extends FormRequest
             'audit' => [
                 'user_id'   => ['sometimes', 'integer', 'exists:users,id'],
                 'action'    => ['sometimes', 'string'],
+                'date_from' => ['sometimes', 'date'],
+                'date_to'   => ['sometimes', 'date', 'after_or_equal:date_from'],
+            ],
+            'conditions' => [
+                // El PDF muestra el gráfico de control de UN equipo, así que
+                // requiere sensor_id. Excel/CSV son tabulares y admiten
+                // listar varios sensores a la vez (o todos).
+                'sensor_id' => [
+                    Rule::requiredIf(fn () => $this->input('format', 'pdf') === 'pdf'),
+                    'integer',
+                    'exists:sensors,id',
+                ],
                 'date_from' => ['sometimes', 'date'],
                 'date_to'   => ['sometimes', 'date', 'after_or_equal:date_from'],
             ],

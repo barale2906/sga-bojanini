@@ -29,16 +29,19 @@ class GenerateConditionReportsCommand extends Command
         $sensors = $sensorRepository->findAllActive();
         $today   = Carbon::today()->toDateString();
 
+        $directory = storage_path('app/exports');
+        if (!is_dir($directory)) {
+            mkdir($directory, 0755, true);
+        }
+
         $count = count($sensors);
         $this->info("Generando reportes para {$count} sensores...");
 
         foreach ($sensors as $sensor) {
             try {
-                $path = $pdfUseCase->execute(
-                    $sensor->getId(),
-                    $today,
-                    $today,
-                );
+                $file = $pdfUseCase->execute($sensor->getId(), $today, $today);
+                $path = "{$directory}/{$file->filename}";
+                file_put_contents($path, $file->content);
                 $this->line("  ✓ {$sensor->getCode()}: {$path}");
             } catch (\Throwable $e) {
                 $this->error("  ✗ {$sensor->getCode()}: {$e->getMessage()}");
