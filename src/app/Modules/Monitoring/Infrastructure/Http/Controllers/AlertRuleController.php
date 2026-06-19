@@ -14,15 +14,20 @@ use App\Modules\Monitoring\Infrastructure\Http\Requests\StoreAlertRuleRequest;
 use App\Modules\Monitoring\Infrastructure\Http\Requests\UpdateAlertRuleRequest;
 use App\Modules\Monitoring\Infrastructure\Http\Resources\AlertRuleResource;
 use App\Modules\Shared\Infrastructure\Http\Traits\ApiResponse;
+use App\Modules\Shared\Infrastructure\Http\Traits\ChecksSensorAccess;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 
 class AlertRuleController extends Controller
 {
     use ApiResponse;
+    use ChecksSensorAccess;
 
-    public function index(int $sensorId, ListAlertRulesUseCase $useCase): JsonResponse
+    public function index(int $sensorId, Request $request, ListAlertRulesUseCase $useCase): JsonResponse
     {
+        $this->assertSensorAccess($request->user(), $sensorId);
+
         $rules = $useCase->execute($sensorId);
 
         return $this->success(AlertRuleResource::collection($rules));
@@ -30,6 +35,8 @@ class AlertRuleController extends Controller
 
     public function store(int $sensorId, StoreAlertRuleRequest $request, CreateAlertRuleUseCase $useCase): JsonResponse
     {
+        $this->assertSensorAccess($request->user(), $sensorId);
+
         $data = new AlertRuleData(
             sensorId: $sensorId,
             conditionType: $request->validated('condition_type'),
@@ -50,6 +57,8 @@ class AlertRuleController extends Controller
             return $this->error('Regla de alerta no encontrada', 404);
         }
 
+        $this->assertSensorAccess($request->user(), $existing->getSensorId());
+
         $data = new AlertRuleData(
             sensorId: $existing->getSensorId(),
             conditionType: $request->validated('condition_type') ?? $existing->getConditionType(),
@@ -68,8 +77,15 @@ class AlertRuleController extends Controller
         return $this->success(new AlertRuleResource($rule), 'Regla de alerta actualizada');
     }
 
-    public function destroy(int $id, DeleteAlertRuleUseCase $useCase): JsonResponse
+    public function destroy(int $id, Request $request, DeleteAlertRuleUseCase $useCase, AlertRuleRepositoryInterface $repository): JsonResponse
     {
+        $existing = $repository->findById($id);
+        if ($existing === null) {
+            return $this->error('Regla de alerta no encontrada', 404);
+        }
+
+        $this->assertSensorAccess($request->user(), $existing->getSensorId());
+
         $useCase->execute($id);
 
         return $this->noContent('Regla de alerta eliminada');

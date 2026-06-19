@@ -17,6 +17,9 @@ Route::middleware(['auth:sanctum', 'user.is_active'])->prefix('v1')->group(funct
     Route::apiResource('sensors', SensorController::class)
         ->middleware('permission:sensores.eliminar')->only(['destroy']);
 
+    Route::get('sensors/{id}/users', [SensorController::class, 'users'])
+        ->middleware('permission:sensores.asignar');
+
     Route::post('sensors/{sensorId}/readings', [SensorReadingController::class, 'store'])
         ->middleware('permission:lecturas.crear');
     Route::get('sensors/{sensorId}/readings', [SensorReadingController::class, 'index'])

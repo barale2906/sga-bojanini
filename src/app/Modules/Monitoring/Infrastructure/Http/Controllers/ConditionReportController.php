@@ -7,6 +7,7 @@ namespace App\Modules\Monitoring\Infrastructure\Http\Controllers;
 use App\Modules\Monitoring\Application\UseCases\GenerateConditionPdfUseCase;
 use App\Modules\Monitoring\Infrastructure\Http\Requests\GenerateConditionReportRequest;
 use App\Modules\Shared\Infrastructure\Http\Traits\ApiResponse;
+use App\Modules\Shared\Infrastructure\Http\Traits\ChecksSensorAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\File;
@@ -14,9 +15,12 @@ use Illuminate\Support\Facades\File;
 class ConditionReportController extends Controller
 {
     use ApiResponse;
+    use ChecksSensorAccess;
 
     public function generate(GenerateConditionReportRequest $request, GenerateConditionPdfUseCase $useCase): JsonResponse
     {
+        $this->assertSensorAccess($request->user(), (int) $request->validated('sensor_id'));
+
         $path = $useCase->execute(
             (int) $request->validated('sensor_id'),
             $request->validated('date_from'),
@@ -24,7 +28,7 @@ class ConditionReportController extends Controller
         );
 
         return $this->success([
-            'path'     => $path,
+            'path' => $path,
             'filename' => basename($path),
         ], 'Reporte PDF generado correctamente', 201);
     }
@@ -33,17 +37,17 @@ class ConditionReportController extends Controller
     {
         $directory = storage_path('app/exports');
 
-        if (!is_dir($directory)) {
+        if (! is_dir($directory)) {
             File::ensureDirectoryExists($directory);
         }
 
         $files = collect(File::files($directory))
             ->filter(fn ($file) => $file->getExtension() === 'pdf')
             ->map(fn ($file) => [
-                'filename'  => $file->getFilename(),
-                'path'      => $file->getPathname(),
-                'size'      => $file->getSize(),
-                'modified'  => date('Y-m-d H:i:s', $file->getMTime()),
+                'filename' => $file->getFilename(),
+                'path' => $file->getPathname(),
+                'size' => $file->getSize(),
+                'modified' => date('Y-m-d H:i:s', $file->getMTime()),
             ])
             ->sortByDesc('modified')
             ->values()

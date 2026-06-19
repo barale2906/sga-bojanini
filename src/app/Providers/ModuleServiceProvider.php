@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Modules\Audit\Domain\Repositories\AuditLogRepositoryInterface;
+use App\Modules\Audit\Infrastructure\Persistence\EloquentAuditLogRepository;
 use App\Modules\Auth\Domain\Repositories\UserRepositoryInterface;
 use App\Modules\Auth\Infrastructure\Persistence\EloquentUserRepository;
 use App\Modules\Catalog\Domain\Repositories\CategoryRepositoryInterface;
@@ -22,8 +24,6 @@ use App\Modules\Catalog\Infrastructure\Persistence\EloquentProductRepository;
 use App\Modules\Catalog\Infrastructure\Persistence\EloquentProductSanitaryRegistrationRepository;
 use App\Modules\Catalog\Infrastructure\Persistence\EloquentSupplierRepository;
 use App\Modules\Catalog\Infrastructure\Persistence\EloquentUnitOfMeasureRepository;
-use App\Modules\Audit\Domain\Repositories\AuditLogRepositoryInterface;
-use App\Modules\Audit\Infrastructure\Persistence\EloquentAuditLogRepository;
 use App\Modules\CostCenter\Domain\Repositories\CostCenterRepositoryInterface;
 use App\Modules\CostCenter\Domain\Repositories\MedicalServiceRepositoryInterface;
 use App\Modules\CostCenter\Domain\Repositories\PatientProcedureRecordRepositoryInterface;
@@ -47,9 +47,11 @@ use App\Modules\Inventory\Infrastructure\Persistence\EloquentStockSummaryReposit
 use App\Modules\Monitoring\Domain\Repositories\AlertRuleRepositoryInterface;
 use App\Modules\Monitoring\Domain\Repositories\SensorReadingRepositoryInterface;
 use App\Modules\Monitoring\Domain\Repositories\SensorRepositoryInterface;
+use App\Modules\Monitoring\Domain\Repositories\UserSensorRepositoryInterface;
 use App\Modules\Monitoring\Infrastructure\Persistence\EloquentAlertRuleRepository;
 use App\Modules\Monitoring\Infrastructure\Persistence\EloquentSensorReadingRepository;
 use App\Modules\Monitoring\Infrastructure\Persistence\EloquentSensorRepository;
+use App\Modules\Monitoring\Infrastructure\Persistence\EloquentUserSensorRepository;
 use App\Modules\Warehouse\Domain\Repositories\CapacityRepositoryInterface;
 use App\Modules\Warehouse\Domain\Repositories\LocationRepositoryInterface;
 use App\Modules\Warehouse\Domain\Repositories\UserWarehouseRepositoryInterface;
@@ -77,27 +79,27 @@ class ModuleServiceProvider extends ServiceProvider
         UserRepositoryInterface::class => EloquentUserRepository::class,
 
         // Warehouse (Fase 2)
-        WarehouseRepositoryInterface::class     => EloquentWarehouseRepository::class,
-        ZoneRepositoryInterface::class          => EloquentZoneRepository::class,
-        LocationRepositoryInterface::class      => EloquentLocationRepository::class,
-        CapacityRepositoryInterface::class      => EloquentCapacityRepository::class,
+        WarehouseRepositoryInterface::class => EloquentWarehouseRepository::class,
+        ZoneRepositoryInterface::class => EloquentZoneRepository::class,
+        LocationRepositoryInterface::class => EloquentLocationRepository::class,
+        CapacityRepositoryInterface::class => EloquentCapacityRepository::class,
         UserWarehouseRepositoryInterface::class => EloquentUserWarehouseRepository::class,
 
         // Catalog (Fase 3)
-        CategoryRepositoryInterface::class                    => EloquentCategoryRepository::class,
-        UnitOfMeasureRepositoryInterface::class               => EloquentUnitOfMeasureRepository::class,
-        ProductRepositoryInterface::class                     => EloquentProductRepository::class,
-        ProductClassificationRepositoryInterface::class       => EloquentProductClassificationRepository::class,
-        ProductPresentationRepositoryInterface::class         => EloquentProductPresentationRepository::class,
-        ProductKitComponentRepositoryInterface::class         => EloquentProductKitComponentRepository::class,
+        CategoryRepositoryInterface::class => EloquentCategoryRepository::class,
+        UnitOfMeasureRepositoryInterface::class => EloquentUnitOfMeasureRepository::class,
+        ProductRepositoryInterface::class => EloquentProductRepository::class,
+        ProductClassificationRepositoryInterface::class => EloquentProductClassificationRepository::class,
+        ProductPresentationRepositoryInterface::class => EloquentProductPresentationRepository::class,
+        ProductKitComponentRepositoryInterface::class => EloquentProductKitComponentRepository::class,
         ProductSanitaryRegistrationRepositoryInterface::class => EloquentProductSanitaryRegistrationRepository::class,
-        SupplierRepositoryInterface::class                    => EloquentSupplierRepository::class,
+        SupplierRepositoryInterface::class => EloquentSupplierRepository::class,
 
         // CostCenter (Fase 10)
-        CostCenterRepositoryInterface::class                  => EloquentCostCenterRepository::class,
-        MedicalServiceRepositoryInterface::class              => EloquentMedicalServiceRepository::class,
-        ProcedurePriceRepositoryInterface::class              => EloquentProcedurePriceRepository::class,
-        PatientProcedureRecordRepositoryInterface::class      => EloquentPatientProcedureRecordRepository::class,
+        CostCenterRepositoryInterface::class => EloquentCostCenterRepository::class,
+        MedicalServiceRepositoryInterface::class => EloquentMedicalServiceRepository::class,
+        ProcedurePriceRepositoryInterface::class => EloquentProcedurePriceRepository::class,
+        PatientProcedureRecordRepositoryInterface::class => EloquentPatientProcedureRecordRepository::class,
 
         // Inventory (Fase 4)
         // BatchRepositoryInterface::class       => EloquentBatchRepository::class,
@@ -109,16 +111,17 @@ class ModuleServiceProvider extends ServiceProvider
         // ApprovalFlowRepositoryInterface::class  => EloquentApprovalFlowRepository::class,
 
         // Monitoring (Fase 6)
-        SensorRepositoryInterface::class        => EloquentSensorRepository::class,
+        SensorRepositoryInterface::class => EloquentSensorRepository::class,
         SensorReadingRepositoryInterface::class => EloquentSensorReadingRepository::class,
-        AlertRuleRepositoryInterface::class     => EloquentAlertRuleRepository::class,
+        AlertRuleRepositoryInterface::class => EloquentAlertRuleRepository::class,
+        UserSensorRepositoryInterface::class => EloquentUserSensorRepository::class,
 
         // Audit (Fase 7)
         AuditLogRepositoryInterface::class => EloquentAuditLogRepository::class,
 
         // Integration (Fase 8)
         ExternalIntegrationRepositoryInterface::class => EloquentExternalIntegrationRepository::class,
-        ConsumptionRecordRepositoryInterface::class   => EloquentConsumptionRecordRepository::class,
+        ConsumptionRecordRepositoryInterface::class => EloquentConsumptionRecordRepository::class,
     ];
 
     public function register(): void

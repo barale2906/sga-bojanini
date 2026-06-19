@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Modules\Monitoring\Infrastructure\Persistence\Models;
 
 use App\Modules\Audit\Infrastructure\Traits\Auditable;
+use App\Modules\Auth\Infrastructure\Persistence\Models\UserModel;
 use App\Modules\Warehouse\Infrastructure\Persistence\Models\ZoneModel;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class SensorModel extends Model
@@ -45,5 +47,11 @@ class SensorModel extends Model
     public function alertRules(): HasMany
     {
         return $this->hasMany(AlertRuleModel::class, 'sensor_id');
+    }
+
+    /** Usuarios con acceso explícito a este sensor. */
+    public function users(): BelongsToMany
+    {
+        return $this->belongsToMany(UserModel::class, 'user_sensor', 'sensor_id', 'user_id')->withTimestamps();
     }
 }

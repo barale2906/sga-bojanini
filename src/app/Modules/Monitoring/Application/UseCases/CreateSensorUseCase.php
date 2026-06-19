@@ -7,6 +7,7 @@ namespace App\Modules\Monitoring\Application\UseCases;
 use App\Modules\Monitoring\Application\DTOs\SensorData;
 use App\Modules\Monitoring\Domain\Entities\Sensor;
 use App\Modules\Monitoring\Domain\Repositories\SensorRepositoryInterface;
+use App\Modules\Monitoring\Domain\Repositories\UserSensorRepositoryInterface;
 use App\Modules\Warehouse\Domain\Repositories\ZoneRepositoryInterface;
 
 class CreateSensorUseCase
@@ -14,6 +15,7 @@ class CreateSensorUseCase
     public function __construct(
         private readonly SensorRepositoryInterface $sensorRepository,
         private readonly ZoneRepositoryInterface $zoneRepository,
+        private readonly UserSensorRepositoryInterface $userSensorRepository,
     ) {}
 
     public function execute(SensorData $data): Sensor
@@ -35,6 +37,11 @@ class CreateSensorUseCase
             unit: $data->unit,
         );
 
-        return $this->sensorRepository->save($sensor);
+        $saved = $this->sensorRepository->save($sensor);
+
+        // Todo sensor (equipo de monitoreo) nuevo queda asignado por defecto al super_administrador.
+        $this->userSensorRepository->assignSensorToUsersWithRole($saved->getId(), 'super_administrador');
+
+        return $saved;
     }
 }

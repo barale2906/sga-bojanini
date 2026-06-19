@@ -8,11 +8,14 @@ use App\Modules\Auth\Application\DTOs\UserData;
 use App\Modules\Auth\Application\UseCases\CreateUserUseCase;
 use App\Modules\Auth\Application\UseCases\UpdateUserUseCase;
 use App\Modules\Auth\Infrastructure\Http\Requests\AssignRolesRequest;
+use App\Modules\Auth\Infrastructure\Http\Requests\AssignSensorsRequest;
 use App\Modules\Auth\Infrastructure\Http\Requests\AssignWarehousesRequest;
 use App\Modules\Auth\Infrastructure\Http\Requests\StoreUserRequest;
 use App\Modules\Auth\Infrastructure\Http\Requests\UpdateUserRequest;
 use App\Modules\Auth\Infrastructure\Http\Resources\UserResource;
 use App\Modules\Auth\Infrastructure\Persistence\Models\UserModel;
+use App\Modules\Monitoring\Domain\Repositories\UserSensorRepositoryInterface;
+use App\Modules\Monitoring\Infrastructure\Http\Resources\SensorResource;
 use App\Modules\Shared\Infrastructure\Http\Traits\ApiResponse;
 use App\Modules\Warehouse\Domain\Repositories\UserWarehouseRepositoryInterface;
 use App\Modules\Warehouse\Infrastructure\Http\Resources\WarehouseResource;
@@ -150,5 +153,35 @@ class UserController extends Controller
         }
 
         return $this->success(WarehouseResource::collection($user->warehouses), 'Almacenes asignados al usuario');
+    }
+
+    /**
+     * Reemplaza el conjunto completo de sensores (equipos de monitoreo)
+     * asignados a un usuario.
+     *
+     * Los usuarios con rol super_administrador igualmente tienen acceso a
+     * todos los sensores (ver SensorAccessService); esta asignación aplica al
+     * resto de roles, que solo verán/operarán los sensores aquí indicados.
+     */
+    public function assignSensors(int $id, AssignSensorsRequest $request, UserSensorRepositoryInterface $repository): JsonResponse
+    {
+        UserModel::findOrFail($id);
+        $repository->syncForUser($id, $request->validated('sensor_ids'));
+
+        $user = UserModel::with(['roles.permissions', 'sensors'])->findOrFail($id);
+
+        return $this->success(new UserResource($user), 'Sensores asignados exitosamente');
+    }
+
+    /** Lista los sensores (equipos de monitoreo) asignados a un usuario. */
+    public function sensors(int $id): JsonResponse
+    {
+        $user = UserModel::with('sensors')->find($id);
+
+        if (! $user) {
+            return $this->error('Usuario no encontrado', 404);
+        }
+
+        return $this->success(SensorResource::collection($user->sensors), 'Sensores asignados al usuario');
     }
 }

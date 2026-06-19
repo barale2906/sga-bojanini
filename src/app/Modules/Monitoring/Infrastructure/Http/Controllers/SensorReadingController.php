@@ -14,6 +14,7 @@ use App\Modules\Monitoring\Infrastructure\Http\Requests\StoreBulkReadingsRequest
 use App\Modules\Monitoring\Infrastructure\Http\Requests\StoreReadingRequest;
 use App\Modules\Monitoring\Infrastructure\Http\Resources\ReadingResource;
 use App\Modules\Shared\Infrastructure\Http\Traits\ApiResponse;
+use App\Modules\Shared\Infrastructure\Http\Traits\ChecksSensorAccess;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -32,6 +33,7 @@ use Illuminate\Routing\Controller;
 class SensorReadingController extends Controller
 {
     use ApiResponse;
+    use ChecksSensorAccess;
 
     /**
      * POST /api/v1/sensors/{sensorId}/readings
@@ -42,6 +44,8 @@ class SensorReadingController extends Controller
         StoreReadingRequest $request,
         RegisterReadingUseCase $useCase,
     ): JsonResponse {
+        $this->assertSensorAccess($request->user(), $sensorId);
+
         $result = $useCase->execute(new ReadingData(
             sensorId: $sensorId,
             value: (float) $request->validated('value'),
@@ -51,7 +55,7 @@ class SensorReadingController extends Controller
 
         return $this->success([
             'reading' => new ReadingResource($result['reading']),
-            'alerts'  => $result['alerts'],
+            'alerts' => $result['alerts'],
         ], 'Lectura registrada correctamente.', 201);
     }
 
@@ -77,8 +81,10 @@ class SensorReadingController extends Controller
         Request $request,
         SensorReadingRepositoryInterface $repository,
     ): JsonResponse {
+        $this->assertSensorAccess($request->user(), $sensorId);
+
         $from = Carbon::parse($request->query('date_from', now()->subDays(7)->toDateString()));
-        $to   = Carbon::parse($request->query('date_to', now()->toDateString()));
+        $to = Carbon::parse($request->query('date_to', now()->toDateString()));
 
         $readings = $repository->findBySensorAndDateRange($sensorId, $from, $to);
 
@@ -94,6 +100,8 @@ class SensorReadingController extends Controller
         Request $request,
         GetControlChartUseCase $useCase,
     ): JsonResponse {
+        $this->assertSensorAccess($request->user(), $sensorId);
+
         $result = $useCase->execute(
             $sensorId,
             $request->query('date_from', now()->subDays(30)->toDateString()),
@@ -112,8 +120,10 @@ class SensorReadingController extends Controller
         Request $request,
         TrendAnalysisService $trendService,
     ): JsonResponse {
+        $this->assertSensorAccess($request->user(), $sensorId);
+
         $from = Carbon::parse($request->query('date_from', now()->subDays(7)->toDateString()));
-        $to   = Carbon::parse($request->query('date_to', now()->toDateString()));
+        $to = Carbon::parse($request->query('date_to', now()->toDateString()));
 
         $result = $trendService->analyzeTrend($sensorId, $from, $to);
 

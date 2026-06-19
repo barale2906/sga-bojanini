@@ -8,6 +8,7 @@ use App\Modules\Auth\Infrastructure\Persistence\Models\UserModel;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 
 /**
  * Seeder que crea los roles, permisos y el usuario admin inicial.
@@ -19,7 +20,7 @@ class RolesAndPermissionsSeeder extends Seeder
     public function run(): void
     {
         // Limpiar caché de permisos
-        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
         // ─────────────────────────────────────────
         // PASO 1: Crear TODOS los permisos
@@ -50,7 +51,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'ordenes_compra.ver', 'ordenes_compra.crear', 'ordenes_compra.aprobar',
             'ordenes_compra.enviar', 'ordenes_compra.recibir',
             // Sensores
-            'sensores.ver', 'sensores.crear', 'sensores.editar', 'sensores.eliminar',
+            'sensores.ver', 'sensores.crear', 'sensores.editar', 'sensores.eliminar', 'sensores.asignar',
             // Lecturas
             'lecturas.ver', 'lecturas.crear',
             // Reglas de alerta
@@ -105,7 +106,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'movimientos.ajuste', 'movimientos.devolucion', 'movimientos.baja',
             'ordenes_compra.ver', 'ordenes_compra.crear', 'ordenes_compra.aprobar',
             'ordenes_compra.enviar', 'ordenes_compra.recibir',
-            'sensores.ver', 'sensores.crear', 'sensores.editar', 'sensores.eliminar',
+            'sensores.ver', 'sensores.crear', 'sensores.editar', 'sensores.eliminar', 'sensores.asignar',
             'lecturas.ver', 'lecturas.crear',
             'reglas_alerta.ver', 'reglas_alerta.crear', 'reglas_alerta.editar', 'reglas_alerta.eliminar',
             'auditoria.ver', 'auditoria.exportar',
@@ -211,9 +212,9 @@ class RolesAndPermissionsSeeder extends Seeder
         $abv = UserModel::firstOrCreate(
             ['email' => 'alexanderbarajas@gmail.com'],
             [
-                'name'      => 'Ing. Alexander Barajas',
-                'password'  => bcrypt('10203040'),
-                'phone'     => null,
+                'name' => 'Ing. Alexander Barajas',
+                'password' => bcrypt('10203040'),
+                'phone' => null,
                 'is_active' => true,
             ],
         );

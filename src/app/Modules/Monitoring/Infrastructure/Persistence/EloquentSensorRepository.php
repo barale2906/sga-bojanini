@@ -40,6 +40,12 @@ class EloquentSensorRepository implements SensorRepositoryInterface
             $query->where('is_active', filter_var($filters['is_active'], FILTER_VALIDATE_BOOLEAN));
         }
 
+        // Restringe el listado a un subconjunto de IDs (control de acceso por
+        // sensor). `null` significa "sin restricción".
+        if (isset($filters['ids']) && is_array($filters['ids'])) {
+            $query->whereIn('id', $filters['ids']);
+        }
+
         return $query->orderBy('code')->get()->map(fn ($m) => $this->toDomain($m))->all();
     }
 
@@ -56,7 +62,7 @@ class EloquentSensorRepository implements SensorRepositoryInterface
     {
         $model = $sensor->getId()
             ? SensorModel::findOrFail($sensor->getId())
-            : new SensorModel();
+            : new SensorModel;
 
         $model->zone_id = $sensor->getZoneId();
         $model->code = $sensor->getCode();
