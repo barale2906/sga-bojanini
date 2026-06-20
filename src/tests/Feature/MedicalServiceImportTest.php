@@ -150,4 +150,34 @@ class MedicalServiceImportTest extends TestCase
 
         $this->assertFalse(MedicalServiceModel::where('code', 'PROC-IMP-3')->exists());
     }
+
+    public function test_importar_codigos_numericos(): void
+    {
+        // Excel guarda los códigos que parecen números (ej. "1105") como
+        // valores numéricos, no como texto; el import debe tolerarlo.
+        $headers = ['type', 'code', 'name', 'parent_code', 'description', 'is_active', 'unit_price', 'effective_from', 'effective_to', 'notes'];
+
+        $rows = [
+            ['service', 9001, 'Servicio Numerico', '', '', 'TRUE', '', '', '', ''],
+            ['procedure', 1105, 'Procedimiento Numerico', 9001, '', 'TRUE', '50000', '2026-01-01', '', ''],
+        ];
+
+        $file = $this->makeSpreadsheetUpload($headers, $rows, 'servicios-numericos.xlsx');
+
+        $response = $this->withHeaders($this->auth())
+            ->post('/api/v1/import/medical-services', ['file' => $file]);
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.total', 2)
+            ->assertJsonPath('data.success', 2)
+            ->assertJsonPath('data.failed', 0);
+
+        $service = MedicalServiceModel::where('code', '9001')->first();
+        $this->assertNotNull($service);
+
+        $procedure = MedicalServiceModel::where('code', '1105')->first();
+        $this->assertNotNull($procedure);
+        $this->assertSame($service->id, $procedure->parent_id);
+    }
 }
