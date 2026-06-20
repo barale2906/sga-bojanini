@@ -19,11 +19,14 @@ class CostCenterSeeder extends Seeder
     {
         // ─── Centros de costo internos ────────────────────────────────────────────
         $internalCenters = [
-            ['code' => 'FARM',  'name' => 'Farmacia',       'description' => 'Dispensación interna de medicamentos e insumos'],
-            ['code' => 'ADMIN', 'name' => 'Administración', 'description' => 'Consumo de insumos área administrativa'],
-            ['code' => 'LAB',   'name' => 'Laboratorio',    'description' => 'Insumos para análisis y diagnóstico'],
-            ['code' => 'MANT',  'name' => 'Mantenimiento',  'description' => 'Insumos para mantenimiento de equipos e instalaciones'],
-            ['code' => 'ENFER', 'name' => 'Enfermería',     'description' => 'Insumos de enfermería de uso interno'],
+            ['code' => 'ENF',  'name' => 'Enfermería',       'description' => 'Insumos para enfermería'],
+            ['code' => 'ANTI-ENV', 'name' => 'Antienvejecimiento', 'description' => 'Insumos para antienvejecimiento'],
+            ['code' => 'FAC',   'name' => 'Facial',    'description' => 'Insumos para facial'],
+            ['code' => 'CORPO',  'name' => 'Corporal',  'description' => 'Insumos para Corporal'],
+            ['code' => 'COOLTECH', 'name' => 'COOLTECH',     'description' => 'Insumos para Cooltech'],
+            ['code' => 'DEP-LAS', 'name' => 'Depilación Laser',     'description' => 'Insumos para depilación laser'],
+            ['code' => 'CLIN', 'name' => 'Clínica',     'description' => 'Insumos para clínica'],
+            ['code' => 'IMPL-CAPI', 'name' => 'implante capilar',     'description' => 'Insumos para implante capilar'],
         ];
 
         foreach ($internalCenters as $data) {
@@ -49,6 +52,7 @@ class CostCenterSeeder extends Seeder
             ],
         );
 
+        /*
         // ─── Servicios médicos (nodos raíz, type = service) ───────────────────────
         $services = [
             ['code' => 'CONS',  'name' => 'Consulta Médica',  'description' => 'Consultas médicas generales y de especialidad'],
@@ -111,6 +115,7 @@ class CostCenterSeeder extends Seeder
             ],
         ];
 
+
         foreach ($services as $data) {
             $service = MedicalServiceModel::firstOrCreate(
                 ['code' => $data['code']],
@@ -136,7 +141,7 @@ class CostCenterSeeder extends Seeder
                 );
             }
         }
-
+        */
         $this->command->info('Centros de costo y servicios médicos creados exitosamente.');
     }
 }

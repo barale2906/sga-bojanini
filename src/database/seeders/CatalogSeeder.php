@@ -85,6 +85,7 @@ class CatalogSeeder extends Seeder
             ]
         );
 
+        /*
         // ── Productos ─────────────────────────────────────────────────────────
         $aguja = ProductModel::firstOrCreate(
             ['code' => 'AGU-21G'],
@@ -128,6 +129,7 @@ class CatalogSeeder extends Seeder
             $paqPres->id  => ['is_purchase_default' => false, 'sort_order' => 2],
         ]);
 
+
         // ── Kit ───────────────────────────────────────────────────────────────
         $kit = ProductModel::firstOrCreate(
             ['code' => 'KIT-CIR-BAS'],
@@ -151,5 +153,6 @@ class CatalogSeeder extends Seeder
             ['kit_product_id' => $kit->id, 'component_product_id' => $aguja->id],
             ['quantity_per_kit' => 10, 'sort_order' => 2]
         );
+        */
     }
 }
