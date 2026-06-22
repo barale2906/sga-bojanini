@@ -46,10 +46,10 @@ class SupplierImportService
 
                 SupplierModel::create([
                     'name'          => $row['name'],
-                    'tax_id'        => $row['tax_id'] ?? null,
+                    'tax_id'        => ! empty($row['tax_id']) ? $row['tax_id'] : null,
                     'contact_name'  => $row['contact_name'] ?? null,
                     'phone'         => $row['phone'] ?? null,
-                    'email'         => $row['email'] ?? null,
+                    'email'         => ! empty($row['email']) ? $row['email'] : null,
                     'address'       => $row['address'] ?? null,
                     'notes'         => $row['notes'] ?? null,
                 ]);
