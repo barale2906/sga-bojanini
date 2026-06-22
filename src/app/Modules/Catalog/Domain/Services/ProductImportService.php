@@ -68,7 +68,7 @@ class ProductImportService
                     ProductModel::create([
                         'name'                => $row['name'],
                         'code'                => $row['code'],
-                        'sku'                 => $row['sku'] ?? null,
+                        'sku'                 => ! empty($row['sku']) ? $row['sku'] : null,
                         'category_id'         => $category->id,
                         'base_unit_id'        => $unit->id,
                         'classification_id'   => $classification?->id,
