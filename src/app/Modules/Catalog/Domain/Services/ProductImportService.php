@@ -37,6 +37,15 @@ class ProductImportService
                     'category_code'       => 'required|string|exists:categories,code',
                     'unit_abbreviation'   => 'required|string|exists:units_of_measure,abbreviation',
                     'classification_code' => 'nullable|string|exists:product_classifications,code',
+                    'volume_cm3'          => 'nullable|numeric|min:0',
+                    'weight_kg'           => 'nullable|numeric|min:0',
+                    'concentration'       => 'nullable|string|max:100',
+                    'risk_level'          => 'nullable|string|max:100',
+                    'lab_brand'           => 'nullable|string|max:255',
+                    'pharmaceutical_form'      => 'nullable|string|max:150',
+                    'commercial_presentation'  => 'nullable|string|max:150',
+                    'serie_reference'          => 'nullable|string|max:150',
+                    'useful_life'              => 'nullable|string|max:100',
                 ], [
                     'name.required'              => 'El nombre es obligatorio.',
                     'code.required'               => 'El código es obligatorio.',
@@ -47,6 +56,8 @@ class ProductImportService
                     'unit_abbreviation.required'  => 'La abreviatura de unidad de medida es obligatoria.',
                     'unit_abbreviation.exists'    => 'No existe ninguna unidad de medida con esta abreviatura. Revise la hoja "Unidades de medida" de la plantilla.',
                     'classification_code.exists'  => 'No existe ninguna clasificación con este código. Revise la hoja "Clasificaciones" de la plantilla.',
+                    'volume_cm3.numeric'           => 'El volumen debe ser un número.',
+                    'weight_kg.numeric'            => 'El peso debe ser un número.',
                 ]);
 
                 if ($validator->fails()) {
@@ -79,6 +90,15 @@ class ProductImportService
                         'reorder_quantity'    => (int) ($row['reorder_quantity'] ?? 0),
                         'min_stock'           => (int) ($row['min_stock'] ?? 0),
                         'max_stock'           => (int) ($row['max_stock'] ?? 0),
+                        'volume_cm3'          => ! empty($row['volume_cm3']) ? (float) $row['volume_cm3'] : null,
+                        'weight_kg'           => ! empty($row['weight_kg']) ? (float) $row['weight_kg'] : null,
+                        'concentration'            => ! empty($row['concentration']) ? $row['concentration'] : null,
+                        'risk_level'               => ! empty($row['risk_level']) ? $row['risk_level'] : null,
+                        'lab_brand'                => ! empty($row['lab_brand']) ? $row['lab_brand'] : null,
+                        'pharmaceutical_form'      => ! empty($row['pharmaceutical_form']) ? $row['pharmaceutical_form'] : null,
+                        'commercial_presentation'  => ! empty($row['commercial_presentation']) ? $row['commercial_presentation'] : null,
+                        'serie_reference'          => ! empty($row['serie_reference']) ? $row['serie_reference'] : null,
+                        'useful_life'              => ! empty($row['useful_life']) ? $row['useful_life'] : null,
                         'is_active'           => true,
                     ]);
                 });

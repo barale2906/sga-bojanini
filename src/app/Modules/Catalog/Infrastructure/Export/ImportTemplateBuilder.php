@@ -50,6 +50,38 @@ class ImportTemplateBuilder
                 'reorder_quantity',
                 'min_stock',
                 'max_stock',
+                'volume_cm3',
+                'weight_kg',
+                'concentration',
+                'risk_level',
+                'lab_brand',
+                'pharmaceutical_form',
+                'commercial_presentation',
+                'serie_reference',
+                'useful_life',
+            ],
+            [
+                'Nombre',
+                'Código',
+                'SKU',
+                'Código de categoría',
+                'Unidad de medida (abrev.)',
+                'Código de clasificación',
+                'Descripción',
+                'Requiere cadena de frío',
+                'Punto de reorden',
+                'Cantidad de reorden',
+                'Stock mínimo',
+                'Stock máximo',
+                'Volumen (cm³)',
+                'Peso (kg)',
+                'Concentración (medicamentos)',
+                'Nivel de riesgo (dispositivos médicos)',
+                'Laboratorio / Marca',
+                'Forma farmacéutica (medicamentos)',
+                'Presentación comercial (medicamentos)',
+                'Serie / Referencia (dispositivos médicos)',
+                'Vida útil (dispositivos médicos)',
             ],
             [
                 'Aguja 21G ejemplo',
@@ -64,29 +96,49 @@ class ImportTemplateBuilder
                 '500',
                 '50',
                 '10000',
+                '1.50',
+                '0.010',
+                '',
+                'Clase IIA',
+                'Acme Medical',
+                '',
+                '',
+                'LOTE-2024-001',
+                '5 años',
             ],
         );
 
         $this->addInstructionsSheet($spreadsheet, [
-            ['Columna', 'Obligatorio', 'Tipo / formato', 'Descripción y valores válidos'],
-            ['name', 'Sí', 'Texto (máx. 255)', 'Nombre del producto.'],
-            ['code', 'Sí', 'Texto (máx. 50)', 'Código único del producto. No debe repetirse con productos existentes ni con otras filas del archivo.'],
-            ['sku', 'No', 'Texto (máx. 100)', 'Código SKU. Si se diligencia, debe ser único.'],
-            ['category_code', 'Sí', 'Texto', 'Código de categoría existente. Ver hoja "Categorías".'],
-            ['unit_abbreviation', 'Sí', 'Texto', 'Abreviatura de la unidad de medida base existente. Ver hoja "Unidades de medida".'],
-            ['classification_code', 'No', 'Texto', 'Código de clasificación de producto existente. Ver hoja "Clasificaciones". Si se deja vacío, el producto queda sin clasificación.'],
-            ['description', 'No', 'Texto', 'Descripción del producto.'],
-            ['requires_cold_chain', 'No', 'Booleano', 'Valores aceptados: TRUE/FALSE, 1/0, yes/no. Si se deja vacío se asume FALSE.'],
-            ['reorder_point', 'No', 'Entero >= 0', 'Punto de reorden. Si se deja vacío se asume 0.'],
-            ['reorder_quantity', 'No', 'Entero >= 0', 'Cantidad de reorden. Si se deja vacío se asume 0.'],
-            ['min_stock', 'No', 'Entero >= 0', 'Stock mínimo. Si se deja vacío se asume 0.'],
-            ['max_stock', 'No', 'Entero >= 0', 'Stock máximo. Si se deja vacío se asume 0.'],
+            ['Columna', 'Nombre en español', 'Obligatorio', 'Tipo / formato', 'Descripción y valores válidos'],
+            ['name', 'Nombre', 'Sí', 'Texto (máx. 255)', 'Nombre del producto.'],
+            ['code', 'Código', 'Sí', 'Texto (máx. 50)', 'Código único del producto. No debe repetirse con productos existentes ni con otras filas del archivo.'],
+            ['sku', 'SKU', 'No', 'Texto (máx. 100)', 'Código SKU. Si se diligencia, debe ser único.'],
+            ['category_code', 'Código de categoría', 'Sí', 'Texto', 'Código de categoría existente. Ver hoja "Categorías".'],
+            ['unit_abbreviation', 'Unidad de medida (abrev.)', 'Sí', 'Texto', 'Abreviatura de la unidad de medida base existente. Ver hoja "Unidades de medida".'],
+            ['classification_code', 'Código de clasificación', 'No', 'Texto', 'Código de clasificación de producto existente. Ver hoja "Clasificaciones". Si se deja vacío, el producto queda sin clasificación.'],
+            ['description', 'Descripción', 'No', 'Texto', 'Descripción del producto.'],
+            ['requires_cold_chain', 'Requiere cadena de frío', 'No', 'Booleano', 'Valores aceptados: TRUE/FALSE, 1/0, yes/no. Si se deja vacío se asume FALSE.'],
+            ['reorder_point', 'Punto de reorden', 'No', 'Entero >= 0', 'Punto de reorden. Si se deja vacío se asume 0.'],
+            ['reorder_quantity', 'Cantidad de reorden', 'No', 'Entero >= 0', 'Cantidad de reorden. Si se deja vacío se asume 0.'],
+            ['min_stock', 'Stock mínimo', 'No', 'Entero >= 0', 'Stock mínimo. Si se deja vacío se asume 0.'],
+            ['max_stock', 'Stock máximo', 'No', 'Entero >= 0', 'Stock máximo. Si se deja vacío se asume 0.'],
+            ['volume_cm3', 'Volumen (cm³)', 'No', 'Decimal >= 0', 'Volumen de una unidad del producto, en cm³. Use punto decimal (ej: 1.50).'],
+            ['weight_kg', 'Peso (kg)', 'No', 'Decimal >= 0', 'Peso de una unidad del producto, en kg. Use punto decimal (ej: 0.010).'],
+            ['concentration', 'Concentración', 'No', 'Texto (máx. 100)', 'Solo aplica a medicamentos (ej: 500mg/5ml). Aplica a clasificaciones con "has_concentration".'],
+            ['risk_level', 'Nivel de riesgo', 'No', 'Texto (máx. 100)', 'Solo aplica a dispositivos médicos (ej: Clase IIA). Aplica a clasificaciones con "has_risk_level".'],
+            ['lab_brand', 'Laboratorio / Marca', 'No', 'Texto (máx. 255)', 'Laboratorio fabricante o marca comercial. Aplica a clasificaciones con "has_lab_brand".'],
+            ['pharmaceutical_form', 'Forma farmacéutica', 'No', 'Texto (máx. 150)', 'Solo aplica a medicamentos (ej: Tableta, Jarabe, Ampolla). Aplica a clasificaciones con "has_pharma_fields".'],
+            ['commercial_presentation', 'Presentación comercial', 'No', 'Texto (máx. 150)', 'Solo aplica a medicamentos (ej: Frasco x120ml, Caja x10 Tab). Aplica a clasificaciones con "has_pharma_fields".'],
+            ['serie_reference', 'Serie / Referencia', 'No', 'Texto (máx. 150)', 'Solo aplica a dispositivos médicos. Aplica a clasificaciones con "has_device_fields".'],
+            ['useful_life', 'Vida útil', 'No', 'Texto (máx. 100)', 'Solo aplica a dispositivos médicos (ej: 5 años, Permanente). Aplica a clasificaciones con "has_device_fields".'],
         ], [
             'La primera fila debe conservar exactamente estos nombres de columna (en minúsculas, sin tildes ni espacios).',
+            'La fila 2 de la hoja "Productos" (en español, gris) es solo de referencia: bórrela antes de cargar el archivo. Si no la borra, se reportará como 1 fila fallida, sin afectar a los demás productos.',
             'Las filas completamente vacías se ignoran.',
             'Todos los productos importados se crean como tipo "simple" (no se admite la importación de kits).',
             'Todos los productos importados quedan activos (is_active = true).',
-            'No se importan presentaciones, proveedores, registros sanitarios ni campos avanzados (concentración, nivel de riesgo, laboratorio/marca, forma farmacéutica, presentación comercial, referencia de serie, vida útil, volumen, peso). Estos datos se deben completar luego editando cada producto.',
+            'Los campos concentration/risk_level/lab_brand/pharmaceutical_form/commercial_presentation/serie_reference/useful_life son de texto libre: se guardan tal cual se diligencien, sin validar que correspondan a los indicadores has_* de la clasificación indicada en "classification_code". Revise la hoja "Clasificaciones" para saber qué campos aplican a cada clasificación.',
+            'No se importan presentaciones, proveedores ni registros sanitarios. Estos datos se deben completar luego editando cada producto.',
             'Esta importación solo crea productos nuevos; no actualiza productos existentes.',
             'Las hojas "Categorías", "Unidades de medida" y "Clasificaciones" muestran los códigos vigentes Y permiten crear nuevos: agregue filas nuevas al final con los datos requeridos y se crearán automáticamente antes de procesar la hoja "Productos" (así puede usarlas el mismo archivo en category_code/unit_abbreviation/classification_code). Las filas cuyo código ya existe se omiten sin generar error.',
         ]);
@@ -163,6 +215,15 @@ class ImportTemplateBuilder
                 'notes',
             ],
             [
+                'Nombre / Razón social',
+                'NIT / Identificación',
+                'Nombre de contacto',
+                'Teléfono',
+                'Correo electrónico',
+                'Dirección',
+                'Notas',
+            ],
+            [
                 'Proveedor Ejemplo S.A.S.',
                 '900123456-1',
                 'Juan Pérez',
@@ -174,16 +235,17 @@ class ImportTemplateBuilder
         );
 
         $this->addInstructionsSheet($spreadsheet, [
-            ['Columna', 'Obligatorio', 'Tipo / formato', 'Descripción y valores válidos'],
-            ['name', 'Sí', 'Texto (máx. 255)', 'Nombre o razón social del proveedor.'],
-            ['tax_id', 'No', 'Texto (máx. 50)', 'NIT o identificación tributaria. Si se diligencia, debe ser único.'],
-            ['contact_name', 'No', 'Texto (máx. 255)', 'Nombre de la persona de contacto.'],
-            ['phone', 'No', 'Texto (máx. 50)', 'Teléfono de contacto.'],
-            ['email', 'No', 'Email (máx. 255)', 'Correo electrónico de contacto. Debe tener formato de correo válido.'],
-            ['address', 'No', 'Texto', 'Dirección.'],
-            ['notes', 'No', 'Texto', 'Notas adicionales.'],
+            ['Columna', 'Nombre en español', 'Obligatorio', 'Tipo / formato', 'Descripción y valores válidos'],
+            ['name', 'Nombre / Razón social', 'Sí', 'Texto (máx. 255)', 'Nombre o razón social del proveedor.'],
+            ['tax_id', 'NIT / Identificación', 'No', 'Texto (máx. 50)', 'NIT o identificación tributaria. Si se diligencia, debe ser único.'],
+            ['contact_name', 'Nombre de contacto', 'No', 'Texto (máx. 255)', 'Nombre de la persona de contacto.'],
+            ['phone', 'Teléfono', 'No', 'Texto (máx. 50)', 'Teléfono de contacto.'],
+            ['email', 'Correo electrónico', 'No', 'Email (máx. 255)', 'Correo electrónico de contacto. Debe tener formato de correo válido.'],
+            ['address', 'Dirección', 'No', 'Texto', 'Dirección.'],
+            ['notes', 'Notas', 'No', 'Texto', 'Notas adicionales.'],
         ], [
             'La primera fila debe conservar exactamente estos nombres de columna (en minúsculas, sin tildes ni espacios).',
+            'La fila 2 de la hoja "Proveedores" (en español, gris) es solo de referencia: bórrela antes de cargar el archivo. Si no la borra, se reportará como 1 fila fallida, sin afectar a los demás proveedores.',
             'Las filas completamente vacías se ignoran.',
             'Todos los proveedores importados quedan activos (is_active = true).',
             'Esta importación solo crea proveedores nuevos; no actualiza proveedores existentes.',
@@ -195,16 +257,23 @@ class ImportTemplateBuilder
     }
 
     /**
+     * Escribe la hoja de datos con: fila 1 = encabezado técnico (el que lee el
+     * importador, no se debe traducir), fila 2 = nombre de cada columna en
+     * español (solo de referencia visual, se debe borrar antes de cargar el
+     * archivo) y fila 3 = ejemplo de datos.
+     *
      * @param  string[]  $headers
+     * @param  string[]  $spanishLabels
      * @param  string[]  $exampleRow
      */
-    private function writeDataSheet(Worksheet $sheet, string $title, array $headers, array $exampleRow): void
+    private function writeDataSheet(Worksheet $sheet, string $title, array $headers, array $spanishLabels, array $exampleRow): void
     {
         $sheet->setTitle($title);
 
         foreach ($headers as $col => $header) {
             $sheet->setCellValueByColumnAndRow($col + 1, 1, $header);
-            $sheet->setCellValueByColumnAndRow($col + 1, 2, $exampleRow[$col] ?? '');
+            $sheet->setCellValueByColumnAndRow($col + 1, 2, $spanishLabels[$col] ?? '');
+            $sheet->setCellValueByColumnAndRow($col + 1, 3, $exampleRow[$col] ?? '');
         }
 
         $lastColumn = $sheet->getCellByColumnAndRow(count($headers), 1)->getColumn();
@@ -213,11 +282,24 @@ class ImportTemplateBuilder
             ->setFillType(Fill::FILL_SOLID)
             ->getStartColor()->setRGB('D9E1F2');
 
+        $sheet->getStyle("A2:{$lastColumn}2")->getFont()->setItalic(true)->setColor(new \PhpOffice\PhpSpreadsheet\Style\Color('FF7F7F7F'));
+        $sheet->getStyle("A2:{$lastColumn}2")->getFill()
+            ->setFillType(Fill::FILL_SOLID)
+            ->getStartColor()->setRGB('F2F2F2');
+        $sheet->getStyle("A2:{$lastColumn}2")->getAlignment()->setWrapText(true);
+        $sheet->getRowDimension(2)->setRowHeight(30);
+
         foreach (range('A', $lastColumn) as $columnId) {
             $sheet->getColumnDimension($columnId)->setAutoSize(true);
         }
 
-        $sheet->freezePane('A2');
+        $sheet->getComment('A1')->getText()->createTextRun(
+            'La fila 2 (gris, en español) es solo de referencia para saber qué va en cada columna. '
+            .'BÓRRELA antes de cargar el archivo al sistema; si la deja, se reportará como 1 fila '
+            .'fallida (no afecta a los demás registros). Ver hoja "Instrucciones" para el detalle completo.'
+        );
+
+        $sheet->freezePane('A3');
     }
 
     /**
