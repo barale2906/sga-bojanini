@@ -40,9 +40,9 @@ class CostCenterTest extends TestCase
 
     public function test_seed_genera_centros_de_costo_internos_y_externos(): void
     {
-        $this->assertDatabaseHas('cost_centers', ['code' => 'FARM',  'type' => 'internal']);
-        $this->assertDatabaseHas('cost_centers', ['code' => 'ADMIN', 'type' => 'internal']);
-        $this->assertDatabaseHas('cost_centers', ['code' => 'PAC',   'type' => 'external']);
+        $this->assertDatabaseHas('cost_centers', ['code' => 'ENF',      'type' => 'internal']);
+        $this->assertDatabaseHas('cost_centers', ['code' => 'ANTI-ENV', 'type' => 'internal']);
+        $this->assertDatabaseHas('cost_centers', ['code' => 'PAC',      'type' => 'external']);
     }
 
     public function test_seed_genera_servicios_medicos_iniciales(): void
@@ -60,7 +60,7 @@ class CostCenterTest extends TestCase
             ->getJson('/api/v1/cost-centers')
             ->assertOk()
             ->assertJsonPath('success', true)
-            ->assertJsonCount(6, 'data'); // 5 internal + 1 external del seeder
+            ->assertJsonCount(9, 'data'); // 8 internal + 1 external del seeder
     }
 
     public function test_filtrar_centros_por_tipo_interno(): void
@@ -68,7 +68,7 @@ class CostCenterTest extends TestCase
         $this->withHeaders($this->auth())
             ->getJson('/api/v1/cost-centers?type=internal')
             ->assertOk()
-            ->assertJsonCount(5, 'data');
+            ->assertJsonCount(8, 'data');
 
         $this->withHeaders($this->auth())
             ->getJson('/api/v1/cost-centers?type=external')
@@ -78,12 +78,12 @@ class CostCenterTest extends TestCase
 
     public function test_filtrar_centros_activos(): void
     {
-        CostCenterModel::where('code', 'FARM')->update(['is_active' => false]);
+        CostCenterModel::where('code', 'ENF')->update(['is_active' => false]);
 
         $this->withHeaders($this->auth())
             ->getJson('/api/v1/cost-centers?is_active=1')
             ->assertOk()
-            ->assertJsonCount(5, 'data');
+            ->assertJsonCount(8, 'data');
     }
 
     public function test_crud_centro_de_costo_interno(): void
@@ -152,7 +152,7 @@ class CostCenterTest extends TestCase
     {
         $this->withHeaders($this->auth())
             ->postJson('/api/v1/cost-centers', [
-                'code' => 'FARM', // ya existe en el seeder
+                'code' => 'ENF', // ya existe en el seeder
                 'name' => 'Duplicado',
                 'type' => 'internal',
             ])
@@ -181,7 +181,7 @@ class CostCenterTest extends TestCase
 
     public function test_no_eliminar_centro_con_movimientos_asociados(): void
     {
-        $center  = CostCenterModel::where('code', 'FARM')->first();
+        $center  = CostCenterModel::where('code', 'ENF')->first();
         $product = ProductModel::first();
         $user    = UserModel::first();
 

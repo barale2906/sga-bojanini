@@ -17,6 +17,9 @@ Route::middleware(['auth:sanctum', 'user.is_active'])->prefix('v1')->group(funct
     Route::get('stock/kit-availability', [StockController::class, 'kitAvailability'])->middleware('permission:stock.ver');
     Route::get('stock/low', [StockController::class, 'low'])->middleware('permission:stock.ver');
 
+    Route::get('movements/initial-entries/template', [MovementController::class, 'downloadInitialEntriesTemplate'])->middleware('permission:stock.ver');
+    Route::post('movements/initial-entries/import', [MovementController::class, 'importInitialEntries'])->middleware('permission:movimientos.importar');
+
     Route::post('movements/entry', [MovementController::class, 'entry'])->middleware('permission:movimientos.entrada');
     Route::post('movements/exit', [MovementController::class, 'exit'])->middleware('permission:movimientos.salida');
     Route::post('movements/transfer', [MovementController::class, 'transfer'])->middleware('permission:movimientos.transferir');
