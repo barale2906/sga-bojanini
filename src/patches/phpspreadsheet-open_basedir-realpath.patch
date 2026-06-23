@@ -1,0 +1,10 @@
+--- a/src/PhpSpreadsheet/Shared/File.php
++++ b/src/PhpSpreadsheet/Shared/File.php
+@@ -85,7 +85,7 @@
+         $returnValue = '';
+
+         // Try using realpath()
+-        if (file_exists($filename)) {
++        if (@file_exists($filename)) {
+             $returnValue = realpath($filename) ?: '';
+         }
