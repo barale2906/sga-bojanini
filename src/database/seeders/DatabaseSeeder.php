@@ -12,7 +12,7 @@ class DatabaseSeeder extends Seeder
             RolesAndPermissionsSeeder::class,
             CatalogSeeder::class,
             CostCenterSeeder::class,
-            //PurchasingSeeder::class,
+            PurchasingSeeder::class,
             //MonitoringSeeder::class,
         ]);
     }
