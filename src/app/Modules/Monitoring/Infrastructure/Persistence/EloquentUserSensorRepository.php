@@ -7,6 +7,7 @@ namespace App\Modules\Monitoring\Infrastructure\Persistence;
 use App\Modules\Auth\Infrastructure\Persistence\Models\UserModel;
 use App\Modules\Monitoring\Domain\Repositories\UserSensorRepositoryInterface;
 use App\Modules\Monitoring\Infrastructure\Persistence\Models\SensorModel;
+use Illuminate\Database\Eloquent\Builder;
 
 class EloquentUserSensorRepository implements UserSensorRepositoryInterface
 {
@@ -37,5 +38,28 @@ class EloquentUserSensorRepository implements UserSensorRepositoryInterface
         UserModel::role($roleName)->get()->each(
             fn (UserModel $user) => $user->sensors()->syncWithoutDetaching([$sensorId])
         );
+    }
+
+    public function assignSensorToUsers(int $sensorId, array $userIds): void
+    {
+        if (empty($userIds)) {
+            return;
+        }
+
+        UserModel::whereIn('id', $userIds)->get()->each(
+            fn (UserModel $user) => $user->sensors()->syncWithoutDetaching([$sensorId])
+        );
+    }
+
+    public function syncForUserByWarehouses(int $userId, array $warehouseIds): void
+    {
+        $sensorIds = empty($warehouseIds)
+            ? []
+            : SensorModel::whereHas(
+                'zone',
+                fn (Builder $q) => $q->whereIn('warehouse_id', $warehouseIds)
+            )->pluck('id')->all();
+
+        UserModel::findOrFail($userId)->sensors()->sync($sensorIds);
     }
 }

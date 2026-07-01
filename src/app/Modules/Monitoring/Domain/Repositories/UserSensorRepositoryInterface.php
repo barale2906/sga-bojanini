@@ -34,4 +34,19 @@ interface UserSensorRepositoryInterface
 
     /** Asigna un sensor a todos los usuarios que tengan el rol indicado. */
     public function assignSensorToUsersWithRole(int $sensorId, string $roleName): void;
+
+    /**
+     * Agrega un sensor a los usuarios indicados sin quitar sus otras asignaciones.
+     *
+     * @param array<int, int> $userIds
+     */
+    public function assignSensorToUsers(int $sensorId, array $userIds): void;
+
+    /**
+     * Reemplaza los sensores del usuario con exactamente los sensores
+     * que pertenecen a zonas de los almacenes indicados.
+     *
+     * @param array<int, int> $warehouseIds
+     */
+    public function syncForUserByWarehouses(int $userId, array $warehouseIds): void;
 }

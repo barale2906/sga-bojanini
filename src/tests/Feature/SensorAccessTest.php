@@ -239,6 +239,95 @@ class SensorAccessTest extends TestCase
             ->assertStatus(403);
     }
 
+    // ── Sincronización automática por almacén ───────────────────────────────
+
+    public function test_asignar_almacen_sincroniza_sus_sensores_al_usuario(): void
+    {
+        $zone = $this->createZone('-SYNC');
+        $warehouse = $zone->warehouse;
+
+        $sensor1 = $this->withHeaders($this->asAdmin())
+            ->postJson('/api/v1/sensors', ['zone_id' => $zone->id, 'code' => 'SENS-SYNC1', 'name' => 'Sensor Sync 1', 'type' => 'temperature', 'unit' => 'C'])
+            ->json('data.id');
+        $sensor2 = $this->withHeaders($this->asAdmin())
+            ->postJson('/api/v1/sensors', ['zone_id' => $zone->id, 'code' => 'SENS-SYNC2', 'name' => 'Sensor Sync 2', 'type' => 'humidity', 'unit' => '%'])
+            ->json('data.id');
+
+        $manager = $this->createUserWithRole('jefe_almacen', 'jefe-sync@sga.bojanini.com');
+
+        // Asignar el almacén debe propagar los sensores de sus zonas.
+        $this->withHeaders($this->asAdmin())
+            ->putJson("/api/v1/users/{$manager->id}/warehouses", ['warehouse_ids' => [$warehouse->id]])
+            ->assertStatus(200);
+
+        $this->assertDatabaseHas('user_sensor', ['user_id' => $manager->id, 'sensor_id' => $sensor1]);
+        $this->assertDatabaseHas('user_sensor', ['user_id' => $manager->id, 'sensor_id' => $sensor2]);
+
+        // El usuario ahora puede ver ambos sensores.
+        $list = $this->withHeaders($this->asUser($manager))->getJson('/api/v1/sensors');
+        $codes = collect($list->json('data'))->pluck('code');
+        $this->assertTrue($codes->contains('SENS-SYNC1'));
+        $this->assertTrue($codes->contains('SENS-SYNC2'));
+    }
+
+    public function test_quitar_almacen_retira_sus_sensores_del_usuario(): void
+    {
+        $zone = $this->createZone('-UNSYNC');
+        $warehouse = $zone->warehouse;
+
+        $sensor = $this->withHeaders($this->asAdmin())
+            ->postJson('/api/v1/sensors', ['zone_id' => $zone->id, 'code' => 'SENS-UNSYNC', 'name' => 'Sensor Unsync', 'type' => 'temperature', 'unit' => 'C'])
+            ->json('data.id');
+
+        $manager = $this->createUserWithRole('jefe_almacen', 'jefe-unsync@sga.bojanini.com');
+
+        // Primero asignar.
+        $this->withHeaders($this->asAdmin())
+            ->putJson("/api/v1/users/{$manager->id}/warehouses", ['warehouse_ids' => [$warehouse->id]])
+            ->assertStatus(200);
+
+        $this->assertDatabaseHas('user_sensor', ['user_id' => $manager->id, 'sensor_id' => $sensor]);
+
+        // Quitar el almacén debe retirar el sensor.
+        $this->withHeaders($this->asAdmin())
+            ->putJson("/api/v1/users/{$manager->id}/warehouses", ['warehouse_ids' => []])
+            ->assertStatus(200);
+
+        $this->assertDatabaseMissing('user_sensor', ['user_id' => $manager->id, 'sensor_id' => $sensor]);
+    }
+
+    public function test_sensor_creado_en_zona_de_almacen_asignado_se_asigna_automaticamente_al_usuario(): void
+    {
+        $zone = $this->createZone('-LATE');
+        $warehouse = $zone->warehouse;
+
+        $manager = $this->createUserWithRole('jefe_almacen', 'jefe-late@sga.bojanini.com');
+
+        // El usuario ya tiene el almacén asignado antes de que exista el sensor.
+        $this->withHeaders($this->asAdmin())
+            ->putJson("/api/v1/users/{$manager->id}/warehouses", ['warehouse_ids' => [$warehouse->id]])
+            ->assertStatus(200);
+
+        // Se crea el sensor después.
+        $sensorId = $this->withHeaders($this->asAdmin())
+            ->postJson('/api/v1/sensors', [
+                'zone_id' => $zone->id,
+                'code' => 'SENS-LATE',
+                'name' => 'Sensor Tardío',
+                'type' => 'temperature',
+                'unit' => 'C',
+            ])
+            ->assertStatus(201)
+            ->json('data.id');
+
+        // El usuario debe tener acceso al sensor recién creado.
+        $this->assertDatabaseHas('user_sensor', ['user_id' => $manager->id, 'sensor_id' => $sensorId]);
+
+        $this->withHeaders($this->asUser($manager))
+            ->getJson("/api/v1/sensors/{$sensorId}")
+            ->assertStatus(200);
+    }
+
     public function test_super_administrador_conserva_acceso_total_aunque_no_tenga_asignacion_explicita(): void
     {
         // Creado directamente en BD (sin pasar por el UseCase), por lo que no

@@ -8,6 +8,7 @@ use App\Modules\Monitoring\Application\DTOs\SensorData;
 use App\Modules\Monitoring\Domain\Entities\Sensor;
 use App\Modules\Monitoring\Domain\Repositories\SensorRepositoryInterface;
 use App\Modules\Monitoring\Domain\Repositories\UserSensorRepositoryInterface;
+use App\Modules\Warehouse\Domain\Repositories\UserWarehouseRepositoryInterface;
 use App\Modules\Warehouse\Domain\Repositories\ZoneRepositoryInterface;
 
 class CreateSensorUseCase
@@ -16,11 +17,14 @@ class CreateSensorUseCase
         private readonly SensorRepositoryInterface $sensorRepository,
         private readonly ZoneRepositoryInterface $zoneRepository,
         private readonly UserSensorRepositoryInterface $userSensorRepository,
+        private readonly UserWarehouseRepositoryInterface $userWarehouseRepository,
     ) {}
 
     public function execute(SensorData $data): Sensor
     {
-        if ($this->zoneRepository->findById($data->zoneId) === null) {
+        $zone = $this->zoneRepository->findById($data->zoneId);
+
+        if ($zone === null) {
             throw new \DomainException('La zona indicada no existe.');
         }
 
@@ -39,8 +43,12 @@ class CreateSensorUseCase
 
         $saved = $this->sensorRepository->save($sensor);
 
-        // Todo sensor (equipo de monitoreo) nuevo queda asignado por defecto al super_administrador.
+        // Asignar al super_administrador siempre.
         $this->userSensorRepository->assignSensorToUsersWithRole($saved->getId(), 'super_administrador');
+
+        // Asignar a los usuarios que ya tienen el almacén de esta zona asignado.
+        $userIds = $this->userWarehouseRepository->findUserIdsByWarehouse($zone->getWarehouseId());
+        $this->userSensorRepository->assignSensorToUsers($saved->getId(), $userIds);
 
         return $saved;
     }

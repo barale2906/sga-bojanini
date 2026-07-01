@@ -133,10 +133,16 @@ class UserController extends Controller
      * aplica al resto de roles, que solo verán/operarán los almacenes aquí
      * indicados.
      */
-    public function assignWarehouses(int $id, AssignWarehousesRequest $request, UserWarehouseRepositoryInterface $repository): JsonResponse
-    {
+    public function assignWarehouses(
+        int $id,
+        AssignWarehousesRequest $request,
+        UserWarehouseRepositoryInterface $repository,
+        UserSensorRepositoryInterface $sensorRepository,
+    ): JsonResponse {
         UserModel::findOrFail($id);
-        $repository->syncForUser($id, $request->validated('warehouse_ids'));
+        $warehouseIds = $request->validated('warehouse_ids');
+        $repository->syncForUser($id, $warehouseIds);
+        $sensorRepository->syncForUserByWarehouses($id, $warehouseIds);
 
         $user = UserModel::with(['roles.permissions', 'warehouses'])->findOrFail($id);
 
