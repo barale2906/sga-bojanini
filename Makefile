@@ -1,4 +1,4 @@
-.PHONY: up down start stop restart ps logs app db artisan composer migrate key env init show-urls permissions
+.PHONY: up down start stop restart ps logs app db artisan composer migrate migrate-fresh seed migrate-seed migrate-fresh-seed key env init show-urls permissions
 
 up:
 	@echo "=> Levantando contenedores (build incluido)..."
@@ -60,6 +60,18 @@ composer:
 
 migrate:
 	docker compose exec app php artisan migrate
+
+migrate-fresh:
+	docker compose exec app php artisan migrate:fresh
+
+seed:
+	docker compose exec app php artisan db:seed
+
+migrate-seed:
+	docker compose exec app php artisan migrate --seed
+
+migrate-fresh-seed:
+	docker compose exec app php artisan migrate:fresh --seed
 
 key:
 	docker compose exec app php artisan key:generate
