@@ -167,12 +167,16 @@ class CatalogImportTest extends TestCase
     public function test_importar_producto_con_registro_sanitario(): void
     {
         $headers = [
-            'name', 'code', 'category_code', 'unit_abbreviation', 'sanitary_registration',
+            'name', 'code', 'category_code', 'unit_abbreviation', 'classification_code', 'sanitary_registration',
         ];
 
         $rows = [
-            ['Producto con INVIMA', 'IMP-SR-001', 'INS-MED', 'UND', '2024DM-0099999'],
-            ['Producto sin INVIMA', 'IMP-SR-002', 'INS-MED', 'UND', ''],
+            // Con clasificación DM y registro sanitario
+            ['Producto DM con INVIMA',  'IMP-SR-001', 'INS-MED', 'UND', 'DM',  '2024DM-0099999'],
+            // Sin clasificación pero con registro sanitario: debe importarse igual
+            ['Producto sin clasif',     'IMP-SR-002', 'INS-MED', 'UND', '',    '2024MED-0001'],
+            // Sin registro sanitario
+            ['Producto sin INVIMA',     'IMP-SR-003', 'INS-MED', 'UND', 'MED', ''],
         ];
 
         $file = $this->makeSpreadsheetUpload($headers, $rows, 'productos_sr.xlsx');
@@ -181,21 +185,31 @@ class CatalogImportTest extends TestCase
             ->post('/api/v1/import/products', ['file' => $file]);
 
         $response->assertOk()
-            ->assertJsonPath('data.success', 2)
+            ->assertJsonPath('data.success', 3)
             ->assertJsonPath('data.failed', 0);
 
-        $product = ProductModel::where('code', 'IMP-SR-001')->first();
-        $this->assertNotNull($product);
+        // Producto 1: DM + registro sanitario
+        $p1 = ProductModel::where('code', 'IMP-SR-001')->first();
+        $this->assertNotNull($p1);
+        $this->assertSame(ProductClassificationModel::where('code', 'DM')->first()->id, $p1->classification_id);
+        $sr1 = ProductSanitaryRegistrationModel::where('product_id', $p1->id)->first();
+        $this->assertNotNull($sr1);
+        $this->assertSame('2024DM-0099999', $sr1->registration_number);
+        $this->assertSame('2099-12-31', $sr1->expiry_date->format('Y-m-d'));
+        $this->assertTrue($sr1->is_active);
 
-        $sr = ProductSanitaryRegistrationModel::where('product_id', $product->id)->first();
-        $this->assertNotNull($sr);
-        $this->assertSame('2024DM-0099999', $sr->registration_number);
-        $this->assertSame('2099-12-31', $sr->expiry_date->format('Y-m-d'));
-        $this->assertTrue($sr->is_active);
+        // Producto 2: sin clasificación pero con registro sanitario → importa y crea el registro
+        $p2 = ProductModel::where('code', 'IMP-SR-002')->first();
+        $this->assertNotNull($p2);
+        $this->assertNull($p2->classification_id);
+        $sr2 = ProductSanitaryRegistrationModel::where('product_id', $p2->id)->first();
+        $this->assertNotNull($sr2);
+        $this->assertSame('2024MED-0001', $sr2->registration_number);
 
-        $product2 = ProductModel::where('code', 'IMP-SR-002')->first();
-        $this->assertNotNull($product2);
-        $this->assertFalse(ProductSanitaryRegistrationModel::where('product_id', $product2->id)->exists());
+        // Producto 3: MED sin registro sanitario → importa sin crear registro
+        $p3 = ProductModel::where('code', 'IMP-SR-003')->first();
+        $this->assertNotNull($p3);
+        $this->assertFalse(ProductSanitaryRegistrationModel::where('product_id', $p3->id)->exists());
     }
 
     public function test_importar_proveedores(): void
