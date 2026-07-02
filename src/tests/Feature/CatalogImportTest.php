@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\CategoryModel;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductClassificationModel;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductModel;
+use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductSanitaryRegistrationModel;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\SupplierModel;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\UnitOfMeasureModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -161,6 +162,40 @@ class CatalogImportTest extends TestCase
         );
 
         $this->assertFalse(ProductModel::where('code', 'IMP-002')->exists());
+    }
+
+    public function test_importar_producto_con_registro_sanitario(): void
+    {
+        $headers = [
+            'name', 'code', 'category_code', 'unit_abbreviation', 'sanitary_registration',
+        ];
+
+        $rows = [
+            ['Producto con INVIMA', 'IMP-SR-001', 'INS-MED', 'UND', '2024DM-0099999'],
+            ['Producto sin INVIMA', 'IMP-SR-002', 'INS-MED', 'UND', ''],
+        ];
+
+        $file = $this->makeSpreadsheetUpload($headers, $rows, 'productos_sr.xlsx');
+
+        $response = $this->withHeaders($this->auth())
+            ->post('/api/v1/import/products', ['file' => $file]);
+
+        $response->assertOk()
+            ->assertJsonPath('data.success', 2)
+            ->assertJsonPath('data.failed', 0);
+
+        $product = ProductModel::where('code', 'IMP-SR-001')->first();
+        $this->assertNotNull($product);
+
+        $sr = ProductSanitaryRegistrationModel::where('product_id', $product->id)->first();
+        $this->assertNotNull($sr);
+        $this->assertSame('2024DM-0099999', $sr->registration_number);
+        $this->assertSame('2099-12-31', $sr->expiry_date->format('Y-m-d'));
+        $this->assertTrue($sr->is_active);
+
+        $product2 = ProductModel::where('code', 'IMP-SR-002')->first();
+        $this->assertNotNull($product2);
+        $this->assertFalse(ProductSanitaryRegistrationModel::where('product_id', $product2->id)->exists());
     }
 
     public function test_importar_proveedores(): void

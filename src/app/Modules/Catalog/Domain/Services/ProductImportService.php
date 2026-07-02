@@ -8,6 +8,7 @@ use App\Modules\Catalog\Domain\Enums\ProductType;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\CategoryModel;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductClassificationModel;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductModel;
+use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductSanitaryRegistrationModel;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\UnitOfMeasureModel;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -46,6 +47,7 @@ class ProductImportService
                     'commercial_presentation'  => 'nullable|string|max:150',
                     'serie_reference'          => 'nullable|string|max:150',
                     'useful_life'              => 'nullable|string|max:100',
+                    'sanitary_registration'    => 'nullable|string|max:100',
                 ], [
                     'name.required'              => 'El nombre es obligatorio.',
                     'code.required'               => 'El código es obligatorio.',
@@ -76,7 +78,7 @@ class ProductImportService
                     : null;
 
                 DB::transaction(function () use ($row, $category, $unit, $classification) {
-                    ProductModel::create([
+                    $product = ProductModel::create([
                         'name'                => $row['name'],
                         'code'                => $row['code'],
                         'sku'                 => ! empty($row['sku']) ? $row['sku'] : null,
@@ -101,6 +103,15 @@ class ProductImportService
                         'useful_life'              => ! empty($row['useful_life']) ? $row['useful_life'] : null,
                         'is_active'           => true,
                     ]);
+
+                    if (! empty($row['sanitary_registration'])) {
+                        ProductSanitaryRegistrationModel::create([
+                            'product_id'          => $product->id,
+                            'registration_number' => $row['sanitary_registration'],
+                            'expiry_date'         => '2099-12-31',
+                            'is_active'           => true,
+                        ]);
+                    }
                 });
 
                 $results['success']++;

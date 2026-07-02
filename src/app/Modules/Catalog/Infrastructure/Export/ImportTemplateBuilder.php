@@ -59,6 +59,7 @@ class ImportTemplateBuilder
                 'commercial_presentation',
                 'serie_reference',
                 'useful_life',
+                'sanitary_registration',
             ],
             [
                 'Nombre',
@@ -82,6 +83,7 @@ class ImportTemplateBuilder
                 'Presentación comercial (medicamentos)',
                 'Serie / Referencia (dispositivos médicos)',
                 'Vida útil (dispositivos médicos)',
+                'Registro sanitario (INVIMA)',
             ],
             [
                 'Aguja 21G ejemplo',
@@ -105,6 +107,7 @@ class ImportTemplateBuilder
                 '',
                 'LOTE-2024-001',
                 '5 años',
+                '2024DM-0012345',
             ],
         );
 
@@ -131,6 +134,7 @@ class ImportTemplateBuilder
             ['commercial_presentation', 'Presentación comercial', 'No', 'Texto (máx. 150)', 'Solo aplica a medicamentos (ej: Frasco x120ml, Caja x10 Tab). Aplica a clasificaciones con "has_pharma_fields".'],
             ['serie_reference', 'Serie / Referencia', 'No', 'Texto (máx. 150)', 'Solo aplica a dispositivos médicos. Aplica a clasificaciones con "has_device_fields".'],
             ['useful_life', 'Vida útil', 'No', 'Texto (máx. 100)', 'Solo aplica a dispositivos médicos (ej: 5 años, Permanente). Aplica a clasificaciones con "has_device_fields".'],
+            ['sanitary_registration', 'Registro sanitario (INVIMA)', 'No', 'Texto (máx. 100)', 'Número de registro sanitario INVIMA (ej: 2024DM-0012345). Si se diligencia, se crea el registro sanitario del producto con fecha de vencimiento 31/12/2099 (actualícela luego en el módulo de productos).'],
         ], [
             'La primera fila debe conservar exactamente estos nombres de columna (en minúsculas, sin tildes ni espacios).',
             'La fila 2 de la hoja "Productos" (en español, gris) es solo de referencia: bórrela antes de cargar el archivo. Si no la borra, se reportará como 1 fila fallida, sin afectar a los demás productos.',
@@ -138,7 +142,8 @@ class ImportTemplateBuilder
             'Todos los productos importados se crean como tipo "simple" (no se admite la importación de kits).',
             'Todos los productos importados quedan activos (is_active = true).',
             'Los campos concentration/risk_level/lab_brand/pharmaceutical_form/commercial_presentation/serie_reference/useful_life son de texto libre: se guardan tal cual se diligencien, sin validar que correspondan a los indicadores has_* de la clasificación indicada en "classification_code". Revise la hoja "Clasificaciones" para saber qué campos aplican a cada clasificación.',
-            'No se importan presentaciones, proveedores ni registros sanitarios. Estos datos se deben completar luego editando cada producto.',
+            'Si se diligencia "sanitary_registration", se crea automáticamente el registro sanitario del producto con fecha de vencimiento 31/12/2099. Puede actualizar esa fecha luego desde el módulo de productos.',
+            'No se importan presentaciones ni proveedores asociados al producto. Estos datos se deben completar luego editando cada producto.',
             'Esta importación solo crea productos nuevos; no actualiza productos existentes.',
             'Las hojas "Categorías", "Unidades de medida" y "Clasificaciones" muestran los códigos vigentes Y permiten crear nuevos: agregue filas nuevas al final con los datos requeridos y se crearán automáticamente antes de procesar la hoja "Productos" (así puede usarlas el mismo archivo en category_code/unit_abbreviation/classification_code). Las filas cuyo código ya existe se omiten sin generar error.',
         ]);
