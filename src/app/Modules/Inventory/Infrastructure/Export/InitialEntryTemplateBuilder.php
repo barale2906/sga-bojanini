@@ -45,6 +45,8 @@ class InitialEntryTemplateBuilder
                 'quantity',
                 'expiration_date',
                 'manufacturing_date',
+                'invoice_number',
+                'entry_temperature',
                 'notes',
             ],
             [
@@ -53,6 +55,8 @@ class InitialEntryTemplateBuilder
                 'Cantidad (unidad base)',
                 'Fecha de vencimiento',
                 'Fecha de fabricación',
+                'N° Factura proveedor',
+                'Temperatura de entrada (°C)',
                 'Notas',
             ],
             [
@@ -61,6 +65,8 @@ class InitialEntryTemplateBuilder
                 '100',
                 '2026-12-31',
                 '2026-01-15',
+                'FAC-2024-0001',
+                '4.5',
                 'Inventario inicial',
             ],
         );
@@ -72,7 +78,9 @@ class InitialEntryTemplateBuilder
             ['quantity', 'Cantidad', 'Sí', 'Entero >= 1', 'Cantidad en unidad base del producto. No se admiten presentaciones de compra en esta carga.'],
             ['expiration_date', 'Fecha de vencimiento', 'Sí', 'Fecha (AAAA-MM-DD)', 'Fecha de vencimiento del lote.'],
             ['manufacturing_date', 'Fecha de fabricación', 'No', 'Fecha (AAAA-MM-DD)', 'Fecha de fabricación del lote.'],
-            ['notes', 'Notas', 'No', 'Texto', 'Observaciones de la entrada.'],
+            ['invoice_number', 'N° Factura proveedor', 'No', 'Texto (máx. 100)', 'Número de factura del proveedor asociado a esta entrada.'],
+            ['entry_temperature', 'Temperatura de entrada (°C)', 'No', 'Decimal (ej. 4.5 o -18)', 'Temperatura registrada al momento de la recepción del producto (en grados Celsius).'],
+            ['notes', 'Notas', 'No', 'Texto', 'Observaciones adicionales de la entrada.'],
         ], [
             'La primera fila debe conservar exactamente estos nombres de columna (en minúsculas, sin tildes ni espacios).',
             'La fila 2 de la hoja "Entradas" (en español, gris) es solo de referencia: bórrela antes de cargar el archivo. Si no la borra, se reportará como 1 fila fallida, sin afectar a las demás entradas.',

@@ -52,6 +52,8 @@ class MovementResource extends JsonResource
             'service_id'          => $movement->service_id,
             'patient_document'    => $movement->patient_document,
             'patient_external_id' => $movement->patient_external_id,
+            'invoice_number'      => $movement->invoice_number,
+            'entry_temperature'   => $movement->entry_temperature,
             'user_id'             => $movement->user_id,
             'created_at'          => $movement->created_at?->toIso8601String(),
             'product_name'        => $movement->relationLoaded('product') ? $movement->product->name : null,

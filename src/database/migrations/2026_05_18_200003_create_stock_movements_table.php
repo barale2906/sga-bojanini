@@ -33,6 +33,10 @@ return new class extends Migration
             $table->string('patient_document', 50)->nullable();
             $table->string('patient_external_id', 100)->nullable();
 
+            // Campos exclusivos de entradas
+            $table->string('invoice_number', 100)->nullable();
+            $table->decimal('entry_temperature', 5, 2)->nullable();
+
             $table->foreignId('user_id')->constrained('users');
             $table->timestamp('created_at')->useCurrent();
 

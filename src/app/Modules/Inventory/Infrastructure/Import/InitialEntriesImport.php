@@ -17,7 +17,9 @@ use PhpOffice\PhpSpreadsheet\Shared\Date;
  */
 class InitialEntriesImport implements ToArray, WithHeadingRow, SkipsEmptyRows, WithMultipleSheets
 {
-    private const DATE_COLUMNS = ['expiration_date', 'manufacturing_date'];
+    private const DATE_COLUMNS    = ['expiration_date', 'manufacturing_date'];
+
+    private const NUMERIC_COLUMNS = ['quantity', 'entry_temperature'];
 
     private array $rows = [];
 
@@ -43,23 +45,29 @@ class InitialEntriesImport implements ToArray, WithHeadingRow, SkipsEmptyRows, W
     }
 
     /**
-     * Si el usuario digita la fecha y Excel la convierte automáticamente a
-     * un valor de fecha nativo, Maatwebsite la entrega como número serial
-     * en vez de texto. Se normaliza a `Y-m-d` para que la validación
-     * `date` y el resto del flujo siempre reciban un string consistente.
+     * Normaliza cada celda de la fila:
+     * - Columnas de fecha con serial numérico de Excel → 'Y-m-d'.
+     * - Columnas numéricas (quantity, entry_temperature) → se dejan como están.
+     * - Todo lo demás (códigos, lotes, facturas, notas) → string recortado,
+     *   incluso si Excel entregó un número entero (p.ej. lote "20250603").
      */
     private function normalizeRow(array $row): array
     {
         foreach ($row as $key => $value) {
-            if (is_string($value)) {
-                $row[$key] = trim($value);
-
+            if ($value === null) {
                 continue;
             }
 
             if (in_array($key, self::DATE_COLUMNS, true) && is_numeric($value)) {
                 $row[$key] = Date::excelToDateTimeObject((float) $value)->format('Y-m-d');
+                continue;
             }
+
+            if (in_array($key, self::NUMERIC_COLUMNS, true)) {
+                continue;
+            }
+
+            $row[$key] = trim((string) $value);
         }
 
         return $row;

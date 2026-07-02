@@ -86,14 +86,16 @@ class RegisterEntryUseCase
             }
 
             $movement = StockMovementModel::create([
-                'warehouse_id'   => $data['warehouse_id'],
-                'product_id'     => $data['product_id'],
-                'batch_id'       => $batch->id,
-                'location_to_id' => $data['location_id'],
-                'movement_type'  => 'entry',
-                'quantity'       => $quantity,
-                'reason'         => $data['notes'] ?? null,
-                'user_id'        => $data['user_id'],
+                'warehouse_id'      => $data['warehouse_id'],
+                'product_id'        => $data['product_id'],
+                'batch_id'          => $batch->id,
+                'location_to_id'    => $data['location_id'],
+                'movement_type'     => 'entry',
+                'quantity'          => $quantity,
+                'reason'            => $data['notes'] ?? null,
+                'invoice_number'    => $data['invoice_number'] ?? null,
+                'entry_temperature' => isset($data['entry_temperature']) ? (float) $data['entry_temperature'] : null,
+                'user_id'           => $data['user_id'],
             ]);
 
             event(new StockMovementCreated(

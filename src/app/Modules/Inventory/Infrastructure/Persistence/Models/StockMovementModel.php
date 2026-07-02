@@ -38,6 +38,8 @@ class StockMovementModel extends Model
         'service_id',
         'patient_document',
         'patient_external_id',
+        'invoice_number',
+        'entry_temperature',
         'user_id',
     ];
 

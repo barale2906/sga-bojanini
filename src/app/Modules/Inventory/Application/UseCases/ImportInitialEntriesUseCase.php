@@ -83,13 +83,15 @@ class ImportInitialEntriesUseCase
             'quantity'           => 'required|integer|min:1',
             'expiration_date'    => 'required|date',
             'manufacturing_date' => 'nullable|date',
+            'invoice_number'     => 'nullable|string|max:100',
+            'entry_temperature'  => 'nullable|numeric',
             'notes'              => 'nullable|string',
         ], [
             'product_code.required'    => 'El código de producto es obligatorio.',
             'product_code.exists'      => 'No existe ningún producto con este código. Revise la hoja "Productos" de la plantilla.',
             'lot_number.required'      => 'El número de lote es obligatorio.',
             'quantity.required'        => 'La cantidad es obligatoria.',
-            'quantity.min'              => 'La cantidad debe ser mayor a cero.',
+            'quantity.min'             => 'La cantidad debe ser mayor a cero.',
             'expiration_date.required' => 'La fecha de vencimiento es obligatoria.',
         ]);
 
@@ -117,6 +119,8 @@ class ImportInitialEntriesUseCase
             'expiration_date'    => $validated['expiration_date'],
             'manufacturing_date' => $validated['manufacturing_date'] ?? null,
             'quantity_base'      => $quantity,
+            'invoice_number'     => $validated['invoice_number'] ?? null,
+            'entry_temperature'  => isset($validated['entry_temperature']) && $validated['entry_temperature'] !== '' ? (float) $validated['entry_temperature'] : null,
             'notes'              => $validated['notes'] ?? null,
             'user_id'            => $userId,
         ]);

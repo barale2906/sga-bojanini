@@ -66,7 +66,7 @@ class InitialEntriesImportTest extends TestCase
         $response = $this->withHeaders($this->auth)
             ->post('/api/v1/movements/initial-entries/import', [
                 'file' => $this->makeEntriesUpload([
-                    ['PROD-A', 'LOTE-001', 100, '2027-01-31', '', 'Carga inicial'],
+                    ['PROD-A', 'LOTE-001', 100, '2027-01-31', '', 'FAC-001', '4.5', 'Carga inicial'],
                 ]),
             ]);
 
@@ -116,7 +116,7 @@ class InitialEntriesImportTest extends TestCase
             ->post('/api/v1/movements/initial-entries/import', [
                 'warehouse_id' => $otherWarehouse->id,
                 'file'         => $this->makeEntriesUpload([
-                    ['PROD-B', 'LOTE-002', 50, '2027-01-31', '', ''],
+                    ['PROD-B', 'LOTE-002', 50, '2027-01-31', '', '', '', ''],
                 ]),
             ]);
 
@@ -145,7 +145,7 @@ class InitialEntriesImportTest extends TestCase
             ->post('/api/v1/movements/initial-entries/import', [
                 'warehouse_id' => 999999,
                 'file'         => $this->makeEntriesUpload([
-                    ['PROD-C', 'LOTE-003', 10, '2027-01-31', '', ''],
+                    ['PROD-C', 'LOTE-003', 10, '2027-01-31', '', '', '', ''],
                 ]),
             ]);
 
@@ -159,7 +159,7 @@ class InitialEntriesImportTest extends TestCase
         $response = $this->withHeaders($this->auth)
             ->post('/api/v1/movements/initial-entries/import', [
                 'file' => $this->makeEntriesUpload([
-                    ['PROD-FRIO', 'LOTE-FRIO-001', 10, '2027-01-31', '', ''],
+                    ['PROD-FRIO', 'LOTE-FRIO-001', 10, '2027-01-31', '', '', '-18', ''],
                 ]),
             ]);
 
@@ -183,8 +183,8 @@ class InitialEntriesImportTest extends TestCase
         $response = $this->withHeaders($this->auth)
             ->post('/api/v1/movements/initial-entries/import', [
                 'file' => $this->makeEntriesUpload([
-                    ['PROD-VOL', 'LOTE-VOL-001', 2, '2027-01-31', '', ''],
-                    ['PROD-VOL', 'LOTE-VOL-002', 2, '2027-01-31', '', ''],
+                    ['PROD-VOL', 'LOTE-VOL-001', 2, '2027-01-31', '', '', '', ''],
+                    ['PROD-VOL', 'LOTE-VOL-002', 2, '2027-01-31', '', '', '', ''],
                 ]),
             ]);
 
@@ -210,8 +210,8 @@ class InitialEntriesImportTest extends TestCase
         $response = $this->withHeaders($this->auth)
             ->post('/api/v1/movements/initial-entries/import', [
                 'file' => $this->makeEntriesUpload([
-                    ['PROD-OK', 'LOTE-OK-001', 10, '2027-01-31', '', ''],
-                    ['PROD-NO-EXISTE', 'LOTE-X', 5, '2027-01-31', '', ''],
+                    ['PROD-OK', 'LOTE-OK-001', 10, '2027-01-31', '', '', '', ''],
+                    ['PROD-NO-EXISTE', 'LOTE-X', 5, '2027-01-31', '', '', '', ''],
                 ]),
             ]);
 
@@ -231,7 +231,7 @@ class InitialEntriesImportTest extends TestCase
         $response = $this->withHeaders($this->bearerAuthFor($user))
             ->post('/api/v1/movements/initial-entries/import', [
                 'file' => $this->makeEntriesUpload([
-                    ['PROD-A', 'LOTE-001', 10, '2027-01-31', '', ''],
+                    ['PROD-A', 'LOTE-001', 10, '2027-01-31', '', '', '', ''],
                 ]),
             ]);
 
@@ -254,14 +254,14 @@ class InitialEntriesImportTest extends TestCase
         ], $overrides));
     }
 
-    /** @param  array<int, array{0: string, 1: string, 2: int, 3: string, 4: string, 5: string}>  $rows */
+    /** @param  array<int, array{0: string, 1: string, 2: int, 3: string, 4: string, 5: string, 6: string, 7: string}>  $rows */
     private function makeEntriesUpload(array $rows): UploadedFile
     {
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Entradas');
 
-        $headers = ['product_code', 'lot_number', 'quantity', 'expiration_date', 'manufacturing_date', 'notes'];
+        $headers = ['product_code', 'lot_number', 'quantity', 'expiration_date', 'manufacturing_date', 'invoice_number', 'entry_temperature', 'notes'];
 
         foreach ($headers as $col => $header) {
             $sheet->setCellValueByColumnAndRow($col + 1, 1, $header);

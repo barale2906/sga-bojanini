@@ -27,6 +27,8 @@ class StoreEntryRequest extends FormRequest
             'product_presentation_id'   => ['nullable', 'integer', 'exists:product_presentations,id', 'required_with:quantity_in_presentation'],
             'quantity_in_presentation'  => ['nullable', 'integer', 'min:1', 'required_with:product_presentation_id'],
             'notes'                     => ['nullable', 'string'],
+            'invoice_number'            => ['nullable', 'string', 'max:100'],
+            'entry_temperature'         => ['nullable', 'numeric'],
         ];
     }
 
