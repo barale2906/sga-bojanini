@@ -31,7 +31,9 @@ class ProductsImport implements ToArray, WithHeadingRow, SkipsEmptyRows, WithMul
     {
         $this->rows = array_map(
             fn (array $row) => array_map(
-                fn ($value) => is_string($value) ? trim($value) : $value,
+                fn ($value) => is_null($value) || is_bool($value)
+                    ? $value
+                    : trim((string) $value),
                 $row,
             ),
             $rows,

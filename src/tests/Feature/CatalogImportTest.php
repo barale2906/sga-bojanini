@@ -322,4 +322,27 @@ class CatalogImportTest extends TestCase
 
         $this->assertFalse(CategoryModel::where('code', 'CAT-INVALIDA')->exists());
     }
+
+    public function test_importar_producto_con_sku_numerico(): void
+    {
+        $headers = ['name', 'code', 'sku', 'category_code', 'unit_abbreviation'];
+
+        // SKU como entero (simula lo que hace Excel con celdas numéricas)
+        $rows = [
+            ['Producto SKU Numérico', 'IMP-SKU-001', 123456, 'INS-MED', 'UND'],
+        ];
+
+        $file = $this->makeSpreadsheetUpload($headers, $rows, 'productos_sku_num.xlsx');
+
+        $response = $this->withHeaders($this->auth())
+            ->post('/api/v1/import/products', ['file' => $file]);
+
+        $response->assertOk()
+            ->assertJsonPath('data.success', 1)
+            ->assertJsonPath('data.failed', 0);
+
+        $product = ProductModel::where('code', 'IMP-SKU-001')->first();
+        $this->assertNotNull($product);
+        $this->assertSame('123456', $product->sku);
+    }
 }

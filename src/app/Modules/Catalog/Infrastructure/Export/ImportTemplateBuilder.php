@@ -8,8 +8,10 @@ use App\Modules\Catalog\Infrastructure\Persistence\Models\CategoryModel;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductClassificationModel;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\UnitOfMeasureModel;
 use InvalidArgumentException;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 /**
@@ -109,6 +111,7 @@ class ImportTemplateBuilder
                 '5 años',
                 '2024DM-0012345',
             ],
+            textColumns: [2, 3], // code, sku → siempre texto aunque sean numéricos
         );
 
         $this->addInstructionsSheet($spreadsheet, [
@@ -270,8 +273,9 @@ class ImportTemplateBuilder
      * @param  string[]  $headers
      * @param  string[]  $spanishLabels
      * @param  string[]  $exampleRow
+     * @param  int[]     $textColumns  índices base-1 de columnas que deben formatearse como texto
      */
-    private function writeDataSheet(Worksheet $sheet, string $title, array $headers, array $spanishLabels, array $exampleRow): void
+    private function writeDataSheet(Worksheet $sheet, string $title, array $headers, array $spanishLabels, array $exampleRow, array $textColumns = []): void
     {
         $sheet->setTitle($title);
 
@@ -303,6 +307,15 @@ class ImportTemplateBuilder
             .'BÓRRELA antes de cargar el archivo al sistema; si la deja, se reportará como 1 fila '
             .'fallida (no afecta a los demás registros). Ver hoja "Instrucciones" para el detalle completo.'
         );
+
+        foreach ($textColumns as $colIndex) {
+            $colLetter = Coordinate::stringFromColumnIndex($colIndex);
+            // Formato texto para las filas de datos (fila 4 en adelante hasta 5003).
+            // No se usa toda la columna para no agotar memoria con PhpSpreadsheet.
+            $sheet->getStyle("{$colLetter}4:{$colLetter}5003")
+                ->getNumberFormat()
+                ->setFormatCode(NumberFormat::FORMAT_TEXT);
+        }
 
         $sheet->freezePane('A3');
     }
