@@ -57,8 +57,11 @@ class MovementResource extends JsonResource
             'user_id'             => $movement->user_id,
             'created_at'          => $movement->created_at?->toIso8601String(),
             'product_name'        => $movement->relationLoaded('product') ? $movement->product->name : null,
-            'batch_lot_number'    => $movement->relationLoaded('batch') && $movement->batch
+            'batch_lot_number'      => $movement->relationLoaded('batch') && $movement->batch
                 ? $movement->batch->lot_number
+                : null,
+            'batch_expiration_date' => $movement->relationLoaded('batch') && $movement->batch
+                ? $movement->batch->expiration_date
                 : null,
             'user_name'           => $movement->relationLoaded('user') && $movement->user
                 ? $movement->user->name
