@@ -9,10 +9,12 @@ use App\Modules\Auth\Infrastructure\Persistence\Models\UserModel;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductModel;
 use App\Modules\CostCenter\Infrastructure\Persistence\Models\CostCenterModel;
 use App\Modules\CostCenter\Infrastructure\Persistence\Models\MedicalServiceModel;
+use App\Modules\Inventory\Domain\ValueObjects\MovementStatus;
 use App\Modules\Warehouse\Infrastructure\Persistence\Models\LocationModel;
 use App\Modules\Warehouse\Infrastructure\Persistence\Models\WarehouseModel;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class StockMovementModel extends Model
 {
@@ -41,11 +43,13 @@ class StockMovementModel extends Model
         'invoice_number',
         'entry_temperature',
         'user_id',
+        'status',
     ];
 
     protected function casts(): array
     {
         return [
+            'status'     => MovementStatus::class,
             'created_at' => 'datetime',
         ];
     }
@@ -93,5 +97,10 @@ class StockMovementModel extends Model
     public function medicalService(): BelongsTo
     {
         return $this->belongsTo(MedicalServiceModel::class, 'service_id');
+    }
+
+    public function signatures(): HasMany
+    {
+        return $this->hasMany(MovementSignatureModel::class, 'movement_id');
     }
 }

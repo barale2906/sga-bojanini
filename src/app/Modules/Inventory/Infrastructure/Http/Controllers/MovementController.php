@@ -7,6 +7,7 @@ namespace App\Modules\Inventory\Infrastructure\Http\Controllers;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\ImportLogModel;
 use App\Modules\Inventory\Application\Services\StorageAllocationService;
 use App\Modules\Inventory\Application\UseCases\AdjustStockUseCase;
+use App\Modules\Inventory\Application\UseCases\ConfirmMovementUseCase;
 use App\Modules\Inventory\Application\UseCases\ImportInitialEntriesUseCase;
 use App\Modules\Inventory\Application\UseCases\RegisterEntryUseCase;
 use App\Modules\Inventory\Application\UseCases\RegisterExitUseCase;
@@ -16,6 +17,7 @@ use App\Modules\Inventory\Application\UseCases\TransferStockUseCase;
 use App\Modules\Inventory\Application\UseCases\WriteOffExpiredUseCase;
 use App\Modules\Inventory\Infrastructure\Export\InitialEntryTemplateBuilder;
 use Carbon\Carbon;
+use App\Modules\Inventory\Infrastructure\Http\Requests\ConfirmMovementRequest;
 use App\Modules\Inventory\Infrastructure\Http\Requests\ImportInitialEntriesRequest;
 use App\Modules\Inventory\Infrastructure\Http\Requests\ListMovementsRequest;
 use App\Modules\Inventory\Infrastructure\Http\Requests\StoreAdjustmentRequest;
@@ -250,6 +252,10 @@ class MovementController extends Controller
             $query->whereHas('costCenter', fn ($q) => $q->where('type', $request->string('cost_center_type')));
         }
 
+        if ($request->filled('status')) {
+            $query->where('status', $request->string('status'));
+        }
+
         if ($request->filled('warehouse_to_id')) {
             $this->assertWarehouseAccess($request->user(), $request->integer('warehouse_to_id'));
             $query->where('warehouse_to_id', $request->integer('warehouse_to_id'));
@@ -275,9 +281,57 @@ class MovementController extends Controller
         );
     }
 
+    public function cancelPending(int $id, Request $request): JsonResponse
+    {
+        $movement = StockMovementModel::findOrFail($id);
+
+        if ($movement->status->value !== 'pending_signature') {
+            return $this->error('Solo se pueden eliminar movimientos pendientes de firma.', 422);
+        }
+
+        $this->assertMovementAccess($request, $movement);
+
+        $movement->delete();
+
+        return $this->success(null, 'Movimiento pendiente eliminado exitosamente');
+    }
+
+    public function confirm(int $id, ConfirmMovementRequest $request, ConfirmMovementUseCase $useCase): JsonResponse
+    {
+        $movement = StockMovementModel::findOrFail($id);
+        $this->assertMovementAccess($request, $movement);
+
+        $movement = $useCase->execute($id, $request->signatures());
+
+        return $this->success(
+            new MovementResource($movement),
+            'Movimiento confirmado exitosamente',
+        );
+    }
+
+    public function showSignature(int $id, string $role, Request $request): JsonResponse
+    {
+        $movement = StockMovementModel::findOrFail($id);
+        $this->assertMovementAccess($request, $movement);
+
+        $signature = $movement->signatures()->where('role', $role)->first();
+
+        if ($signature === null) {
+            return $this->error('Firma no encontrada', 404);
+        }
+
+        return $this->success([
+            'role'            => $signature->role,
+            'signer_name'     => $signature->signer_name,
+            'signer_document' => $signature->signer_document,
+            'signature_data'  => $signature->signature_data,
+            'signed_at'       => $signature->signed_at?->toIso8601String(),
+        ], 'Firma del movimiento');
+    }
+
     public function show(int $id, Request $request): JsonResponse
     {
-        $movement = StockMovementModel::with(['product', 'batch', 'user', 'costCenter', 'medicalService'])->find($id);
+        $movement = StockMovementModel::with(['product', 'batch', 'user', 'costCenter', 'medicalService', 'signatures'])->find($id);
 
         if ($movement === null) {
             return $this->error('Movimiento no encontrado', 404);

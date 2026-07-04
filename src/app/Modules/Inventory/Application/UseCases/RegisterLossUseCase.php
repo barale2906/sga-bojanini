@@ -6,6 +6,7 @@ namespace App\Modules\Inventory\Application\UseCases;
 
 use App\Modules\Inventory\Domain\Events\StockMovementCreated;
 use App\Modules\Inventory\Domain\Exceptions\InsufficientStockException;
+use App\Modules\Inventory\Domain\ValueObjects\MovementStatus;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\BatchModel;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\StockMovementModel;
 use Illuminate\Support\Facades\DB;
@@ -25,6 +26,11 @@ class RegisterLossUseCase
 {
     public function execute(array $data): StockMovementModel
     {
+        return $this->createPending($data);
+    }
+
+    public function createPending(array $data): StockMovementModel
+    {
         return DB::transaction(function () use ($data) {
             $batch = BatchModel::findOrFail($data['batch_id']);
 
@@ -39,7 +45,38 @@ class RegisterLossUseCase
                 );
             }
 
-            $batch->quantity_available = max(0, $batch->quantity_available - $data['quantity']);
+            return StockMovementModel::create([
+                'warehouse_id'     => $data['warehouse_id'],
+                'product_id'       => $data['product_id'],
+                'batch_id'         => $batch->id,
+                'location_from_id' => $data['location_id'],
+                'movement_type'    => 'loss',
+                'quantity'         => -(int) $data['quantity'],
+                'reason'           => $data['reason'],
+                'user_id'          => $data['user_id'],
+                'status'           => MovementStatus::PENDING_SIGNATURE->value,
+            ]);
+        });
+    }
+
+    public function applyStock(StockMovementModel $movement): void
+    {
+        DB::transaction(function () use ($movement) {
+            $quantity = abs($movement->quantity);
+            $batch    = BatchModel::findOrFail($movement->batch_id);
+
+            $pivotQuantity = (int) (DB::table('batch_location')
+                ->where('batch_id', $batch->id)
+                ->where('location_id', $movement->location_from_id)
+                ->value('quantity') ?? 0);
+
+            if ($quantity > $pivotQuantity) {
+                throw new InsufficientStockException(
+                    "El lote {$batch->lot_number} solo tiene {$pivotQuantity} unidades disponibles en esta ubicación, se pidieron {$quantity}."
+                );
+            }
+
+            $batch->quantity_available = max(0, $batch->quantity_available - $quantity);
 
             if ($batch->quantity_available === 0) {
                 $batch->status = 'depleted';
@@ -49,29 +86,16 @@ class RegisterLossUseCase
 
             DB::table('batch_location')
                 ->where('batch_id', $batch->id)
-                ->where('location_id', $data['location_id'])
-                ->decrement('quantity', $data['quantity']);
-
-            $movement = StockMovementModel::create([
-                'warehouse_id'     => $data['warehouse_id'],
-                'product_id'       => $data['product_id'],
-                'batch_id'         => $batch->id,
-                'location_from_id' => $data['location_id'],
-                'movement_type'    => 'loss',
-                'quantity'         => -$data['quantity'],
-                'reason'           => $data['reason'],
-                'user_id'          => $data['user_id'],
-            ]);
+                ->where('location_id', $movement->location_from_id)
+                ->decrement('quantity', $quantity);
 
             event(new StockMovementCreated(
                 movementId: $movement->id,
-                productId: $data['product_id'],
-                warehouseId: $data['warehouse_id'],
+                productId: $movement->product_id,
+                warehouseId: $movement->warehouse_id,
                 movementType: 'loss',
-                quantity: $data['quantity'],
+                quantity: $quantity,
             ));
-
-            return $movement;
         });
     }
 }

@@ -47,6 +47,7 @@ class RolesAndPermissionsSeeder extends Seeder
             // Movimientos
             'movimientos.entrada', 'movimientos.salida', 'movimientos.transferir',
             'movimientos.ajuste', 'movimientos.devolucion', 'movimientos.baja', 'movimientos.importar',
+            'movimientos.confirmar', 'movimientos.cancelar',
             // Órdenes de compra
             'ordenes_compra.ver', 'ordenes_compra.crear', 'ordenes_compra.aprobar',
             'ordenes_compra.enviar', 'ordenes_compra.recibir',
@@ -104,6 +105,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'stock.ver',
             'movimientos.entrada', 'movimientos.salida', 'movimientos.transferir',
             'movimientos.ajuste', 'movimientos.devolucion', 'movimientos.baja', 'movimientos.importar',
+            'movimientos.confirmar', 'movimientos.cancelar',
             'ordenes_compra.ver', 'ordenes_compra.crear', 'ordenes_compra.aprobar',
             'ordenes_compra.enviar', 'ordenes_compra.recibir',
             'sensores.ver', 'sensores.crear', 'sensores.editar', 'sensores.eliminar', 'sensores.asignar',
@@ -132,6 +134,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'lotes.ver', 'lotes.crear',
             'stock.ver',
             'movimientos.entrada', 'movimientos.salida', 'movimientos.transferir',
+            'movimientos.confirmar', 'movimientos.cancelar',
             'lecturas.ver', 'lecturas.crear',
             'tablero.ver',
             'notificaciones.ver',
@@ -177,6 +180,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'stock.ver',
             'movimientos.entrada', 'movimientos.salida', 'movimientos.transferir',
             'movimientos.ajuste', 'movimientos.devolucion', 'movimientos.baja', 'movimientos.importar',
+            'movimientos.confirmar', 'movimientos.cancelar',
             'ordenes_compra.ver', 'ordenes_compra.aprobar', 'ordenes_compra.recibir',
             'sensores.ver', 'sensores.crear', 'sensores.editar',
             'lecturas.ver', 'lecturas.crear',

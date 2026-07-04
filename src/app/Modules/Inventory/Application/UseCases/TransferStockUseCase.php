@@ -7,7 +7,7 @@ namespace App\Modules\Inventory\Application\UseCases;
 use App\Modules\Inventory\Domain\Events\StockMovementCreated;
 use App\Modules\Inventory\Domain\Services\BatchLocationService;
 use App\Modules\Inventory\Domain\Services\FEFOService;
-use App\Modules\Inventory\Infrastructure\Persistence\Models\BatchModel;
+use App\Modules\Inventory\Domain\ValueObjects\MovementStatus;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\StockMovementModel;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -21,49 +21,30 @@ class TransferStockUseCase
 
     public function execute(array $data): Collection
     {
-        return DB::transaction(function () use ($data) {
-            $warehouseFromId = $data['warehouse_from_id'];
-            $warehouseToId   = $data['warehouse_to_id'];
+        return $this->createPending($data);
+    }
 
+    /**
+     * Crea registros pendientes de firma. Corre FEFO para validar disponibilidad
+     * y asignar lotes desde el inicio; no modifica batch_location ni stock.
+     *
+     * @return Collection<int, StockMovementModel>
+     */
+    public function createPending(array $data): Collection
+    {
+        return DB::transaction(function () use ($data) {
             $selectedBatches = $this->fefoService->selectBatchesForExit(
                 $data['product_id'],
-                $warehouseFromId,
+                $data['warehouse_from_id'],
                 $data['quantity'],
             );
 
             $movements = collect();
 
             foreach ($selectedBatches as $selection) {
-                $batch = BatchModel::findOrFail($selection['batch_id']);
-
-                $this->batchLocationService->decrement($batch->id, $selection['quantity'], $data['location_from_id']);
-
-                $pivot = DB::table('batch_location')
-                    ->where('batch_id', $batch->id)
-                    ->where('location_id', $data['location_to_id'])
-                    ->first();
-
-                if ($pivot) {
-                    DB::table('batch_location')
-                        ->where('batch_id', $batch->id)
-                        ->where('location_id', $data['location_to_id'])
-                        ->update([
-                            'quantity'   => $pivot->quantity + $selection['quantity'],
-                            'updated_at' => now(),
-                        ]);
-                } else {
-                    DB::table('batch_location')->insert([
-                        'batch_id'    => $batch->id,
-                        'location_id' => $data['location_to_id'],
-                        'quantity'    => $selection['quantity'],
-                        'created_at'  => now(),
-                        'updated_at'  => now(),
-                    ]);
-                }
-
                 $movement = StockMovementModel::create([
-                    'warehouse_id'     => $warehouseFromId,
-                    'warehouse_to_id'  => $warehouseToId,
+                    'warehouse_id'     => $data['warehouse_from_id'],
+                    'warehouse_to_id'  => $data['warehouse_to_id'],
                     'product_id'       => $data['product_id'],
                     'batch_id'         => $selection['batch_id'],
                     'location_from_id' => $data['location_from_id'],
@@ -72,21 +53,55 @@ class TransferStockUseCase
                     'quantity'         => $selection['quantity'],
                     'reason'           => $data['reason'] ?? null,
                     'user_id'          => $data['user_id'],
+                    'status'           => MovementStatus::PENDING_SIGNATURE->value,
                 ]);
-
-                event(new StockMovementCreated(
-                    movementId: $movement->id,
-                    productId: $data['product_id'],
-                    warehouseId: $warehouseFromId,
-                    movementType: 'transfer',
-                    quantity: $selection['quantity'],
-                    warehouseToId: $warehouseToId,
-                ));
 
                 $movements->push($movement);
             }
 
             return $movements;
+        });
+    }
+
+    /** Aplica los cambios de ubicación del lote ya asignado en el registro pendiente. */
+    public function applyStock(StockMovementModel $movement): void
+    {
+        DB::transaction(function () use ($movement) {
+            $quantity = $movement->quantity;
+
+            $this->batchLocationService->decrement($movement->batch_id, $quantity, $movement->location_from_id);
+
+            $pivot = DB::table('batch_location')
+                ->where('batch_id', $movement->batch_id)
+                ->where('location_id', $movement->location_to_id)
+                ->first();
+
+            if ($pivot) {
+                DB::table('batch_location')
+                    ->where('batch_id', $movement->batch_id)
+                    ->where('location_id', $movement->location_to_id)
+                    ->update([
+                        'quantity'   => $pivot->quantity + $quantity,
+                        'updated_at' => now(),
+                    ]);
+            } else {
+                DB::table('batch_location')->insert([
+                    'batch_id'    => $movement->batch_id,
+                    'location_id' => $movement->location_to_id,
+                    'quantity'    => $quantity,
+                    'created_at'  => now(),
+                    'updated_at'  => now(),
+                ]);
+            }
+
+            event(new StockMovementCreated(
+                movementId: $movement->id,
+                productId: $movement->product_id,
+                warehouseId: $movement->warehouse_id,
+                movementType: 'transfer',
+                quantity: $quantity,
+                warehouseToId: $movement->warehouse_to_id,
+            ));
         });
     }
 }

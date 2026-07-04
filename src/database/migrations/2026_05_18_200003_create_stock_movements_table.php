@@ -38,11 +38,13 @@ return new class extends Migration
             $table->decimal('entry_temperature', 5, 2)->nullable();
 
             $table->foreignId('user_id')->constrained('users');
+            $table->enum('status', ['pending_signature', 'confirmed'])->default('confirmed');
             $table->timestamp('created_at')->useCurrent();
 
             $table->index(['product_id', 'created_at'], 'idx_mov_product_created');
             $table->index(['movement_type', 'created_at'], 'idx_mov_type_created');
             $table->index(['cost_center_id', 'created_at'], 'idx_mov_costcenter_created');
+            $table->index(['status', 'created_at'], 'idx_mov_status_created');
         });
     }
 

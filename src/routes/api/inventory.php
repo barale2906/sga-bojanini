@@ -28,5 +28,8 @@ Route::middleware(['auth:sanctum', 'user.is_active'])->prefix('v1')->group(funct
     Route::post('movements/write-off', [MovementController::class, 'writeOff'])->middleware('permission:movimientos.baja');
     Route::post('movements/loss', [MovementController::class, 'loss'])->middleware('permission:movimientos.baja');
     Route::get('movements', [MovementController::class, 'index'])->middleware('permission:stock.ver');
+    Route::delete('movements/{id}/pending', [MovementController::class, 'cancelPending'])->middleware('permission:movimientos.cancelar');
+    Route::post('movements/{id}/confirm', [MovementController::class, 'confirm'])->middleware('permission:movimientos.confirmar');
+    Route::get('movements/{id}/signature/{role}', [MovementController::class, 'showSignature'])->middleware('permission:stock.ver');
     Route::get('movements/{id}', [MovementController::class, 'show'])->middleware('permission:stock.ver');
 });

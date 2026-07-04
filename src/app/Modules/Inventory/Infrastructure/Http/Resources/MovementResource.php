@@ -55,6 +55,9 @@ class MovementResource extends JsonResource
             'invoice_number'      => $movement->invoice_number,
             'entry_temperature'   => $movement->entry_temperature,
             'user_id'             => $movement->user_id,
+            'status'              => $movement->status instanceof \App\Modules\Inventory\Domain\ValueObjects\MovementStatus
+                ? $movement->status->value
+                : $movement->status,
             'created_at'          => $movement->created_at?->toIso8601String(),
             'product_name'        => $movement->relationLoaded('product') ? $movement->product->name : null,
             'batch_lot_number'      => $movement->relationLoaded('batch') && $movement->batch
@@ -74,6 +77,9 @@ class MovementResource extends JsonResource
                 : null,
             'medical_service'     => $movement->relationLoaded('medicalService') && $movement->medicalService
                 ? ['id' => $movement->medicalService->id, 'code' => $movement->medicalService->code, 'name' => $movement->medicalService->name]
+                : null,
+            'signatures'          => $movement->relationLoaded('signatures')
+                ? MovementSignatureResource::collection($movement->signatures)
                 : null,
         ];
     }

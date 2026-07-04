@@ -7,6 +7,7 @@ namespace App\Modules\Inventory\Application\UseCases;
 use App\Modules\Inventory\Domain\Events\StockMovementCreated;
 use App\Modules\Inventory\Domain\Services\BatchLocationService;
 use App\Modules\Inventory\Domain\Services\FEFOService;
+use App\Modules\Inventory\Domain\ValueObjects\MovementStatus;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\BatchModel;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\StockMovementModel;
 use Illuminate\Support\Facades\DB;
@@ -20,6 +21,14 @@ class RegisterReturnUseCase
 
     public function execute(array $data): StockMovementModel
     {
+        return $this->createPending($data);
+    }
+
+    /**
+     * Valida disponibilidad (incluye lotes vencidos) y crea el registro pendiente.
+     */
+    public function createPending(array $data): StockMovementModel
+    {
         return DB::transaction(function () use ($data) {
             // Las devoluciones a proveedor también gestionan stock vencido,
             // por lo que se incluyen lotes con expiration_date pasada.
@@ -27,6 +36,30 @@ class RegisterReturnUseCase
                 $data['product_id'],
                 $data['warehouse_id'],
                 $data['quantity'],
+                includeExpired: true,
+            );
+
+            return StockMovementModel::create([
+                'warehouse_id'     => $data['warehouse_id'],
+                'product_id'       => $data['product_id'],
+                'batch_id'         => $selectedBatches[0]['batch_id'],
+                'location_from_id' => $data['location_id'] ?? null,
+                'movement_type'    => 'return',
+                'quantity'         => -(int) $data['quantity'],
+                'reason'           => $data['reason'] ?? 'Devolución a proveedor',
+                'user_id'          => $data['user_id'],
+                'status'           => MovementStatus::PENDING_SIGNATURE->value,
+            ]);
+        });
+    }
+
+    public function applyStock(StockMovementModel $movement): void
+    {
+        DB::transaction(function () use ($movement) {
+            $selectedBatches = $this->fefoService->selectBatchesForExit(
+                $movement->product_id,
+                $movement->warehouse_id,
+                abs($movement->quantity),
                 includeExpired: true,
             );
 
@@ -41,29 +74,16 @@ class RegisterReturnUseCase
 
                 $batch->save();
 
-                $this->batchLocationService->decrement($batch->id, $selection['quantity'], $data['location_id'] ?? null);
+                $this->batchLocationService->decrement($batch->id, $selection['quantity'], $movement->location_from_id);
             }
-
-            $movement = StockMovementModel::create([
-                'warehouse_id'     => $data['warehouse_id'],
-                'product_id'       => $data['product_id'],
-                'batch_id'         => $selectedBatches[0]['batch_id'],
-                'location_from_id' => $data['location_id'] ?? null,
-                'movement_type'    => 'return',
-                'quantity'         => -$data['quantity'],
-                'reason'           => $data['reason'] ?? 'Devolución a proveedor',
-                'user_id'          => $data['user_id'],
-            ]);
 
             event(new StockMovementCreated(
                 movementId: $movement->id,
-                productId: $data['product_id'],
-                warehouseId: $data['warehouse_id'],
+                productId: $movement->product_id,
+                warehouseId: $movement->warehouse_id,
                 movementType: 'return',
-                quantity: $data['quantity'],
+                quantity: abs($movement->quantity),
             ));
-
-            return $movement;
         });
     }
 }

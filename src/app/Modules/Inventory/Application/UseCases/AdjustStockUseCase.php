@@ -7,6 +7,7 @@ namespace App\Modules\Inventory\Application\UseCases;
 use App\Modules\Inventory\Domain\Events\StockMovementCreated;
 use App\Modules\Inventory\Domain\Services\BatchLocationService;
 use App\Modules\Inventory\Domain\Services\FEFOService;
+use App\Modules\Inventory\Domain\ValueObjects\MovementStatus;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\BatchModel;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\StockMovementModel;
 use Illuminate\Support\Facades\DB;
@@ -20,6 +21,16 @@ class AdjustStockUseCase
 
     public function execute(array $data): StockMovementModel
     {
+        return $this->createPending($data);
+    }
+
+    /**
+     * Valida la disponibilidad y crea el registro pendiente de firma.
+     * Para ajustes negativos corre FEFO para detectar stock insuficiente o vencido.
+     * Para ajustes positivos verifica que exista un lote activo.
+     */
+    public function createPending(array $data): StockMovementModel
+    {
         return DB::transaction(function () use ($data) {
             $quantity = (int) $data['quantity'];
 
@@ -27,38 +38,77 @@ class AdjustStockUseCase
                 throw new \DomainException('La cantidad de ajuste no puede ser cero.');
             }
 
-            if ($quantity > 0) {
-                return $this->applyPositiveAdjustment($data, $quantity);
+            if ($quantity < 0) {
+                // Los ajustes negativos también gestionan stock vencido (p. ej.
+                // descartes por conteo físico), por lo que se incluyen lotes con
+                // expiration_date pasada.
+                $selectedBatches = $this->fefoService->selectBatchesForExit(
+                    $data['product_id'],
+                    $data['warehouse_id'],
+                    abs($quantity),
+                    includeExpired: true,
+                );
+
+                $firstBatchId = $selectedBatches[0]['batch_id'];
+            } else {
+                $batch = BatchModel::where('product_id', $data['product_id'])
+                    ->where('status', 'active')
+                    ->orderBy('expiration_date')
+                    ->first();
+
+                if ($batch === null) {
+                    throw new \DomainException('No hay lotes activos para ajustar.');
+                }
+
+                $firstBatchId = $batch->id;
             }
 
-            return $this->applyNegativeAdjustment($data, abs($quantity));
+            return StockMovementModel::create([
+                'warehouse_id'     => $data['warehouse_id'],
+                'product_id'       => $data['product_id'],
+                'batch_id'         => $firstBatchId,
+                'location_from_id' => $quantity < 0 ? ($data['location_id'] ?? null) : null,
+                'location_to_id'   => $quantity > 0 ? ($data['location_id'] ?? null) : null,
+                'movement_type'    => 'adjustment',
+                'quantity'         => $quantity,
+                'reason'           => $data['reason'],
+                'user_id'          => $data['user_id'],
+                'status'           => MovementStatus::PENDING_SIGNATURE->value,
+            ]);
         });
     }
 
-    private function applyPositiveAdjustment(array $data, int $quantity): StockMovementModel
+    public function applyStock(StockMovementModel $movement): void
     {
-        $batch = BatchModel::where('product_id', $data['product_id'])
-            ->where('status', 'active')
-            ->orderBy('expiration_date')
-            ->first();
+        DB::transaction(function () use ($movement) {
+            if ($movement->quantity > 0) {
+                $this->applyPositiveAdjustment($movement);
+            } else {
+                $this->applyNegativeAdjustment($movement);
+            }
+        });
+    }
 
-        if ($batch === null) {
-            throw new \DomainException('No hay lotes activos para ajustar.');
-        }
+    private function applyPositiveAdjustment(StockMovementModel $movement): void
+    {
+        $quantity = $movement->quantity;
+        $batch    = BatchModel::findOrFail($movement->batch_id);
 
         $batch->quantity_available += $quantity;
-        $batch->quantity_received += $quantity;
+        $batch->quantity_received  += $quantity;
         $batch->save();
+
+        $locationId = $movement->location_to_id;
 
         $pivot = DB::table('batch_location')
             ->where('batch_id', $batch->id)
-            ->where('location_id', $data['location_id'])
+            ->where('location_id', $locationId)
             ->first();
 
         if ($pivot) {
             DB::table('batch_location')
                 ->where('batch_id', $batch->id)
-                ->where('location_id', $data['location_id'])
+                ->where('location_id', $locationId)
                 ->update([
                     'quantity'   => $pivot->quantity + $quantity,
                     'updated_at' => now(),
@@ -66,43 +116,32 @@ class AdjustStockUseCase
         } else {
             DB::table('batch_location')->insert([
                 'batch_id'    => $batch->id,
-                'location_id' => $data['location_id'],
+                'location_id' => $locationId,
                 'quantity'    => $quantity,
                 'created_at'  => now(),
                 'updated_at'  => now(),
             ]);
         }
 
-        $movement = StockMovementModel::create([
-            'warehouse_id'   => $data['warehouse_id'],
-            'product_id'     => $data['product_id'],
-            'batch_id'       => $batch->id,
-            'location_to_id' => $data['location_id'],
-            'movement_type'  => 'adjustment',
-            'quantity'       => $quantity,
-            'reason'         => $data['reason'],
-            'user_id'        => $data['user_id'],
-        ]);
-
         event(new StockMovementCreated(
             movementId: $movement->id,
-            productId: $data['product_id'],
-            warehouseId: $data['warehouse_id'],
+            productId: $movement->product_id,
+            warehouseId: $movement->warehouse_id,
             movementType: 'adjustment',
             quantity: $quantity,
         ));
-
-        return $movement;
     }
 
-    private function applyNegativeAdjustment(array $data, int $quantity): StockMovementModel
+    private function applyNegativeAdjustment(StockMovementModel $movement): void
     {
+        $quantity = abs($movement->quantity);
+
         // Los ajustes negativos también gestionan stock vencido (p. ej.
         // descartes por conteo físico), por lo que se incluyen lotes con
         // expiration_date pasada.
         $selectedBatches = $this->fefoService->selectBatchesForExit(
-            $data['product_id'],
-            $data['warehouse_id'],
+            $movement->product_id,
+            $movement->warehouse_id,
             $quantity,
             includeExpired: true,
         );
@@ -118,28 +157,15 @@ class AdjustStockUseCase
 
             $batch->save();
 
-            $this->batchLocationService->decrement($batch->id, $selection['quantity'], $data['location_id']);
+            $this->batchLocationService->decrement($batch->id, $selection['quantity'], $movement->location_from_id);
         }
-
-        $movement = StockMovementModel::create([
-            'warehouse_id'     => $data['warehouse_id'],
-            'product_id'       => $data['product_id'],
-            'batch_id'         => $selectedBatches[0]['batch_id'],
-            'location_from_id' => $data['location_id'],
-            'movement_type'    => 'adjustment',
-            'quantity'         => -$quantity,
-            'reason'           => $data['reason'],
-            'user_id'          => $data['user_id'],
-        ]);
 
         event(new StockMovementCreated(
             movementId: $movement->id,
-            productId: $data['product_id'],
-            warehouseId: $data['warehouse_id'],
+            productId: $movement->product_id,
+            warehouseId: $movement->warehouse_id,
             movementType: 'adjustment',
             quantity: $quantity,
         ));
-
-        return $movement;
     }
 }

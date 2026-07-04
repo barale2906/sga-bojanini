@@ -29,4 +29,16 @@ enum MovementType: string
             default => false,
         };
     }
+
+    public function requiresSignature(bool $isPatientExit = false): bool
+    {
+        if ($this === self::EXIT && $isPatientExit) {
+            return false;
+        }
+
+        return match ($this) {
+            self::ENTRY => false,
+            default     => true,
+        };
+    }
 }

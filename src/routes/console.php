@@ -27,3 +27,7 @@ Schedule::command('sga:generate-condition-reports')
 Schedule::command('sga:cleanup-report-exports')
     ->dailyAt('02:00')
     ->name('sga:cleanup-report-exports');
+
+Schedule::command('sga:cleanup-pending-movements')
+    ->dailyAt('03:00')
+    ->name('sga:cleanup-pending-movements');

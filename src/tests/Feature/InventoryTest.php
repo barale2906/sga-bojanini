@@ -81,7 +81,7 @@ class InventoryTest extends TestCase
 
         $center = CostCenterModel::where('type', 'internal')->first();
 
-        $this->withHeaders($this->auth())
+        $response = $this->withHeaders($this->auth())
             ->postJson('/api/v1/movements/exit', [
                 'product_id'     => $product->id,
                 'warehouse_id'   => $setup['warehouse']->id,
@@ -91,6 +91,8 @@ class InventoryTest extends TestCase
             ])
             ->assertStatus(201)
             ->assertJsonPath('success', true);
+
+        $this->confirmMovement($response->json('data.0.id'));
 
         $batchSoon->refresh();
         $this->assertSame(20, $batchSoon->quantity_available);
@@ -194,7 +196,7 @@ class InventoryTest extends TestCase
 
         $center = CostCenterModel::where('type', 'internal')->first();
 
-        $this->withHeaders($this->auth())
+        $response = $this->withHeaders($this->auth())
             ->postJson('/api/v1/movements/exit', [
                 'product_id'     => $product->id,
                 'warehouse_id'   => $setup['warehouse']->id,
@@ -204,6 +206,8 @@ class InventoryTest extends TestCase
             ])
             ->assertStatus(201)
             ->assertJsonPath('success', true);
+
+        $this->confirmMovement($response->json('data.0.id'));
 
         $batchValid->refresh();
         $batchExpired->refresh();
@@ -259,7 +263,7 @@ class InventoryTest extends TestCase
 
         $this->recalculateStock($product->id, $setup['warehouse']->id);
 
-        $this->withHeaders($this->auth())
+        $response = $this->withHeaders($this->auth())
             ->postJson('/api/v1/movements/exit', [
                 'product_id'     => $product->id,
                 'warehouse_id'   => $setup['warehouse']->id,
@@ -269,6 +273,9 @@ class InventoryTest extends TestCase
             ])
             ->assertStatus(201)
             ->assertJsonPath('success', true);
+
+        $movementIds = collect($response->json('data'))->pluck('id')->all();
+        $this->confirmMovements($movementIds);
 
         // Dos movimientos: uno por cada lote consumido.
         $movements = StockMovementModel::where('product_id', $product->id)
@@ -312,7 +319,7 @@ class InventoryTest extends TestCase
 
         $this->recalculateStock($product->id, $origen['warehouse']->id);
 
-        $this->withHeaders($this->auth())
+        $response = $this->withHeaders($this->auth())
             ->postJson('/api/v1/movements/transfer', [
                 'product_id'        => $product->id,
                 'warehouse_from_id' => $origen['warehouse']->id,
@@ -323,6 +330,9 @@ class InventoryTest extends TestCase
             ])
             ->assertStatus(201)
             ->assertJsonPath('success', true);
+
+        $movementIds = collect($response->json('data'))->pluck('id')->all();
+        $this->confirmMovements($movementIds);
 
         $movements = StockMovementModel::where('product_id', $product->id)
             ->where('movement_type', 'transfer')
@@ -402,7 +412,7 @@ class InventoryTest extends TestCase
         $batchExpired = $this->createBatch($product->id, 'LOT-EXPIRED', now()->subDay()->format('Y-m-d'), 50, $setup['location'], $setup['warehouse']->id);
         $this->recalculateStock($product->id, $setup['warehouse']->id);
 
-        $this->withHeaders($this->auth())
+        $response = $this->withHeaders($this->auth())
             ->postJson('/api/v1/movements/return', [
                 'product_id'   => $product->id,
                 'warehouse_id' => $setup['warehouse']->id,
@@ -412,6 +422,8 @@ class InventoryTest extends TestCase
             ])
             ->assertStatus(201)
             ->assertJsonPath('success', true);
+
+        $this->confirmMovement($response->json('data.id'));
 
         $batchExpired->refresh();
         $this->assertSame(40, $batchExpired->quantity_available);
@@ -425,7 +437,7 @@ class InventoryTest extends TestCase
         $batchExpired = $this->createBatch($product->id, 'LOT-EXPIRED', now()->subDay()->format('Y-m-d'), 50, $setup['location'], $setup['warehouse']->id);
         $this->recalculateStock($product->id, $setup['warehouse']->id);
 
-        $this->withHeaders($this->auth())
+        $response = $this->withHeaders($this->auth())
             ->postJson('/api/v1/movements/adjustment', [
                 'product_id'   => $product->id,
                 'warehouse_id' => $setup['warehouse']->id,
@@ -435,6 +447,8 @@ class InventoryTest extends TestCase
             ])
             ->assertStatus(201)
             ->assertJsonPath('success', true);
+
+        $this->confirmMovement($response->json('data.id'));
 
         $batchExpired->refresh();
         $this->assertSame(40, $batchExpired->quantity_available);
@@ -502,7 +516,7 @@ class InventoryTest extends TestCase
         $batch = $this->createBatch($product->id, 'LOT-VALID', now()->addDays(30)->format('Y-m-d'), 50, $setup['location'], $setup['warehouse']->id);
         $this->recalculateStock($product->id, $setup['warehouse']->id);
 
-        $this->withHeaders($this->auth())
+        $response = $this->withHeaders($this->auth())
             ->postJson('/api/v1/movements/loss', [
                 'product_id'   => $product->id,
                 'warehouse_id' => $setup['warehouse']->id,
@@ -517,6 +531,8 @@ class InventoryTest extends TestCase
             ->assertJsonPath('data.batch_id', $batch->id)
             ->assertJsonPath('data.quantity', -5);
 
+        $this->confirmMovement($response->json('data.id'));
+
         $batch->refresh();
         $this->assertSame(45, $batch->quantity_available);
         $this->assertSame(45, $batch->locations()->first()->pivot->quantity);
@@ -530,7 +546,7 @@ class InventoryTest extends TestCase
         $batchExpired = $this->createBatch($product->id, 'LOT-EXPIRED', now()->subDay()->format('Y-m-d'), 50, $setup['location'], $setup['warehouse']->id);
         $this->recalculateStock($product->id, $setup['warehouse']->id);
 
-        $this->withHeaders($this->auth())
+        $response = $this->withHeaders($this->auth())
             ->postJson('/api/v1/movements/loss', [
                 'product_id'   => $product->id,
                 'warehouse_id' => $setup['warehouse']->id,
@@ -541,6 +557,8 @@ class InventoryTest extends TestCase
             ])
             ->assertStatus(201)
             ->assertJsonPath('success', true);
+
+        $this->confirmMovement($response->json('data.id'));
 
         $batchExpired->refresh();
         $this->assertSame(40, $batchExpired->quantity_available);
@@ -581,7 +599,7 @@ class InventoryTest extends TestCase
         $this->recalculateStock($product->id, $setup['warehouse']->id);
 
         // El usuario elige explícitamente el lote que vence más tarde.
-        $this->withHeaders($this->auth())
+        $response = $this->withHeaders($this->auth())
             ->postJson('/api/v1/movements/loss', [
                 'product_id'   => $product->id,
                 'warehouse_id' => $setup['warehouse']->id,
@@ -593,6 +611,8 @@ class InventoryTest extends TestCase
             ->assertStatus(201)
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.batch_id', $batchExpiresLater->id);
+
+        $this->confirmMovement($response->json('data.id'));
 
         $batchExpiresFirst->refresh();
         $batchExpiresLater->refresh();
@@ -697,7 +717,7 @@ class InventoryTest extends TestCase
         $batch = $this->createBatch($product->id, 'LOT-RETURN', now()->addDays(30)->format('Y-m-d'), 50, $setup['location'], $setup['warehouse']->id);
         $this->recalculateStock($product->id, $setup['warehouse']->id);
 
-        $this->withHeaders($this->auth())
+        $response = $this->withHeaders($this->auth())
             ->postJson('/api/v1/movements/return', [
                 'product_id'   => $product->id,
                 'warehouse_id' => $setup['warehouse']->id,
@@ -706,6 +726,8 @@ class InventoryTest extends TestCase
             ])
             ->assertStatus(201)
             ->assertJsonPath('success', true);
+
+        $this->confirmMovement($response->json('data.id'));
 
         $batch->refresh();
         $this->assertSame(40, $batch->quantity_available);
@@ -743,7 +765,7 @@ class InventoryTest extends TestCase
 
         $this->recalculateStock($product->id, $setup['warehouse']->id);
 
-        $this->withHeaders($this->auth())
+        $response = $this->withHeaders($this->auth())
             ->postJson('/api/v1/movements/adjustment', [
                 'product_id'   => $product->id,
                 'warehouse_id' => $setup['warehouse']->id,
@@ -753,6 +775,8 @@ class InventoryTest extends TestCase
             ])
             ->assertStatus(201)
             ->assertJsonPath('success', true);
+
+        $this->confirmMovement($response->json('data.id'));
 
         $batch->refresh();
         $this->assertSame(30, $batch->quantity_available);
@@ -797,7 +821,7 @@ class InventoryTest extends TestCase
 
         $this->recalculateStock($product->id, $origen['warehouse']->id);
 
-        $this->withHeaders($this->auth())
+        $response = $this->withHeaders($this->auth())
             ->postJson('/api/v1/movements/transfer', [
                 'product_id'        => $product->id,
                 'warehouse_from_id' => $origen['warehouse']->id,
@@ -808,6 +832,9 @@ class InventoryTest extends TestCase
             ])
             ->assertStatus(201)
             ->assertJsonPath('success', true);
+
+        $movementIds = collect($response->json('data'))->pluck('id')->all();
+        $this->confirmMovements($movementIds);
 
         $batch->refresh();
         $this->assertSame(100, $batch->quantity_available);
@@ -1125,5 +1152,107 @@ class InventoryTest extends TestCase
     {
         app(\App\Modules\Inventory\Domain\Services\StockCalculator::class)
             ->recalculateSummary($productId, $warehouseId);
+    }
+
+    /**
+     * Confirma un movimiento pendiente de firma vía el endpoint de confirmación.
+     * Usa datos de firma mínimos válidos para los tests.
+     */
+    private function confirmMovement(int $movementId): void
+    {
+        $minimalSignature = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+
+        $this->withHeaders($this->auth())
+            ->postJson("/api/v1/movements/{$movementId}/confirm", [
+                'delivered_by' => [
+                    'name'      => 'Test Entregador',
+                    'document'  => '12345678',
+                    'signature' => $minimalSignature,
+                ],
+                'received_by' => [
+                    'name'      => 'Test Receptor',
+                    'document'  => '87654321',
+                    'signature' => $minimalSignature,
+                ],
+            ])
+            ->assertStatus(200);
+    }
+
+    /** Confirma todos los movimientos de una lista de IDs. */
+    private function confirmMovements(array $movementIds): void
+    {
+        foreach ($movementIds as $id) {
+            $this->confirmMovement($id);
+        }
+    }
+
+    public function test_cancelar_movimiento_pendiente_lo_elimina(): void
+    {
+        $setup   = $this->createWarehouseSetup();
+        $product = ProductModel::where('code', 'AGU-21G')->first();
+        $center  = CostCenterModel::where('type', 'internal')->first();
+
+        $this->withHeaders($this->auth())
+            ->postJson('/api/v1/movements/entry', [
+                'product_id'      => $product->id,
+                'warehouse_id'    => $setup['warehouse']->id,
+                'location_id'     => $setup['location']->id,
+                'lot_number'      => 'LOT-CANCEL-001',
+                'expiration_date' => now()->addMonths(6)->format('Y-m-d'),
+                'quantity_base'   => 50,
+            ])->assertStatus(201);
+
+        $exit = $this->withHeaders($this->auth())
+            ->postJson('/api/v1/movements/exit', [
+                'product_id'     => $product->id,
+                'warehouse_id'   => $setup['warehouse']->id,
+                'location_id'    => $setup['location']->id,
+                'quantity'       => 10,
+                'cost_center_id' => $center->id,
+            ])->assertStatus(201);
+
+        $movementId = $exit->json('data.0.id');
+
+        $this->assertDatabaseHas('stock_movements', ['id' => $movementId, 'status' => 'pending_signature']);
+
+        $this->withHeaders($this->auth())
+            ->deleteJson("/api/v1/movements/{$movementId}/pending")
+            ->assertStatus(200)
+            ->assertJsonPath('success', true);
+
+        $this->assertDatabaseMissing('stock_movements', ['id' => $movementId]);
+    }
+
+    public function test_cancelar_movimiento_confirmado_retorna_error(): void
+    {
+        $setup   = $this->createWarehouseSetup();
+        $product = ProductModel::where('code', 'AGU-21G')->first();
+        $center  = CostCenterModel::where('type', 'internal')->first();
+
+        $this->withHeaders($this->auth())
+            ->postJson('/api/v1/movements/entry', [
+                'product_id'      => $product->id,
+                'warehouse_id'    => $setup['warehouse']->id,
+                'location_id'     => $setup['location']->id,
+                'lot_number'      => 'LOT-CANCEL-002',
+                'expiration_date' => now()->addMonths(6)->format('Y-m-d'),
+                'quantity_base'   => 50,
+            ])->assertStatus(201);
+
+        $exit = $this->withHeaders($this->auth())
+            ->postJson('/api/v1/movements/exit', [
+                'product_id'     => $product->id,
+                'warehouse_id'   => $setup['warehouse']->id,
+                'location_id'    => $setup['location']->id,
+                'quantity'       => 5,
+                'cost_center_id' => $center->id,
+            ])->assertStatus(201);
+
+        $movementId = $exit->json('data.0.id');
+        $this->confirmMovement($movementId);
+
+        $this->withHeaders($this->auth())
+            ->deleteJson("/api/v1/movements/{$movementId}/pending")
+            ->assertStatus(422);
     }
 }
