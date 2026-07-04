@@ -1,0 +1,932 @@
+<title>Guía de Migración — API Movimientos de Inventario</title>
+<style>
+/* ── Tokens ── */
+:root {
+  --bg:        #f4f6f9;
+  --bg-2:      #ffffff;
+  --bg-3:      #eef1f6;
+  --border:    #d4d9e4;
+  --text:      #1a2235;
+  --text-2:    #4a5568;
+  --text-3:    #718096;
+  --accent:    #0891b2;
+  --accent-bg: #e0f7fb;
+  --breaking:  #d97706;
+  --break-bg:  #fffbeb;
+  --break-bdr: #fcd34d;
+  --ok:        #059669;
+  --ok-bg:     #ecfdf5;
+  --ok-bdr:    #6ee7b7;
+  --code-bg:   #eef1f6;
+  --code-del:  #fee2e2;
+  --code-add:  #dcfce7;
+  --code-hl:   #fff3cd;
+  --del-text:  #991b1b;
+  --add-text:  #14532d;
+  --pill-br:   #bfdbfe;
+  --pill-bg:   #eff6ff;
+  --pill-txt:  #1e40af;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:        #0d1117;
+    --bg-2:      #161b22;
+    --bg-3:      #1f2937;
+    --border:    #30363d;
+    --text:      #e6edf3;
+    --text-2:    #9198a1;
+    --text-3:    #6e7681;
+    --accent:    #22d3ee;
+    --accent-bg: #0c2e35;
+    --breaking:  #f59e0b;
+    --break-bg:  #1c1407;
+    --break-bdr: #78350f;
+    --ok:        #34d399;
+    --ok-bg:     #062016;
+    --ok-bdr:    #065f46;
+    --code-bg:   #1f2937;
+    --code-del:  #2d1515;
+    --code-add:  #0d2e1a;
+    --code-hl:   #2a2000;
+    --del-text:  #fca5a5;
+    --add-text:  #86efac;
+    --pill-br:   #1d4ed8;
+    --pill-bg:   #1e3a8a;
+    --pill-txt:  #93c5fd;
+  }
+}
+:root[data-theme="light"] {
+  --bg:        #f4f6f9;
+  --bg-2:      #ffffff;
+  --bg-3:      #eef1f6;
+  --border:    #d4d9e4;
+  --text:      #1a2235;
+  --text-2:    #4a5568;
+  --text-3:    #718096;
+  --accent:    #0891b2;
+  --accent-bg: #e0f7fb;
+  --breaking:  #d97706;
+  --break-bg:  #fffbeb;
+  --break-bdr: #fcd34d;
+  --ok:        #059669;
+  --ok-bg:     #ecfdf5;
+  --ok-bdr:    #6ee7b7;
+  --code-bg:   #eef1f6;
+  --code-del:  #fee2e2;
+  --code-add:  #dcfce7;
+  --code-hl:   #fff3cd;
+  --del-text:  #991b1b;
+  --add-text:  #14532d;
+  --pill-br:   #bfdbfe;
+  --pill-bg:   #eff6ff;
+  --pill-txt:  #1e40af;
+}
+:root[data-theme="dark"] {
+  --bg:        #0d1117;
+  --bg-2:      #161b22;
+  --bg-3:      #1f2937;
+  --border:    #30363d;
+  --text:      #e6edf3;
+  --text-2:    #9198a1;
+  --text-3:    #6e7681;
+  --accent:    #22d3ee;
+  --accent-bg: #0c2e35;
+  --breaking:  #f59e0b;
+  --break-bg:  #1c1407;
+  --break-bdr: #78350f;
+  --ok:        #34d399;
+  --ok-bg:     #062016;
+  --ok-bdr:    #065f46;
+  --code-bg:   #1f2937;
+  --code-del:  #2d1515;
+  --code-add:  #0d2e1a;
+  --code-hl:   #2a2000;
+  --del-text:  #fca5a5;
+  --add-text:  #86efac;
+  --pill-br:   #1d4ed8;
+  --pill-bg:   #1e3a8a;
+  --pill-txt:  #93c5fd;
+}
+
+/* ── Reset & base ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 0.9375rem;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+
+/* ── Layout ── */
+.page-wrap {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 0 1.5rem 5rem;
+}
+
+/* ── Header ── */
+.site-header {
+  border-bottom: 1px solid var(--border);
+  padding: 1.25rem 0;
+  margin-bottom: 2.5rem;
+}
+.site-header .inner {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.header-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: var(--accent-bg);
+  padding: 0.2em 0.6em;
+  border-radius: 3px;
+}
+.site-header h1 {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+.site-header .meta {
+  margin-left: auto;
+  font-size: 0.8125rem;
+  color: var(--text-3);
+}
+
+/* ── Hero summary ── */
+.summary-box {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 6px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 3rem;
+}
+.summary-box h2 {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--text-3);
+  margin-bottom: 0.75rem;
+}
+.summary-box ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+.summary-box li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  font-size: 0.9rem;
+  color: var(--text-2);
+}
+.summary-box li::before {
+  content: '';
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+  margin-top: 0.45rem;
+}
+.summary-box strong { color: var(--text); }
+
+/* ── Section ── */
+.section { margin-bottom: 3.5rem; }
+.section-eyebrow {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  margin-bottom: 0.5rem;
+}
+.section > h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  margin-bottom: 1.25rem;
+  text-wrap: balance;
+}
+
+/* ── Endpoint cards ── */
+.endpoint-card {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 2rem;
+}
+.endpoint-card + .endpoint-card { margin-top: 2rem; }
+.endpoint-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-3);
+  flex-wrap: wrap;
+}
+.method-badge {
+  font-family: ui-monospace, 'SF Mono', 'Cascadia Code', Consolas, monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.2em 0.55em;
+  border-radius: 4px;
+  background: var(--pill-bg);
+  color: var(--pill-txt);
+  border: 1px solid var(--pill-br);
+  flex-shrink: 0;
+}
+.endpoint-path {
+  font-family: ui-monospace, 'SF Mono', 'Cascadia Code', Consolas, monospace;
+  font-size: 0.875rem;
+  color: var(--text);
+  flex: 1;
+}
+.badge-breaking {
+  margin-left: auto;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--breaking);
+  background: var(--break-bg);
+  border: 1px solid var(--break-bdr);
+  padding: 0.2em 0.55em;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+.badge-ok {
+  margin-left: auto;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ok);
+  background: var(--ok-bg);
+  border: 1px solid var(--ok-bdr);
+  padding: 0.2em 0.55em;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+.endpoint-body { padding: 1.25rem; }
+.endpoint-desc {
+  font-size: 0.875rem;
+  color: var(--text-2);
+  margin-bottom: 1.25rem;
+  line-height: 1.6;
+}
+
+/* ── Diff split ── */
+.diff-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+@media (max-width: 620px) {
+  .diff-split { grid-template-columns: 1fr; }
+}
+.diff-panel {}
+.diff-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  padding: 0.35rem 0.75rem;
+  border-radius: 4px 4px 0 0;
+  border: 1px solid var(--border);
+  border-bottom: none;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.diff-label.before {
+  color: var(--del-text);
+  background: var(--code-del);
+}
+.diff-label.after {
+  color: var(--add-text);
+  background: var(--code-add);
+}
+.diff-label .dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.diff-label.before .dot { background: var(--del-text); }
+.diff-label.after .dot  { background: var(--add-text); }
+
+/* ── Code blocks ── */
+pre {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 0 0 6px 6px;
+  padding: 0.9rem 1rem;
+  overflow-x: auto;
+  font-family: ui-monospace, 'SF Mono', 'Cascadia Code', Consolas, monospace;
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  tab-size: 2;
+}
+pre.standalone {
+  border-radius: 6px;
+  margin-bottom: 1rem;
+}
+.diff-split pre { margin: 0; }
+
+/* JSON token colors */
+.k  { color: #7c3aed; } /* keys */
+.s  { color: var(--ok); } /* strings */
+.n  { color: #f59e0b; } /* numbers */
+.p  { color: var(--text-3); } /* punctuation */
+.c  { color: var(--text-3); font-style: italic; } /* comment */
+
+/* highlight lines */
+.hl { display: block; background: var(--code-hl); margin: 0 -1rem; padding: 0 1rem; border-radius: 2px; }
+.hl-del { display: block; background: var(--code-del); margin: 0 -1rem; padding: 0 1rem; }
+.hl-add { display: block; background: var(--code-add); margin: 0 -1rem; padding: 0 1rem; }
+
+/* JS code */
+.kw  { color: #7c3aed; }
+.fn  { color: #0891b2; }
+.str { color: var(--ok); }
+.cmt { color: var(--text-3); font-style: italic; }
+.var { color: var(--breaking); }
+
+/* ── Change note ── */
+.change-note {
+  background: var(--break-bg);
+  border: 1px solid var(--break-bdr);
+  border-radius: 6px;
+  padding: 0.85rem 1rem;
+  font-size: 0.875rem;
+  color: var(--text-2);
+  margin-top: 1rem;
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+}
+.change-note .icon { flex-shrink: 0; font-size: 1rem; margin-top: 0.05rem; }
+.change-note strong { color: var(--breaking); }
+
+/* ── Callout ok ── */
+.ok-note {
+  background: var(--ok-bg);
+  border: 1px solid var(--ok-bdr);
+  border-radius: 6px;
+  padding: 0.85rem 1rem;
+  font-size: 0.875rem;
+  color: var(--text-2);
+  margin-top: 1rem;
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+}
+.ok-note .icon { flex-shrink: 0; }
+.ok-note strong { color: var(--ok); }
+
+/* ── Fields table ── */
+.table-wrap { overflow-x: auto; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8375rem;
+}
+thead tr {
+  background: var(--bg-3);
+}
+th {
+  text-align: left;
+  padding: 0.6rem 0.9rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+td {
+  padding: 0.55rem 0.9rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+tr:last-child td { border-bottom: none; }
+.field-name {
+  font-family: ui-monospace, 'SF Mono', Consolas, monospace;
+  font-size: 0.8rem;
+  color: var(--accent);
+  white-space: nowrap;
+}
+.field-type {
+  font-family: ui-monospace, 'SF Mono', Consolas, monospace;
+  font-size: 0.775rem;
+  color: var(--text-3);
+  white-space: nowrap;
+}
+.field-notes { color: var(--text-2); font-size: 0.8375rem; }
+.tag-new {
+  display: inline-block;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: var(--accent-bg);
+  color: var(--accent);
+  padding: 0.1em 0.45em;
+  border-radius: 3px;
+  margin-left: 0.3em;
+  vertical-align: middle;
+}
+
+/* ── Unchanged list ── */
+.unchanged-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+.unchanged-item {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.65rem 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.unchanged-item .check {
+  color: var(--ok);
+  font-size: 0.875rem;
+  flex-shrink: 0;
+}
+.unchanged-item .ep {
+  font-family: ui-monospace, 'SF Mono', Consolas, monospace;
+  font-size: 0.775rem;
+  color: var(--text);
+}
+.unchanged-item .note {
+  font-size: 0.75rem;
+  color: var(--text-3);
+  margin-top: 0.1rem;
+}
+
+/* ── Pattern section ── */
+.pattern-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  margin-bottom: 0.4rem;
+  margin-top: 1.25rem;
+}
+.step-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  margin-bottom: 0.6rem;
+}
+.step-num {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--bg);
+  font-size: 0.7rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 0.2rem;
+}
+.step-text {
+  font-size: 0.875rem;
+  color: var(--text-2);
+  line-height: 1.5;
+}
+.step-text strong { color: var(--text); }
+
+/* ── Divider ── */
+.divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 3rem 0;
+}
+
+/* ── Scroll top ── */
+.scroll-top {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-2);
+  font-size: 1rem;
+  transition: border-color 0.15s;
+  text-decoration: none;
+}
+.scroll-top:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+</style>
+
+<header class="site-header">
+  <div class="inner">
+    <span class="header-label">SGA Bojanini</span>
+    <h1>Guía de Migración Frontend — API Movimientos de Inventario</h1>
+    <span class="meta">v2 · Julio 2026</span>
+  </div>
+</header>
+
+<main class="page-wrap">
+
+  <!-- TL;DR -->
+  <div class="summary-box">
+    <h2>Resumen ejecutivo</h2>
+    <ul>
+      <li><strong>2 endpoints rompen compatibilidad:</strong> <code>POST /movements/exit</code> (producto simple) y <code>POST /movements/transfer</code>. La clave <code>data</code> ahora es un <strong>array</strong> de movimientos, no un objeto.</li>
+      <li><strong>Siempre array</strong>, incluso cuando FEFO selecciona un único lote. El array tendrá exactamente un elemento.</li>
+      <li><strong>Múltiples elementos</strong> cuando el stock de un producto está repartido en más de un lote y FEFO consume de ambos.</li>
+      <li>Todo el resto del API (entradas, ajustes, devoluciones, bajas, listados) no cambia.</li>
+      <li>El exit de <strong>kit</strong> ya devolvía array desde antes — no cambia.</li>
+    </ul>
+  </div>
+
+  <!-- ───── SECCIÓN 1: Cambios breaking ───── -->
+  <section class="section" id="breaking">
+    <p class="section-eyebrow">Cambios breaking</p>
+    <h2>Endpoints con respuesta modificada</h2>
+
+    <!-- EXIT simple -->
+    <div class="endpoint-card" id="exit-simple">
+      <div class="endpoint-header">
+        <span class="method-badge">POST</span>
+        <span class="endpoint-path">/api/v1/movements/exit</span>
+        <span class="badge-breaking">Breaking change</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">
+          Aplica a productos de tipo <strong>Simple</strong>. Cuando FEFO selecciona múltiples lotes para cubrir la cantidad solicitada, ahora se registra <strong>un movimiento independiente por cada lote afectado</strong>. La respuesta refleja ese cambio: <code>data</code> pasa de ser un objeto a un array.
+        </p>
+
+        <div class="diff-split">
+          <div class="diff-panel">
+            <div class="diff-label before"><span class="dot"></span> Antes — objeto único</div>
+<pre>{
+  <span class="k">"success"</span><span class="p">:</span> <span class="s">true</span><span class="p">,</span>
+  <span class="k">"message"</span><span class="p">:</span> <span class="s">"Salida registrada"</span><span class="p">,</span>
+<span class="hl-del">  <span class="k">"data"</span><span class="p">:</span> <span class="p">{</span></span>
+    <span class="k">"id"</span><span class="p">:</span> <span class="n">42</span><span class="p">,</span>
+    <span class="k">"batch_id"</span><span class="p">:</span> <span class="n">7</span><span class="p">,</span>
+    <span class="k">"batch_lot_number"</span><span class="p">:</span> <span class="s">"LOT-A"</span><span class="p">,</span>
+    <span class="k">"quantity"</span><span class="p">:</span> <span class="n">-10</span><span class="p">,</span>
+    <span class="k">"movement_type"</span><span class="p">:</span> <span class="s">"exit"</span><span class="p">,</span>
+    <span class="k">"cost_center_id"</span><span class="p">:</span> <span class="n">3</span>
+<span class="hl-del">  <span class="p">}</span></span>
+}</pre>
+          </div>
+          <div class="diff-panel">
+            <div class="diff-label after"><span class="dot"></span> Ahora — array de movimientos</div>
+<pre>{
+  <span class="k">"success"</span><span class="p">:</span> <span class="s">true</span><span class="p">,</span>
+  <span class="k">"message"</span><span class="p">:</span> <span class="s">"Salida registrada"</span><span class="p">,</span>
+<span class="hl-add">  <span class="k">"data"</span><span class="p">:</span> <span class="p">[</span></span>
+<span class="hl-add">    <span class="p">{</span></span>
+      <span class="k">"id"</span><span class="p">:</span> <span class="n">42</span><span class="p">,</span>
+      <span class="k">"batch_id"</span><span class="p">:</span> <span class="n">7</span><span class="p">,</span>
+      <span class="k">"batch_lot_number"</span><span class="p">:</span> <span class="s">"LOT-A"</span><span class="p">,</span>
+      <span class="k">"quantity"</span><span class="p">:</span> <span class="n">-8</span><span class="p">,</span>
+      <span class="k">"movement_type"</span><span class="p">:</span> <span class="s">"exit"</span>
+<span class="hl-add">    <span class="p">},</span></span>
+<span class="hl-add">    <span class="p">{</span></span>
+      <span class="k">"id"</span><span class="p">:</span> <span class="n">43</span><span class="p">,</span>
+      <span class="k">"batch_id"</span><span class="p">:</span> <span class="n">9</span><span class="p">,</span>
+      <span class="k">"batch_lot_number"</span><span class="p">:</span> <span class="s">"LOT-B"</span><span class="p">,</span>
+      <span class="k">"quantity"</span><span class="p">:</span> <span class="n">-2</span><span class="p">,</span>
+      <span class="k">"movement_type"</span><span class="p">:</span> <span class="s">"exit"</span>
+<span class="hl-add">    <span class="p">}</span></span>
+<span class="hl-add">  <span class="p">]</span></span>
+}</pre>
+          </div>
+        </div>
+
+        <div class="change-note">
+          <span class="icon">⚠</span>
+          <div><strong>Ejemplo real:</strong> Si el usuario pide 10 unidades y el almacén tiene 8 en el Lote A (vence en 30 días) y 15 en el Lote B (vence en 90 días), FEFO toma 8 del A y 2 del B → se devuelven 2 movimientos, con <code>quantity: -8</code> y <code>quantity: -2</code> respectivamente. El total sigue siendo –10.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TRANSFER -->
+    <div class="endpoint-card" id="transfer">
+      <div class="endpoint-header">
+        <span class="method-badge">POST</span>
+        <span class="endpoint-path">/api/v1/movements/transfer</span>
+        <span class="badge-breaking">Breaking change</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">
+          Los traslados entre almacenes aplican el mismo cambio: FEFO puede seleccionar múltiples lotes, y cada uno genera su propio registro. <code>data</code> pasa de objeto a array. El campo <code>quantity</code> en un traslado es <strong>positivo</strong>.
+        </p>
+
+        <div class="diff-split">
+          <div class="diff-panel">
+            <div class="diff-label before"><span class="dot"></span> Antes — objeto único</div>
+<pre>{
+  <span class="k">"success"</span><span class="p">:</span> <span class="s">true</span><span class="p">,</span>
+<span class="hl-del">  <span class="k">"data"</span><span class="p">:</span> <span class="p">{</span></span>
+    <span class="k">"id"</span><span class="p">:</span> <span class="n">55</span><span class="p">,</span>
+    <span class="k">"batch_id"</span><span class="p">:</span> <span class="n">7</span><span class="p">,</span>
+    <span class="k">"batch_lot_number"</span><span class="p">:</span> <span class="s">"LOT-A"</span><span class="p">,</span>
+    <span class="k">"quantity"</span><span class="p">:</span> <span class="n">10</span><span class="p">,</span>
+    <span class="k">"warehouse_to_id"</span><span class="p">:</span> <span class="n">2</span><span class="p">,</span>
+    <span class="k">"movement_type"</span><span class="p">:</span> <span class="s">"transfer"</span>
+<span class="hl-del">  <span class="p">}</span></span>
+}</pre>
+          </div>
+          <div class="diff-panel">
+            <div class="diff-label after"><span class="dot"></span> Ahora — array de movimientos</div>
+<pre>{
+  <span class="k">"success"</span><span class="p">:</span> <span class="s">true</span><span class="p">,</span>
+<span class="hl-add">  <span class="k">"data"</span><span class="p">:</span> <span class="p">[</span></span>
+<span class="hl-add">    <span class="p">{</span></span>
+      <span class="k">"id"</span><span class="p">:</span> <span class="n">55</span><span class="p">,</span>
+      <span class="k">"batch_id"</span><span class="p">:</span> <span class="n">7</span><span class="p">,</span>
+      <span class="k">"batch_lot_number"</span><span class="p">:</span> <span class="s">"LOT-A"</span><span class="p">,</span>
+      <span class="k">"quantity"</span><span class="p">:</span> <span class="n">8</span><span class="p">,</span>
+      <span class="k">"warehouse_to_id"</span><span class="p">:</span> <span class="n">2</span><span class="p">,</span>
+      <span class="k">"movement_type"</span><span class="p">:</span> <span class="s">"transfer"</span>
+<span class="hl-add">    <span class="p">},</span></span>
+<span class="hl-add">    <span class="p">{</span></span>
+      <span class="k">"id"</span><span class="p">:</span> <span class="n">56</span><span class="p">,</span>
+      <span class="k">"batch_id"</span><span class="p">:</span> <span class="n">9</span><span class="p">,</span>
+      <span class="k">"batch_lot_number"</span><span class="p">:</span> <span class="s">"LOT-B"</span><span class="p">,</span>
+      <span class="k">"quantity"</span><span class="p">:</span> <span class="n">2</span><span class="p">,</span>
+      <span class="k">"warehouse_to_id"</span><span class="p">:</span> <span class="n">2</span><span class="p">,</span>
+      <span class="k">"movement_type"</span><span class="p">:</span> <span class="s">"transfer"</span>
+<span class="hl-add">    <span class="p">}</span></span>
+<span class="hl-add">  <span class="p">]</span></span>
+}</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EXIT kit — no cambia -->
+    <div class="endpoint-card" id="exit-kit">
+      <div class="endpoint-header">
+        <span class="method-badge">POST</span>
+        <span class="endpoint-path">/api/v1/movements/exit &nbsp;<span style="font-weight:400;color:var(--text-3)">— producto tipo Kit</span></span>
+        <span class="badge-ok">Sin cambios</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">
+          La salida de kit ya devolvía un objeto con <code>kit_transaction_id</code> y un array de <code>movements</code>. Esta estructura no cambia.
+        </p>
+<pre class="standalone">{
+  <span class="k">"success"</span><span class="p">:</span> <span class="s">true</span><span class="p">,</span>
+  <span class="k">"data"</span><span class="p">:</span> <span class="p">{</span>
+    <span class="k">"kit_transaction_id"</span><span class="p">:</span> <span class="n">5</span><span class="p">,</span>
+    <span class="k">"movements"</span><span class="p">:</span> <span class="p">[</span>
+      <span class="p">{</span> <span class="k">"id"</span><span class="p">:</span> <span class="n">60</span><span class="p">,</span> <span class="k">"batch_id"</span><span class="p">:</span> <span class="n">12</span><span class="p">,</span> <span class="k">"quantity"</span><span class="p">:</span> <span class="n">-10</span><span class="p">,</span> <span class="c">/* componente: gasa */</span> <span class="p">},</span>
+      <span class="p">{</span> <span class="k">"id"</span><span class="p">:</span> <span class="n">61</span><span class="p">,</span> <span class="k">"batch_id"</span><span class="p">:</span> <span class="n">14</span><span class="p">,</span> <span class="k">"quantity"</span><span class="p">:</span> <span class="n">-20</span><span class="p">,</span> <span class="c">/* componente: aguja */</span> <span class="p">}</span>
+    <span class="p">]</span>
+  <span class="p">}</span>
+}</pre>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- ───── SECCIÓN 2: Sin cambios ───── -->
+  <section class="section" id="no-changes">
+    <p class="section-eyebrow">Sin cambios</p>
+    <h2>Endpoints que no se modifican</h2>
+    <p style="font-size:0.875rem;color:var(--text-2);margin-bottom:1rem;">Todos los siguientes devuelven un único objeto en <code>data</code>, igual que antes.</p>
+    <div class="unchanged-grid">
+      <div class="unchanged-item">
+        <span class="check">✓</span>
+        <div>
+          <div class="ep">POST /movements/entry</div>
+          <div class="note">Objeto único, siempre 1 lote</div>
+        </div>
+      </div>
+      <div class="unchanged-item">
+        <span class="check">✓</span>
+        <div>
+          <div class="ep">POST /movements/adjustment</div>
+          <div class="note">Objeto único</div>
+        </div>
+      </div>
+      <div class="unchanged-item">
+        <span class="check">✓</span>
+        <div>
+          <div class="ep">POST /movements/return</div>
+          <div class="note">Objeto único</div>
+        </div>
+      </div>
+      <div class="unchanged-item">
+        <span class="check">✓</span>
+        <div>
+          <div class="ep">POST /movements/loss</div>
+          <div class="note">Objeto único</div>
+        </div>
+      </div>
+      <div class="unchanged-item">
+        <span class="check">✓</span>
+        <div>
+          <div class="ep">POST /movements/write-off</div>
+          <div class="note">Objeto único</div>
+        </div>
+      </div>
+      <div class="unchanged-item">
+        <span class="check">✓</span>
+        <div>
+          <div class="ep">GET /movements</div>
+          <div class="note">Paginado, objeto por row</div>
+        </div>
+      </div>
+      <div class="unchanged-item">
+        <span class="check">✓</span>
+        <div>
+          <div class="ep">GET /movements/{id}</div>
+          <div class="note">Detalle, objeto único</div>
+        </div>
+      </div>
+      <div class="unchanged-item">
+        <span class="check">✓</span>
+        <div>
+          <div class="ep">GET /stock &amp; /stock/summary</div>
+          <div class="note">Sin cambios</div>
+        </div>
+      </div>
+      <div class="unchanged-item">
+        <span class="check">✓</span>
+        <div>
+          <div class="ep">GET /batches &amp; /products/{id}/batches</div>
+          <div class="note">Sin cambios</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- ───── SECCIÓN 3: Patrón de adaptación ───── -->
+  <section class="section" id="adaptation">
+    <p class="section-eyebrow">Guía de adaptación</p>
+    <h2>Cómo actualizar el código frontend</h2>
+
+    <div class="step-row">
+      <span class="step-num">1</span>
+      <p class="step-text"><strong>Locate all call sites</strong> de <code>POST /movements/exit</code> y <code>POST /movements/transfer</code> en el frontend y aplica el patrón de abajo.</p>
+    </div>
+    <div class="step-row">
+      <span class="step-num">2</span>
+      <p class="step-text"><strong>Acción de éxito</strong> (mostrar toast, redirigir): no depende de <code>data</code> — <code>response.success === true</code> sigue siendo la señal. Sin cambios aquí.</p>
+    </div>
+    <div class="step-row">
+      <span class="step-num">3</span>
+      <p class="step-text"><strong>Mostrar detalle post-operación</strong>: <code>data</code> es ahora un array. Si solo necesitas mostrar un ID o número de movimiento, usa <code>data[0].id</code>. Si quieres mostrar todos los lotes afectados, itera sobre el array.</p>
+    </div>
+    <div class="step-row">
+      <span class="step-num">4</span>
+      <p class="step-text"><strong>Actualizar stock en pantalla</strong>: el stock cambia sin importar cuántos lotes se afectaron. Recarga el resumen de stock como antes — no necesitas agregarlo manualmente desde <code>data</code>.</p>
+    </div>
+
+    <p class="pattern-label">Patrón — manejo de salidas y traslados</p>
+<pre class="standalone"><span class="cmt">// ✅ Patrón robusto para POST /movements/exit y /movements/transfer</span>
+<span class="kw">const</span> <span class="var">response</span> = <span class="kw">await</span> <span class="fn">api</span>.<span class="fn">post</span>(<span class="str">'/movements/exit'</span>, payload)
+
+<span class="kw">if</span> (<span class="var">response</span>.success) {
+  <span class="kmt">// data es siempre un array (1 o más movimientos según lotes afectados)</span>
+  <span class="kw">const</span> <span class="var">movements</span> = <span class="var">response</span>.data   <span class="cmt">// Array&lt;Movement&gt;</span>
+
+  <span class="cmt">// Cantidad total retirada (suma de los valores absolutos)</span>
+  <span class="kw">const</span> <span class="var">totalQty</span> = <span class="var">movements</span>.<span class="fn">reduce</span>((<span class="var">sum</span>, <span class="var">m</span>) =&gt; <span class="var">sum</span> + <span class="fn">Math</span>.<span class="fn">abs</span>(<span class="var">m</span>.quantity), <span class="n">0</span>)
+
+  <span class="cmt">// Lotes afectados (para mostrar trazabilidad en UI)</span>
+  <span class="kw">const</span> <span class="var">lots</span> = <span class="var">movements</span>.<span class="fn">map</span>(<span class="var">m</span> =&gt; ({
+    lotNumber:  <span class="var">m</span>.batch_lot_number,
+    quantity:   <span class="fn">Math</span>.<span class="fn">abs</span>(<span class="var">m</span>.quantity),
+    movementId: <span class="var">m</span>.id,
+  }))
+
+  <span class="cmt">// ID del primer movimiento (si necesitas referenciar uno solo)</span>
+  <span class="kw">const</span> <span class="var">primaryId</span> = <span class="var">movements</span>[<span class="n">0</span>].id
+
+  <span class="fn">showToast</span>(<span class="str">`Salida registrada: ${totalQty} unidades`</span>)
+  <span class="fn">refreshStockSummary</span>(payload.warehouse_id, payload.product_id)
+}</pre>
+
+    <p class="pattern-label">Antes y después — acceso a campos del movimiento</p>
+    <div class="diff-split">
+      <div class="diff-panel">
+        <div class="diff-label before"><span class="dot"></span> Antes</div>
+<pre><span class="cmt">// Acceso directo al objeto</span>
+<span class="kw">const</span> <span class="var">mov</span> = <span class="var">response</span>.data
+<span class="var">mov</span>.id
+<span class="var">mov</span>.batch_id
+<span class="var">mov</span>.batch_lot_number
+<span class="var">mov</span>.quantity
+<span class="var">mov</span>.cost_center_id
+<span class="var">mov</span>.cost_center.name
+<span class="var">mov</span>.medical_service.name</pre>
+      </div>
+      <div class="diff-panel">
+        <div class="diff-label after"><span class="dot"></span> Ahora</div>
+<pre><span class="cmt">// Acceso al primer elemento del array</span>
+<span class="kw">const</span> <span class="var">mov</span> = <span class="var">response</span>.data[<span class="n">0</span>]
+<span class="var">mov</span>.id
+<span class="var">mov</span>.batch_id
+<span class="var">mov</span>.batch_lot_number
+<span class="var">mov</span>.quantity
+<span class="var">mov</span>.cost_center_id
+<span class="var">mov</span>.cost_center.name
+<span class="var">mov</span>.medical_service.name</pre>
+      </div>
+    </div>
+
+    <div class="ok-note">
+      <span class="icon">✓</span>
+      <div><strong>Tip UI:</strong> Considera mostrar los lotes afectados en el mensaje de confirmación cuando hay más de uno: <em>"Salida de 10 ud. — Lote LOT-A (8) + LOT-B (2)"</em>. Esto es información valiosa para el farmacéutico.</div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- ───── SECCIÓN 4: Campos del objeto ───── -->
+  <section class="section" id="fields">
+    <p class="section-eyebrow">Referencia</p>
+    <h2>Campos del objeto movimiento</h2>
+    <p style="font-size:0.875rem;color:var(--text-2);margin-bottom:1rem;">
+      Cada elemento del array <code>data[]</code> tiene la siguiente forma. Igual en salidas simples que en traslados.
+    </p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Campo</th>
+            <th>Tipo</th>
+            <th>Notas</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="field-name">id</td><td class="field-type">integer</td><td class="field-notes">ID del movimiento en BD</td></tr>
+          <tr><td class="field-name">warehouse_id</td><td class="field-type">integer</td><td class="field-notes">Almacén de origen</td></tr>
+          <tr><td class="field-name">warehouse_to_id</td><td class="field-type">integer | null</td><td class="field-notes">Solo en traslados</td></tr>
+          <tr><td class="field-name">product_id</td><td class="field-type">integer</td><td class="field-notes"></td></tr>
+          <tr><td class="field-name">product_name</td><td class="field-type">string | null</td><td class="field-notes">Disponible si la relación está cargada</td></tr>
+          <tr><td class="field-name">batch_id</td><td class="field-type">integer</td><td class="field-notes">Lote específico de este movimiento</td></tr>
+          <tr><td class="field-name">batch_lot_number</td><td class="field-type">string | null</td><td class="field-notes">Número de lote legible</td></tr>
+          <tr><td class="field-name">location_from_id</td><td class="field-type">integer | null</td><td class="field-notes">Ubicación de origen</td></tr>
+          <tr><td class="field-name">location_to_id</td><td class="field-type">integer | null</td><td class="field-notes">Solo en traslados</td></tr>
+          <tr><td class="field-name">movement_type</td><td class="field-type">string</td><td class="field-notes"><code>"exit"</code> o <code>"transfer"</code></td></tr>
+          <tr><td class="field-name">quantity</td><td class="field-type">integer</td><td class="field-notes">Negativo en salidas, positivo en traslados. Parcial por lote, no el total solicitado.</td></tr>
+          <tr><td class="field-name">reason</td><td class="field-type">string | null</td><td class="field-notes"></td></tr>
+          <tr><td class="field-name">cost_center_id</td><td class="field-type">integer | null</td><td class="field-notes">Solo en salidas</td></tr>
+          <tr><td class="field-name">cost_center</td><td class="field-type">object | null</td><td class="field-notes"><code>{ id, code, name, type }</code> — solo si se cargó la relación</td></tr>
+          <tr><td class="field-name">service_id</td><td class="field-type">integer | null</td><td class="field-notes">Solo si centro de costo es externo (paciente)</td></tr>
+          <tr><td class="field-name">medical_service</td><td class="field-type">object | null</td><td class="field-notes"><code>{ id, code, name }</code></td></tr>
+          <tr><td class="field-name">patient_document</td><td class="field-type">string | null</td><td class="field-notes"></td></tr>
+          <tr><td class="field-name">patient_external_id</td><td class="field-type">string | null</td><td class="field-notes"></td></tr>
+          <tr><td class="field-name">user_id</td><td class="field-type">integer</td><td class="field-notes"></td></tr>
+          <tr><td class="field-name">user_name</td><td class="field-type">string | null</td><td class="field-notes">Si la relación está cargada</td></tr>
+          <tr><td class="field-name">created_at</td><td class="field-type">string (ISO 8601)</td><td class="field-notes">Todos los movimientos del mismo request comparten timestamp</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</main>
+
+<a href="#" class="scroll-top" aria-label="Volver arriba">↑</a>

@@ -241,6 +241,136 @@ class InventoryTest extends TestCase
             ->assertJsonPath('error_code', 'EXPIRED_STOCK');
     }
 
+    /**
+     * Cuando FEFO necesita tomar de dos lotes para cubrir la cantidad solicitada,
+     * se debe crear un StockMovement independiente por cada lote, con su propio
+     * batch_id y la cantidad exacta tomada de ese lote.
+     */
+    public function test_salida_simple_multi_lote_crea_un_movimiento_por_lote(): void
+    {
+        $setup   = $this->createWarehouseSetup();
+        $product = ProductModel::where('code', 'AGU-21G')->first();
+        $center  = CostCenterModel::where('type', 'internal')->first();
+
+        // Lote A vence antes → FEFO lo toma primero; solo tiene 5 unidades.
+        $lotA = $this->createBatch($product->id, 'LOT-MULTI-A', now()->addDays(10)->format('Y-m-d'), 5, $setup['location'], $setup['warehouse']->id);
+        // Lote B vence después; tiene suficiente para el resto.
+        $lotB = $this->createBatch($product->id, 'LOT-MULTI-B', now()->addDays(60)->format('Y-m-d'), 20, $setup['location'], $setup['warehouse']->id);
+
+        $this->recalculateStock($product->id, $setup['warehouse']->id);
+
+        $this->withHeaders($this->auth())
+            ->postJson('/api/v1/movements/exit', [
+                'product_id'     => $product->id,
+                'warehouse_id'   => $setup['warehouse']->id,
+                'location_id'    => $setup['location']->id,
+                'quantity'       => 12,
+                'cost_center_id' => $center->id,
+            ])
+            ->assertStatus(201)
+            ->assertJsonPath('success', true);
+
+        // Dos movimientos: uno por cada lote consumido.
+        $movements = StockMovementModel::where('product_id', $product->id)
+            ->where('movement_type', 'exit')
+            ->get();
+
+        $this->assertCount(2, $movements);
+
+        $this->assertDatabaseHas('stock_movements', [
+            'product_id' => $product->id,
+            'batch_id'   => $lotA->id,
+            'quantity'   => -5,
+        ]);
+
+        $this->assertDatabaseHas('stock_movements', [
+            'product_id' => $product->id,
+            'batch_id'   => $lotB->id,
+            'quantity'   => -7,
+        ]);
+
+        $lotA->refresh();
+        $lotB->refresh();
+
+        $this->assertSame(0, $lotA->quantity_available);
+        $this->assertSame('depleted', $lotA->status);
+        $this->assertSame(13, $lotB->quantity_available);
+    }
+
+    /**
+     * Cuando FEFO necesita tomar de dos lotes para cubrir una transferencia,
+     * se crea un StockMovement por cada lote con su cantidad exacta.
+     */
+    public function test_transferencia_multi_lote_crea_un_movimiento_por_lote(): void
+    {
+        $origen  = $this->createWarehouseSetup('-ORIGEN-ML');
+        $destino = $this->createWarehouseSetup('-DESTINO-ML');
+        $product = ProductModel::where('code', 'AGU-21G')->first();
+
+        $lotA = $this->createBatch($product->id, 'LOT-TRANS-A', now()->addDays(10)->format('Y-m-d'), 8, $origen['location'], $origen['warehouse']->id);
+        $lotB = $this->createBatch($product->id, 'LOT-TRANS-B', now()->addDays(60)->format('Y-m-d'), 15, $origen['location'], $origen['warehouse']->id);
+
+        $this->recalculateStock($product->id, $origen['warehouse']->id);
+
+        $this->withHeaders($this->auth())
+            ->postJson('/api/v1/movements/transfer', [
+                'product_id'        => $product->id,
+                'warehouse_from_id' => $origen['warehouse']->id,
+                'warehouse_to_id'   => $destino['warehouse']->id,
+                'location_from_id'  => $origen['location']->id,
+                'location_to_id'    => $destino['location']->id,
+                'quantity'          => 10,
+            ])
+            ->assertStatus(201)
+            ->assertJsonPath('success', true);
+
+        $movements = StockMovementModel::where('product_id', $product->id)
+            ->where('movement_type', 'transfer')
+            ->get();
+
+        $this->assertCount(2, $movements);
+
+        $this->assertDatabaseHas('stock_movements', [
+            'product_id'       => $product->id,
+            'batch_id'         => $lotA->id,
+            'quantity'         => 8,
+            'warehouse_to_id'  => $destino['warehouse']->id,
+        ]);
+
+        $this->assertDatabaseHas('stock_movements', [
+            'product_id'       => $product->id,
+            'batch_id'         => $lotB->id,
+            'quantity'         => 2,
+            'warehouse_to_id'  => $destino['warehouse']->id,
+        ]);
+
+        // En transferencias el quantity_available del batch no cambia (el stock
+        // se mueve de ubicación, no sale del sistema). Lo que cambia es batch_location.
+        $this->assertDatabaseHas('batch_location', [
+            'batch_id'    => $lotA->id,
+            'location_id' => $origen['location']->id,
+            'quantity'    => 0,
+        ]);
+
+        $this->assertDatabaseHas('batch_location', [
+            'batch_id'    => $lotA->id,
+            'location_id' => $destino['location']->id,
+            'quantity'    => 8,
+        ]);
+
+        $this->assertDatabaseHas('batch_location', [
+            'batch_id'    => $lotB->id,
+            'location_id' => $origen['location']->id,
+            'quantity'    => 13,
+        ]);
+
+        $this->assertDatabaseHas('batch_location', [
+            'batch_id'    => $lotB->id,
+            'location_id' => $destino['location']->id,
+            'quantity'    => 2,
+        ]);
+    }
+
     public function test_transferencia_falla_si_todo_el_stock_esta_vencido(): void
     {
         $origen = $this->createWarehouseSetup('-ORIGEN');

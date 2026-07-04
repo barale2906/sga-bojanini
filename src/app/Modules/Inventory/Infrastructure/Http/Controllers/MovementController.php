@@ -130,8 +130,10 @@ class MovementController extends Controller
             ], 'Salida de kit registrada exitosamente');
         }
 
+        $result->each->load(['product', 'batch', 'user', 'costCenter', 'medicalService']);
+
         return $this->created(
-            new MovementResource($result->load(['product', 'batch', 'user', 'costCenter', 'medicalService'])),
+            MovementResource::collection($result),
             'Salida registrada exitosamente',
         );
     }
@@ -141,13 +143,15 @@ class MovementController extends Controller
         $this->assertWarehouseAccess($request->user(), (int) $request->validated('warehouse_from_id'));
         $this->assertWarehouseAccess($request->user(), (int) $request->validated('warehouse_to_id'));
 
-        $movement = $useCase->execute([
+        $movements = $useCase->execute([
             ...$request->validated(),
             'user_id' => $request->user()->id,
         ]);
 
+        $movements->each->load(['product', 'batch', 'user', 'warehouse', 'warehouseTo']);
+
         return $this->created(
-            new MovementResource($movement->load(['product', 'batch', 'user', 'warehouse', 'warehouseTo'])),
+            MovementResource::collection($movements),
             'Traslado registrado exitosamente',
         );
     }

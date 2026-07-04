@@ -9,6 +9,7 @@ use App\Modules\Inventory\Domain\Services\BatchLocationService;
 use App\Modules\Inventory\Domain\Services\FEFOService;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\BatchModel;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\StockMovementModel;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class TransferStockUseCase
@@ -18,7 +19,7 @@ class TransferStockUseCase
         private readonly BatchLocationService $batchLocationService,
     ) {}
 
-    public function execute(array $data): StockMovementModel
+    public function execute(array $data): Collection
     {
         return DB::transaction(function () use ($data) {
             $warehouseFromId = $data['warehouse_from_id'];
@@ -29,6 +30,8 @@ class TransferStockUseCase
                 $warehouseFromId,
                 $data['quantity'],
             );
+
+            $movements = collect();
 
             foreach ($selectedBatches as $selection) {
                 $batch = BatchModel::findOrFail($selection['batch_id']);
@@ -57,31 +60,33 @@ class TransferStockUseCase
                         'updated_at'  => now(),
                     ]);
                 }
+
+                $movement = StockMovementModel::create([
+                    'warehouse_id'     => $warehouseFromId,
+                    'warehouse_to_id'  => $warehouseToId,
+                    'product_id'       => $data['product_id'],
+                    'batch_id'         => $selection['batch_id'],
+                    'location_from_id' => $data['location_from_id'],
+                    'location_to_id'   => $data['location_to_id'],
+                    'movement_type'    => 'transfer',
+                    'quantity'         => $selection['quantity'],
+                    'reason'           => $data['reason'] ?? null,
+                    'user_id'          => $data['user_id'],
+                ]);
+
+                event(new StockMovementCreated(
+                    movementId: $movement->id,
+                    productId: $data['product_id'],
+                    warehouseId: $warehouseFromId,
+                    movementType: 'transfer',
+                    quantity: $selection['quantity'],
+                    warehouseToId: $warehouseToId,
+                ));
+
+                $movements->push($movement);
             }
 
-            $movement = StockMovementModel::create([
-                'warehouse_id'     => $warehouseFromId,
-                'warehouse_to_id'  => $warehouseToId,
-                'product_id'       => $data['product_id'],
-                'batch_id'         => $selectedBatches[0]['batch_id'],
-                'location_from_id' => $data['location_from_id'],
-                'location_to_id'   => $data['location_to_id'],
-                'movement_type'    => 'transfer',
-                'quantity'         => $data['quantity'],
-                'reason'           => $data['reason'] ?? null,
-                'user_id'          => $data['user_id'],
-            ]);
-
-            event(new StockMovementCreated(
-                movementId: $movement->id,
-                productId: $data['product_id'],
-                warehouseId: $warehouseFromId,
-                movementType: 'transfer',
-                quantity: $data['quantity'],
-                warehouseToId: $warehouseToId,
-            ));
-
-            return $movement;
+            return $movements;
         });
     }
 }

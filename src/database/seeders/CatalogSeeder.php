@@ -85,74 +85,8 @@ class CatalogSeeder extends Seeder
             ]
         );
 
-        /*
-        // ── Productos ─────────────────────────────────────────────────────────
-        $aguja = ProductModel::firstOrCreate(
-            ['code' => 'AGU-21G'],
-            [
-                'category_id'      => $cat->id,
-                'classification_id'=> $dmClass?->id,
-                'base_unit_id'     => $und->id,
-                'product_type'     => ProductType::Simple->value,
-                'name'             => 'Aguja 21G',
-                'description'      => 'Aguja hipodérmica 21G',
-                'risk_level'       => 'Clase I',
-                'lab_brand'        => 'BD Becton Dickinson',
-                'requires_cold_chain' => false,
-                'is_active'        => true,
-            ]
-        );
-
-        // Asignar presentaciones al producto Aguja (M:N)
-        $aguja->presentations()->syncWithoutDetaching([
-            $master->id   => ['is_purchase_default' => false, 'sort_order' => 1],
-            $cajaPres->id => ['is_purchase_default' => false, 'sort_order' => 2],
-            $paqPres->id  => ['is_purchase_default' => true,  'sort_order' => 3],
-        ]);
-
-        $gasa = ProductModel::firstOrCreate(
-            ['code' => 'GAS-10X10'],
-            [
-                'category_id'      => $cat->id,
-                'classification_id'=> $dmClass?->id,
-                'base_unit_id'     => $und->id,
-                'product_type'     => ProductType::Simple->value,
-                'name'             => 'Gasa estéril 10x10',
-                'risk_level'       => 'Clase I',
-                'is_active'        => true,
-            ]
-        );
-
-        // La gasa reutiliza las mismas presentaciones que la aguja
-        $gasa->presentations()->syncWithoutDetaching([
-            $cajaPres->id => ['is_purchase_default' => true,  'sort_order' => 1],
-            $paqPres->id  => ['is_purchase_default' => false, 'sort_order' => 2],
-        ]);
-
-
-        // ── Kit ───────────────────────────────────────────────────────────────
-        $kit = ProductModel::firstOrCreate(
-            ['code' => 'KIT-CIR-BAS'],
-            [
-                'category_id'      => $cat->id,
-                'classification_id'=> $otrClass?->id,
-                'base_unit_id'     => $kitUnit->id,
-                'product_type'     => ProductType::Kit->value,
-                'name'             => 'Paquete cirugía básica',
-                'description'      => 'Kit de insumos para cirugía menor',
-                'is_active'        => true,
-            ]
-        );
-
-        ProductKitComponentModel::firstOrCreate(
-            ['kit_product_id' => $kit->id, 'component_product_id' => $gasa->id],
-            ['quantity_per_kit' => 5, 'sort_order' => 1]
-        );
-
-        ProductKitComponentModel::firstOrCreate(
-            ['kit_product_id' => $kit->id, 'component_product_id' => $aguja->id],
-            ['quantity_per_kit' => 10, 'sort_order' => 2]
-        );
-        */
+        if (app()->environment('testing')) {
+            $this->call(TestProductsSeeder::class);
+        }
     }
 }

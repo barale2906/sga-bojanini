@@ -15,6 +15,7 @@ use App\Modules\Inventory\Domain\Services\FEFOService;
 use App\Modules\Inventory\Domain\Services\StockCalculator;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\BatchModel;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\StockMovementModel;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class RegisterExitUseCase
@@ -27,9 +28,9 @@ class RegisterExitUseCase
     ) {}
 
     /**
-     * @return StockMovementModel|array{kit_transaction: \App\Modules\Inventory\Infrastructure\Persistence\Models\KitTransactionModel, movements: \Illuminate\Support\Collection}
+     * @return Collection<int, StockMovementModel>|array{kit_transaction: \App\Modules\Inventory\Infrastructure\Persistence\Models\KitTransactionModel, movements: Collection<int, StockMovementModel>}
      */
-    public function execute(array $data): StockMovementModel|array
+    public function execute(array $data): Collection|array
     {
         $product = ProductModel::find($data['product_id']);
 
@@ -50,6 +51,8 @@ class RegisterExitUseCase
                 $data['quantity'],
             );
 
+            $movements = collect();
+
             foreach ($selectedBatches as $selection) {
                 $batch = BatchModel::findOrFail($selection['batch_id']);
                 $batch->quantity_available -= $selection['quantity'];
@@ -62,30 +65,32 @@ class RegisterExitUseCase
                 $batch->save();
 
                 $this->batchLocationService->decrement($batch->id, $selection['quantity'], $data['location_id'] ?? null);
+
+                $movement = StockMovementModel::create([
+                    'warehouse_id'        => $data['warehouse_id'],
+                    'product_id'          => $data['product_id'],
+                    'batch_id'            => $selection['batch_id'],
+                    'location_from_id'    => $data['location_id'] ?? null,
+                    'movement_type'       => 'exit',
+                    'quantity'            => -$selection['quantity'],
+                    'reason'              => $data['reason'] ?? null,
+                    'cost_center_id'      => $data['cost_center_id'],
+                    'service_id'          => $data['service_id'] ?? null,
+                    'patient_document'    => $data['patient_document'] ?? null,
+                    'patient_external_id' => $data['patient_external_id'] ?? null,
+                    'user_id'             => $data['user_id'],
+                ]);
+
+                event(new StockMovementCreated(
+                    movementId: $movement->id,
+                    productId: $data['product_id'],
+                    warehouseId: $data['warehouse_id'],
+                    movementType: 'exit',
+                    quantity: $selection['quantity'],
+                ));
+
+                $movements->push($movement);
             }
-
-            $movement = StockMovementModel::create([
-                'warehouse_id'        => $data['warehouse_id'],
-                'product_id'          => $data['product_id'],
-                'batch_id'            => $selectedBatches[0]['batch_id'],
-                'location_from_id'    => $data['location_id'] ?? null,
-                'movement_type'       => 'exit',
-                'quantity'            => -$data['quantity'],
-                'reason'              => $data['reason'] ?? null,
-                'cost_center_id'      => $data['cost_center_id'],
-                'service_id'          => $data['service_id'] ?? null,
-                'patient_document'    => $data['patient_document'] ?? null,
-                'patient_external_id' => $data['patient_external_id'] ?? null,
-                'user_id'             => $data['user_id'],
-            ]);
-
-            event(new StockMovementCreated(
-                movementId: $movement->id,
-                productId: $data['product_id'],
-                warehouseId: $data['warehouse_id'],
-                movementType: 'exit',
-                quantity: $data['quantity'],
-            ));
 
             $currentStock = $this->stockCalculator->getCurrentStock(
                 $data['product_id'],
@@ -101,7 +106,7 @@ class RegisterExitUseCase
                 ));
             }
 
-            return $movement;
+            return $movements;
         });
     }
 

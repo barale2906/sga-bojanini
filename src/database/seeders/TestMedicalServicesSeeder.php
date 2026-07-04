@@ -4,65 +4,32 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
-use App\Modules\CostCenter\Infrastructure\Persistence\Models\CostCenterModel;
 use App\Modules\CostCenter\Infrastructure\Persistence\Models\MedicalServiceModel;
 use Illuminate\Database\Seeder;
 
 /**
- * Seeder para centros de costo y servicios médicos iniciales.
+ * Fixtures de servicios médicos solo para el entorno de testing.
  *
- * Ejecutar: php artisan db:seed --class=CostCenterSeeder
+ * Nunca se ejecuta en producción ni staging — el guard al inicio lo garantiza.
+ * Es llamado automáticamente por CostCenterSeeder cuando app()->environment('testing').
  */
-class CostCenterSeeder extends Seeder
+class TestMedicalServicesSeeder extends Seeder
 {
     public function run(): void
     {
-        // ─── Centros de costo internos ────────────────────────────────────────────
-        $internalCenters = [
-            ['code' => 'ENF',  'name' => 'Enfermería',       'description' => 'Insumos para enfermería'],
-            ['code' => 'ANTI-ENV', 'name' => 'Antienvejecimiento', 'description' => 'Insumos para antienvejecimiento'],
-            ['code' => 'FAC',   'name' => 'Facial',    'description' => 'Insumos para facial'],
-            ['code' => 'CORPO',  'name' => 'Corporal',  'description' => 'Insumos para Corporal'],
-            ['code' => 'COOLTECH', 'name' => 'COOLTECH',     'description' => 'Insumos para Cooltech'],
-            ['code' => 'DEP-LAS', 'name' => 'Depilación Laser',     'description' => 'Insumos para depilación laser'],
-            ['code' => 'CLIN', 'name' => 'Clínica',     'description' => 'Insumos para clínica'],
-            ['code' => 'IMPL-CAPI', 'name' => 'implante capilar',     'description' => 'Insumos para implante capilar'],
-        ];
-
-        foreach ($internalCenters as $data) {
-            CostCenterModel::firstOrCreate(
-                ['code' => $data['code']],
-                [
-                    'name'        => $data['name'],
-                    'type'        => 'internal',
-                    'description' => $data['description'],
-                    'is_active'   => true,
-                ],
-            );
+        if (! app()->environment('testing')) {
+            return;
         }
 
-        // ─── Centro de costo externo (paciente) ───────────────────────────────────
-        CostCenterModel::firstOrCreate(
-            ['code' => 'PAC'],
-            [
-                'name'        => 'Paciente',
-                'type'        => 'external',
-                'description' => 'Consumo de insumos facturado directamente al paciente',
-                'is_active'   => true,
-            ],
-        );
-
-        /*
-        // ─── Servicios médicos (nodos raíz, type = service) ───────────────────────
         $services = [
-            ['code' => 'CONS',  'name' => 'Consulta Médica',  'description' => 'Consultas médicas generales y de especialidad'],
-            ['code' => 'CIR',   'name' => 'Cirugía',          'description' => 'Procedimientos quirúrgicos'],
-            ['code' => 'HOSP',  'name' => 'Hospitalización',  'description' => 'Internación en piso médico o quirúrgico'],
-            ['code' => 'URG',   'name' => 'Urgencias',        'description' => 'Urgencias y emergencias'],
-            ['code' => 'UCI',   'name' => 'UCI',              'description' => 'Unidad de cuidados intensivos'],
-            ['code' => 'LAB-C', 'name' => 'Laboratorio Clínico', 'description' => 'Toma de muestras y análisis'],
-            ['code' => 'IMAGEN','name' => 'Imagenología',     'description' => 'Radiología, ecografía y diagnóstico por imagen'],
-            ['code' => 'REHAB', 'name' => 'Rehabilitación',   'description' => 'Fisioterapia y rehabilitación funcional'],
+            ['code' => 'CONS',  'name' => 'Consulta Médica',      'description' => 'Consultas médicas generales y de especialidad'],
+            ['code' => 'CIR',   'name' => 'Cirugía',              'description' => 'Procedimientos quirúrgicos'],
+            ['code' => 'HOSP',  'name' => 'Hospitalización',      'description' => 'Internación en piso médico o quirúrgico'],
+            ['code' => 'URG',   'name' => 'Urgencias',            'description' => 'Urgencias y emergencias'],
+            ['code' => 'UCI',   'name' => 'UCI',                  'description' => 'Unidad de cuidados intensivos'],
+            ['code' => 'LAB-C', 'name' => 'Laboratorio Clínico',  'description' => 'Toma de muestras y análisis'],
+            ['code' => 'IMAGEN','name' => 'Imagenología',         'description' => 'Radiología, ecografía y diagnóstico por imagen'],
+            ['code' => 'REHAB', 'name' => 'Rehabilitación',       'description' => 'Fisioterapia y rehabilitación funcional'],
         ];
 
         $procedures = [
@@ -115,7 +82,6 @@ class CostCenterSeeder extends Seeder
             ],
         ];
 
-
         foreach ($services as $data) {
             $service = MedicalServiceModel::firstOrCreate(
                 ['code' => $data['code']],
@@ -141,11 +107,5 @@ class CostCenterSeeder extends Seeder
                 );
             }
         }
-        */
-        if (app()->environment('testing')) {
-            $this->call(TestMedicalServicesSeeder::class);
-        }
-
-        $this->command->info('Centros de costo y servicios médicos creados exitosamente.');
     }
 }

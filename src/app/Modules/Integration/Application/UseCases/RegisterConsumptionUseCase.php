@@ -7,7 +7,6 @@ namespace App\Modules\Integration\Application\UseCases;
 use App\Modules\Integration\Infrastructure\Jobs\SyncConsumptionToHCJob;
 use App\Modules\Integration\Infrastructure\Persistence\Models\ConsumptionRecordModel;
 use App\Modules\Inventory\Application\UseCases\RegisterExitUseCase;
-use App\Modules\Inventory\Infrastructure\Persistence\Models\StockMovementModel;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -88,13 +87,13 @@ class RegisterConsumptionUseCase
         }
     }
 
-    private function resolveBatchId(StockMovementModel|array $exitResult): ?int
+    private function resolveBatchId(Collection|array $exitResult): ?int
     {
-        if ($exitResult instanceof StockMovementModel) {
-            return $exitResult->batch_id;
+        if ($exitResult instanceof Collection) {
+            return $exitResult->first()?->batch_id;
         }
 
-        /** @var Collection<int, StockMovementModel> $movements */
+        /** @var Collection $movements */
         $movements = $exitResult['movements'] ?? collect();
 
         return $movements->first()?->batch_id;

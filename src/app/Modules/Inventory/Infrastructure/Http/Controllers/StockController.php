@@ -23,7 +23,8 @@ class StockController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $query = StockSummaryModel::with(['product', 'warehouse']);
+        $query = StockSummaryModel::with(['product', 'warehouse'])
+            ->where('available_quantity', '>', 0);
 
         if ($request->filled('warehouse_id')) {
             $this->assertWarehouseAccess($request->user(), $request->integer('warehouse_id'));

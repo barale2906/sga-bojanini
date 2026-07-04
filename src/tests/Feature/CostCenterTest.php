@@ -233,7 +233,7 @@ class CostCenterTest extends TestCase
             ])
             ->assertStatus(201)
             ->assertJsonPath('success', true)
-            ->assertJsonPath('data.cost_center_id', $center->id);
+            ->assertJsonPath('data.0.cost_center_id', $center->id);
 
         $this->assertDatabaseHas('stock_movements', [
             'product_id'     => $product->id,
@@ -260,10 +260,10 @@ class CostCenterTest extends TestCase
                 'patient_external_id' => 'EXT-00892',
             ])
             ->assertStatus(201)
-            ->assertJsonPath('data.cost_center_id', $center->id)
-            ->assertJsonPath('data.service_id', $service->id)
-            ->assertJsonPath('data.patient_document', '1012345678')
-            ->assertJsonPath('data.patient_external_id', 'EXT-00892');
+            ->assertJsonPath('data.0.cost_center_id', $center->id)
+            ->assertJsonPath('data.0.service_id', $service->id)
+            ->assertJsonPath('data.0.patient_document', '1012345678')
+            ->assertJsonPath('data.0.patient_external_id', 'EXT-00892');
 
         $this->assertDatabaseHas('stock_movements', [
             'cost_center_id'      => $center->id,
@@ -372,9 +372,9 @@ class CostCenterTest extends TestCase
             ])
             ->assertStatus(201);
 
-        $response->assertJsonPath('data.cost_center.id', $center->id)
-            ->assertJsonPath('data.cost_center.type', 'external')
-            ->assertJsonPath('data.medical_service.id', $service->id);
+        $response->assertJsonPath('data.0.cost_center.id', $center->id)
+            ->assertJsonPath('data.0.cost_center.type', 'external')
+            ->assertJsonPath('data.0.medical_service.id', $service->id);
     }
 
     // ─── Filtros en listado de movimientos ────────────────────────────────────
