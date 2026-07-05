@@ -282,6 +282,109 @@ class WarehouseAccessTest extends TestCase
         $this->assertFalse($warehouseIds->contains($forbidden['warehouse']->id));
     }
 
+    // ── Enforcement de permisos específicos: ajuste, devolución, baja ────────
+
+    /**
+     * operador_almacen tiene acceso al almacén pero NO tiene movimientos.ajuste.
+     * La ruta rechaza la petición con 403 antes de ejecutar el controlador.
+     */
+    public function test_operador_sin_permiso_ajuste_obtiene_403(): void
+    {
+        $setup = $this->createWarehouseSetup('-PERM-ADJ');
+        $product = ProductModel::where('code', 'AGU-21G')->first();
+
+        $operator = $this->createUserWithRole('operador_almacen', 'op-adj@sga.bojanini.com');
+        $this->withHeaders($this->asAdmin())
+            ->putJson("/api/v1/users/{$operator->id}/warehouses", ['warehouse_ids' => [$setup['warehouse']->id]]);
+
+        $this->withHeaders($this->asUser($operator))
+            ->postJson('/api/v1/movements/adjustment', [
+                'product_id'   => $product->id,
+                'warehouse_id' => $setup['warehouse']->id,
+                'location_id'  => $setup['location']->id,
+                'quantity'     => 5,
+                'reason'       => 'Prueba sin permiso',
+            ])
+            ->assertStatus(403);
+    }
+
+    /**
+     * operador_almacen tiene acceso al almacén pero NO tiene movimientos.devolucion.
+     */
+    public function test_operador_sin_permiso_devolucion_obtiene_403(): void
+    {
+        $setup = $this->createWarehouseSetup('-PERM-RET');
+        $product = ProductModel::where('code', 'AGU-21G')->first();
+
+        $operator = $this->createUserWithRole('operador_almacen', 'op-ret@sga.bojanini.com');
+        $this->withHeaders($this->asAdmin())
+            ->putJson("/api/v1/users/{$operator->id}/warehouses", ['warehouse_ids' => [$setup['warehouse']->id]]);
+
+        $this->withHeaders($this->asUser($operator))
+            ->postJson('/api/v1/movements/return', [
+                'product_id'   => $product->id,
+                'warehouse_id' => $setup['warehouse']->id,
+                'quantity'     => 1,
+            ])
+            ->assertStatus(403);
+    }
+
+    /**
+     * operador_almacen tiene acceso al almacén pero NO tiene movimientos.baja.
+     * Cubre write-off (baja por vencimiento) y loss (baja de inventario).
+     */
+    public function test_operador_sin_permiso_baja_obtiene_403(): void
+    {
+        $setup = $this->createWarehouseSetup('-PERM-BAJ');
+
+        $operator = $this->createUserWithRole('operador_almacen', 'op-baj@sga.bojanini.com');
+        $this->withHeaders($this->asAdmin())
+            ->putJson("/api/v1/users/{$operator->id}/warehouses", ['warehouse_ids' => [$setup['warehouse']->id]]);
+
+        $this->withHeaders($this->asUser($operator))
+            ->postJson('/api/v1/movements/write-off', [
+                'batch_id'     => 1,
+                'warehouse_id' => $setup['warehouse']->id,
+            ])
+            ->assertStatus(403);
+
+        Auth::forgetGuards();
+
+        $this->withHeaders($this->asUser($operator))
+            ->postJson('/api/v1/movements/loss', [
+                'product_id'   => 1,
+                'warehouse_id' => $setup['warehouse']->id,
+                'location_id'  => $setup['location']->id,
+                'batch_id'     => 1,
+                'quantity'     => 1,
+                'reason'       => 'test',
+            ])
+            ->assertStatus(403);
+    }
+
+    /**
+     * jefe_almacen tiene movimientos.ajuste pero NO está asignado al almacén.
+     * El controlador rechaza la petición con 403 en assertWarehouseAccess.
+     */
+    public function test_usuario_con_permiso_ajuste_sin_acceso_al_almacen_obtiene_403(): void
+    {
+        $setup = $this->createWarehouseSetup('-NOACC-ADJ');
+        $product = ProductModel::where('code', 'AGU-21G')->first();
+
+        $manager = $this->createUserWithRole('jefe_almacen', 'jefe-noacc@sga.bojanini.com');
+        // No se asigna ningún almacén al manager
+
+        $this->withHeaders($this->asUser($manager))
+            ->postJson('/api/v1/movements/adjustment', [
+                'product_id'   => $product->id,
+                'warehouse_id' => $setup['warehouse']->id,
+                'location_id'  => $setup['location']->id,
+                'quantity'     => 5,
+                'reason'       => 'Prueba sin acceso al almacén',
+            ])
+            ->assertStatus(403);
+    }
+
     /**
      * @return array{warehouse: WarehouseModel, zone: ZoneModel, location: LocationModel}
      */
