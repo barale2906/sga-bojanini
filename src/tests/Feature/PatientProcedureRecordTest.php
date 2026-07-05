@@ -304,4 +304,69 @@ class PatientProcedureRecordTest extends TestCase
             ->assertOk()
             ->assertJson(['data' => ['summary' => ['total_amount' => 250000]]]);
     }
+
+    // ─── Vendedor y remitente ─────────────────────────────────────────────────
+
+    public function test_crear_registro_con_seller_y_referrer_persiste_correctamente(): void
+    {
+        $response = $this->withHeaders($this->auth())
+            ->postJson('/api/v1/patient-procedure-records', array_merge($this->basePayload, [
+                'seller'   => 'María Fernanda Ríos',
+                'referrer' => 'Dr. García López',
+            ]));
+
+        $response->assertStatus(201)
+            ->assertJsonPath('data.seller', 'María Fernanda Ríos')
+            ->assertJsonPath('data.referrer', 'Dr. García López');
+
+        $this->assertDatabaseHas('patient_procedure_records', [
+            'patient_external_id' => 'EXT-9001',
+            'seller'              => 'María Fernanda Ríos',
+            'referrer'            => 'Dr. García López',
+        ]);
+    }
+
+    public function test_listar_filtra_por_seller_parcial(): void
+    {
+        $this->withHeaders($this->auth())->postJson('/api/v1/patient-procedure-records', array_merge($this->basePayload, [
+            'seller' => 'María Fernanda Ríos',
+        ]));
+        $this->withHeaders($this->auth())->postJson('/api/v1/patient-procedure-records', array_merge($this->basePayload, [
+            'patient_external_id' => 'EXT-9002',
+            'seller'              => 'Juan Pérez',
+        ]));
+
+        $this->withHeaders($this->auth())
+            ->getJson('/api/v1/patient-procedure-records?seller=Fernanda')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.seller', 'María Fernanda Ríos');
+
+        $this->withHeaders($this->auth())
+            ->getJson('/api/v1/patient-procedure-records?seller=NoExiste')
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
+    }
+
+    public function test_listar_filtra_por_referrer_parcial(): void
+    {
+        $this->withHeaders($this->auth())->postJson('/api/v1/patient-procedure-records', array_merge($this->basePayload, [
+            'referrer' => 'Dr. Rodríguez Pérez',
+        ]));
+        $this->withHeaders($this->auth())->postJson('/api/v1/patient-procedure-records', array_merge($this->basePayload, [
+            'patient_external_id' => 'EXT-9002',
+            'referrer'            => 'Dra. Martínez',
+        ]));
+
+        $this->withHeaders($this->auth())
+            ->getJson('/api/v1/patient-procedure-records?referrer=Rodr%C3%ADguez')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.referrer', 'Dr. Rodríguez Pérez');
+
+        $this->withHeaders($this->auth())
+            ->getJson('/api/v1/patient-procedure-records?referrer=NoExiste')
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
+    }
 }

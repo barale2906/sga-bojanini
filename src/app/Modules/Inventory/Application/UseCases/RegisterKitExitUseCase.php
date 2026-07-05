@@ -66,6 +66,7 @@ class RegisterKitExitUseCase
      *     service_id?: int|null,
      *     patient_document?: string|null,
      *     patient_external_id?: string|null,
+
      * } $data
      *
      * @return array{kit_transaction: KitTransactionModel, movements: Collection<int, StockMovementModel>}
@@ -178,6 +179,7 @@ class RegisterKitExitUseCase
                 'service_id'          => $data['service_id'] ?? null,
                 'patient_document'    => $data['patient_document'] ?? null,
                 'patient_external_id' => $data['patient_external_id'] ?? null,
+
                 'user_id'             => $data['user_id'],
             ]);
 

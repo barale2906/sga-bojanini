@@ -53,6 +53,8 @@ class PatientProcedureRecordController extends Controller
             'service_date_from',
             'service_date_to',
             'is_active',
+            'seller',
+            'referrer',
         ]);
 
         $items = $useCase->execute($filters);
@@ -115,6 +117,8 @@ class PatientProcedureRecordController extends Controller
             unitPrice:         (float) $validated['unit_price'],
             serviceDate:       new DateTimeImmutable($validated['service_date']),
             notes:             $validated['notes'] ?? null,
+            seller:            $validated['seller'] ?? null,
+            referrer:          $validated['referrer'] ?? null,
         ));
 
         return $this->created(new PatientProcedureRecordResource($record), 'Registro creado exitosamente');
@@ -142,6 +146,8 @@ class PatientProcedureRecordController extends Controller
             unitPrice:         (float) $validated['unit_price'],
             serviceDate:       new DateTimeImmutable($validated['service_date']),
             notes:             $validated['notes'] ?? null,
+            seller:            $validated['seller'] ?? null,
+            referrer:          $validated['referrer'] ?? null,
             isActive:          (bool) ($validated['is_active'] ?? true),
         ));
 

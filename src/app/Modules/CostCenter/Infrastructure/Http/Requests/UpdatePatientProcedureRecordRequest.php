@@ -25,6 +25,8 @@ class UpdatePatientProcedureRecordRequest extends FormRequest
             'unit_price'          => ['required', 'numeric', 'min:0'],
             'service_date'        => ['required', 'date_format:Y-m-d', 'before_or_equal:today'],
             'notes'               => ['nullable', 'string', 'max:500'],
+            'seller'              => ['nullable', 'string', 'max:150'],
+            'referrer'            => ['nullable', 'string', 'max:150'],
             'is_active'           => ['sometimes', 'boolean'],
         ];
     }

@@ -27,6 +27,8 @@ class PatientProcedureRecordResource extends JsonResource
                 'unit_price'           => $record->getUnitPrice(),
                 'total'                => $record->getTotal(),
                 'service_date'         => $record->getServiceDate()->format('Y-m-d'),
+                'seller'               => $record->getSeller(),
+                'referrer'             => $record->getReferrer(),
                 'is_active'            => $record->isActive(),
             ];
         }
@@ -42,6 +44,8 @@ class PatientProcedureRecordResource extends JsonResource
             'unit_price'           => $record->unit_price,
             'total'                => $record->total,
             'service_date'         => $record->service_date?->format('Y-m-d'),
+            'seller'               => $record->seller,
+            'referrer'             => $record->referrer,
             'is_active'            => $record->is_active,
         ];
     }

@@ -28,6 +28,8 @@ class PatientProcedureRecord
         private ?string $notes = null,
         private bool $isActive = true,
         private ?string $medicalServiceName = null,
+        private ?string $seller = null,
+        private ?string $referrer = null,
     ) {}
 
     public static function create(
@@ -40,19 +42,23 @@ class PatientProcedureRecord
         float $unitPrice,
         DateTimeImmutable $serviceDate,
         ?string $notes = null,
+        ?string $seller = null,
+        ?string $referrer = null,
     ): self {
         return new self(
-            id:               null,
-            medicalServiceId: $medicalServiceId,
+            id:                null,
+            medicalServiceId:  $medicalServiceId,
             patientExternalId: $patientExternalId,
-            patientDocument:  $patientDocument,
-            patientFirstName: $patientFirstName,
-            patientLastName:  $patientLastName,
-            quantity:         $quantity,
-            unitPrice:        $unitPrice,
-            total:            self::calculateTotal($quantity, $unitPrice),
-            serviceDate:      $serviceDate,
-            notes:            $notes,
+            patientDocument:   $patientDocument,
+            patientFirstName:  $patientFirstName,
+            patientLastName:   $patientLastName,
+            quantity:          $quantity,
+            unitPrice:         $unitPrice,
+            total:             self::calculateTotal($quantity, $unitPrice),
+            serviceDate:       $serviceDate,
+            notes:             $notes,
+            seller:            $seller,
+            referrer:          $referrer,
         );
     }
 
@@ -124,6 +130,16 @@ class PatientProcedureRecord
     public function getMedicalServiceName(): ?string
     {
         return $this->medicalServiceName;
+    }
+
+    public function getSeller(): ?string
+    {
+        return $this->seller;
+    }
+
+    public function getReferrer(): ?string
+    {
+        return $this->referrer;
     }
 
     public function activate(): void

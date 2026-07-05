@@ -46,6 +46,8 @@ class CreatePatientProcedureRecordUseCase
             unitPrice:         $data->unitPrice,
             serviceDate:       $data->serviceDate,
             notes:             $data->notes,
+            seller:            $data->seller,
+            referrer:          $data->referrer,
         );
 
         return $this->repository->save($record);

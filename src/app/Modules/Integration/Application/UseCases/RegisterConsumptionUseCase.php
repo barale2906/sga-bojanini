@@ -23,6 +23,7 @@ class RegisterConsumptionUseCase
      *     patient_identifier?: string,
      *     service_type?: string,
      *     warehouse_id: int,
+
      *     items: array<array{product_id: int, quantity: int}>
      * } $data
      *
@@ -47,6 +48,7 @@ class RegisterConsumptionUseCase
                     'patient_document'    => $data['patient_identifier'] ?? null,
                     // appointment_id actúa como identificador del paciente en el sistema externo
                     'patient_external_id' => $data['appointment_id'] ?? null,
+
                     'user_id'             => Auth::id(),
                 ]);
 

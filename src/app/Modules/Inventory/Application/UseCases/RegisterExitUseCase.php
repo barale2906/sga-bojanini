@@ -85,6 +85,7 @@ class RegisterExitUseCase
                     'service_id'          => $data['service_id'] ?? null,
                     'patient_document'    => $data['patient_document'] ?? null,
                     'patient_external_id' => $data['patient_external_id'] ?? null,
+
                     'user_id'             => $data['user_id'],
                     'status'              => MovementStatus::PENDING_SIGNATURE->value,
                 ]);
@@ -177,6 +178,7 @@ class RegisterExitUseCase
                     'service_id'          => $data['service_id'] ?? null,
                     'patient_document'    => $data['patient_document'] ?? null,
                     'patient_external_id' => $data['patient_external_id'] ?? null,
+
                     'user_id'             => $data['user_id'],
                     'status'              => MovementStatus::CONFIRMED->value,
                 ]);
@@ -236,6 +238,7 @@ class RegisterExitUseCase
             if (empty($data['patient_external_id'])) {
                 throw new \DomainException('El ID del paciente en el sistema externo es obligatorio para salidas con centro de costo externo.');
             }
+
         }
     }
 }

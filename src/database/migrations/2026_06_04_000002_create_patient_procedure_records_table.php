@@ -22,6 +22,8 @@ return new class extends Migration
             $table->decimal('total', 14, 2);
             $table->date('service_date');
             $table->text('notes')->nullable();
+            $table->string('seller', 150)->nullable();
+            $table->string('referrer', 150)->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
             $table->softDeletes();

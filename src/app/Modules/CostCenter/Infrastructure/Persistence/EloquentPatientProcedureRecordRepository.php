@@ -46,6 +46,14 @@ class EloquentPatientProcedureRecordRepository implements PatientProcedureRecord
             $query->where('is_active', filter_var($filters['is_active'], FILTER_VALIDATE_BOOLEAN));
         }
 
+        if (isset($filters['seller'])) {
+            $query->forSeller($filters['seller']);
+        }
+
+        if (isset($filters['referrer'])) {
+            $query->forReferrer($filters['referrer']);
+        }
+
         return $query->with('medicalService')
             ->orderByDesc('service_date')
             ->get()
@@ -113,6 +121,8 @@ class EloquentPatientProcedureRecordRepository implements PatientProcedureRecord
         $model->total               = $record->getTotal();
         $model->service_date        = $record->getServiceDate()->format('Y-m-d');
         $model->notes               = $record->getNotes();
+        $model->seller              = $record->getSeller();
+        $model->referrer            = $record->getReferrer();
         $model->is_active           = $record->isActive();
         $model->save();
 
@@ -140,6 +150,8 @@ class EloquentPatientProcedureRecordRepository implements PatientProcedureRecord
             notes:              $model->notes,
             isActive:           (bool) $model->is_active,
             medicalServiceName: $model->relationLoaded('medicalService') ? $model->medicalService?->name : null,
+            seller:             $model->seller,
+            referrer:           $model->referrer,
         );
     }
 }

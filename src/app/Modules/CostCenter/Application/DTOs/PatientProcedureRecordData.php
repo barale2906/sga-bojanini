@@ -33,5 +33,7 @@ readonly class PatientProcedureRecordData
         public DateTimeImmutable $serviceDate,
         public ?string $notes = null,
         public bool $isActive = true,
+        public ?string $seller = null,
+        public ?string $referrer = null,
     ) {}
 }

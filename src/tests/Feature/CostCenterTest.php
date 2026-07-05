@@ -248,7 +248,6 @@ class CostCenterTest extends TestCase
         $product = ProductModel::where('code', 'AGU-21G')->first();
         $center  = CostCenterModel::where('type', 'external')->first();
         $service = MedicalServiceModel::first();
-
         $this->withHeaders($this->auth())
             ->postJson('/api/v1/movements/exit', [
                 'product_id'          => $product->id,
