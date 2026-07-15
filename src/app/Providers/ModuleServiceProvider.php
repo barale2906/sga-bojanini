@@ -26,12 +26,16 @@ use App\Modules\Catalog\Infrastructure\Persistence\EloquentProductSanitaryRegist
 use App\Modules\Catalog\Infrastructure\Persistence\EloquentProductVariantRepository;
 use App\Modules\Catalog\Infrastructure\Persistence\EloquentSupplierRepository;
 use App\Modules\Catalog\Infrastructure\Persistence\EloquentUnitOfMeasureRepository;
+use App\Modules\CostCenter\Domain\Repositories\ClinicalTemplateRepositoryInterface;
 use App\Modules\CostCenter\Domain\Repositories\CostCenterRepositoryInterface;
 use App\Modules\CostCenter\Domain\Repositories\MedicalServiceRepositoryInterface;
+use App\Modules\CostCenter\Domain\Repositories\PatientClinicalEvolutionRepositoryInterface;
 use App\Modules\CostCenter\Domain\Repositories\PatientProcedureRecordRepositoryInterface;
 use App\Modules\CostCenter\Domain\Repositories\ProcedurePriceRepositoryInterface;
+use App\Modules\CostCenter\Infrastructure\Persistence\EloquentClinicalTemplateRepository;
 use App\Modules\CostCenter\Infrastructure\Persistence\EloquentCostCenterRepository;
 use App\Modules\CostCenter\Infrastructure\Persistence\EloquentMedicalServiceRepository;
+use App\Modules\CostCenter\Infrastructure\Persistence\EloquentPatientClinicalEvolutionRepository;
 use App\Modules\CostCenter\Infrastructure\Persistence\EloquentPatientProcedureRecordRepository;
 use App\Modules\CostCenter\Infrastructure\Persistence\EloquentProcedurePriceRepository;
 use App\Modules\Integration\Domain\Ports\ClinicalRecordsServiceInterface;
@@ -103,6 +107,8 @@ class ModuleServiceProvider extends ServiceProvider
         MedicalServiceRepositoryInterface::class => EloquentMedicalServiceRepository::class,
         ProcedurePriceRepositoryInterface::class => EloquentProcedurePriceRepository::class,
         PatientProcedureRecordRepositoryInterface::class => EloquentPatientProcedureRecordRepository::class,
+        ClinicalTemplateRepositoryInterface::class => EloquentClinicalTemplateRepository::class,
+        PatientClinicalEvolutionRepositoryInterface::class => EloquentPatientClinicalEvolutionRepository::class,
 
         // Inventory (Fase 4)
         // BatchRepositoryInterface::class       => EloquentBatchRepository::class,

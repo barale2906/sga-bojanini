@@ -35,5 +35,6 @@ readonly class PatientProcedureRecordData
         public bool $isActive = true,
         public ?string $seller = null,
         public ?string $referrer = null,
+        public ?int $movementDocumentId = null,
     ) {}
 }

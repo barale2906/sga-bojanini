@@ -1,8 +1,11 @@
 <?php
 
+use App\Modules\CostCenter\Infrastructure\Http\Controllers\ClinicalTemplateController;
 use App\Modules\CostCenter\Infrastructure\Http\Controllers\CostCenterController;
 use App\Modules\CostCenter\Infrastructure\Http\Controllers\ImportController;
 use App\Modules\CostCenter\Infrastructure\Http\Controllers\MedicalServiceController;
+use App\Modules\CostCenter\Infrastructure\Http\Controllers\PatientClinicalEvolutionController;
+use App\Modules\CostCenter\Infrastructure\Http\Controllers\PatientMedicationRecordController;
 use App\Modules\CostCenter\Infrastructure\Http\Controllers\PatientProcedureRecordController;
 use App\Modules\CostCenter\Infrastructure\Http\Controllers\ProcedurePriceController;
 use Illuminate\Support\Facades\Route;
@@ -75,4 +78,47 @@ Route::middleware(['auth:sanctum', 'user.is_active'])->prefix('v1')->group(funct
         ->middleware('permission:registros_procedimientos.editar')->only(['update']);
     Route::apiResource('patient-procedure-records', PatientProcedureRecordController::class)
         ->middleware('permission:registros_procedimientos.eliminar')->only(['destroy']);
+
+    // ─── Plantillas de Evolución Clínica ─────────────────────────────────────────
+    Route::middleware('permission:plantillas_clinicas.ver')->group(function () {
+        Route::get('clinical-templates/for-service/{medicalServiceId}', [ClinicalTemplateController::class, 'forService'])
+            ->name('clinical-templates.for-service');
+        Route::apiResource('clinical-templates', ClinicalTemplateController::class)->only(['index', 'show']);
+    });
+    Route::apiResource('clinical-templates', ClinicalTemplateController::class)
+        ->middleware('permission:plantillas_clinicas.crear')->only(['store']);
+    Route::apiResource('clinical-templates', ClinicalTemplateController::class)
+        ->middleware('permission:plantillas_clinicas.editar')->only(['update']);
+    Route::apiResource('clinical-templates', ClinicalTemplateController::class)
+        ->middleware('permission:plantillas_clinicas.eliminar')->only(['destroy']);
+
+    // ─── Evoluciones Clínicas por Registro de Procedimiento ──────────────────────
+    Route::middleware('permission:evoluciones_clinicas.ver')->group(function () {
+        Route::get(
+            'patient-procedure-records/{patientProcedureRecord}/evolutions',
+            [PatientClinicalEvolutionController::class, 'index'],
+        )->name('procedure-records.evolutions.index');
+    });
+    Route::post(
+        'patient-procedure-records/{patientProcedureRecord}/evolutions',
+        [PatientClinicalEvolutionController::class, 'store'],
+    )->middleware('permission:evoluciones_clinicas.crear')
+     ->name('procedure-records.evolutions.store');
+    Route::put(
+        'patient-procedure-records/{patientProcedureRecord}/evolutions/{evolution}',
+        [PatientClinicalEvolutionController::class, 'update'],
+    )->middleware('permission:evoluciones_clinicas.editar')
+     ->name('procedure-records.evolutions.update');
+    Route::delete(
+        'patient-procedure-records/{patientProcedureRecord}/evolutions/{evolution}',
+        [PatientClinicalEvolutionController::class, 'destroy'],
+    )->middleware('permission:evoluciones_clinicas.eliminar')
+     ->name('procedure-records.evolutions.destroy');
+
+    // ─── Medicamentos por Registro de Procedimiento (lectura desde movimiento) ────
+    Route::get(
+        'patient-procedure-records/{patientProcedureRecord}/medications',
+        [PatientMedicationRecordController::class, 'index'],
+    )->middleware('permission:medicamentos_procedimiento.ver')
+     ->name('procedure-records.medications.index');
 });

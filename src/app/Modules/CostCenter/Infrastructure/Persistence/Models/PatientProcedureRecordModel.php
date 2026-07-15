@@ -19,6 +19,7 @@ class PatientProcedureRecordModel extends Model
 
     protected $fillable = [
         'medical_service_id',
+        'movement_document_id',
         'patient_external_id',
         'patient_document',
         'patient_first_name',
@@ -47,6 +48,11 @@ class PatientProcedureRecordModel extends Model
     public function medicalService(): BelongsTo
     {
         return $this->belongsTo(MedicalServiceModel::class, 'medical_service_id');
+    }
+
+    public function movementDocument(): BelongsTo
+    {
+        return $this->belongsTo(\App\Modules\Inventory\Infrastructure\Persistence\Models\MovementDocumentModel::class, 'movement_document_id');
     }
 
     public function scopeForSeller(Builder $query, string $seller): Builder

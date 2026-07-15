@@ -111,8 +111,9 @@ class EloquentPatientProcedureRecordRepository implements PatientProcedureRecord
             ? PatientProcedureRecordModel::findOrFail($record->getId())
             : new PatientProcedureRecordModel();
 
-        $model->medical_service_id  = $record->getMedicalServiceId();
-        $model->patient_external_id = $record->getPatientExternalId();
+        $model->medical_service_id   = $record->getMedicalServiceId();
+        $model->movement_document_id = $record->getMovementDocumentId();
+        $model->patient_external_id  = $record->getPatientExternalId();
         $model->patient_document    = $record->getPatientDocument();
         $model->patient_first_name  = $record->getPatientFirstName();
         $model->patient_last_name   = $record->getPatientLastName();
@@ -152,6 +153,7 @@ class EloquentPatientProcedureRecordRepository implements PatientProcedureRecord
             medicalServiceName: $model->relationLoaded('medicalService') ? $model->medicalService?->name : null,
             seller:             $model->seller,
             referrer:           $model->referrer,
+            movementDocumentId: $model->movement_document_id,
         );
     }
 }

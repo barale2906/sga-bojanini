@@ -24,9 +24,10 @@ class StorePatientProcedureRecordRequest extends FormRequest
             'quantity'            => ['required', 'numeric', 'min:0.0001'],
             'unit_price'          => ['required', 'numeric', 'min:0'],
             'service_date'        => ['required', 'date_format:Y-m-d', 'before_or_equal:today'],
-            'notes'               => ['nullable', 'string', 'max:500'],
-            'seller'              => ['nullable', 'string', 'max:150'],
-            'referrer'            => ['nullable', 'string', 'max:150'],
+            'notes'                => ['nullable', 'string', 'max:500'],
+            'seller'               => ['nullable', 'string', 'max:150'],
+            'referrer'             => ['nullable', 'string', 'max:150'],
+            'movement_document_id' => ['nullable', 'integer', 'exists:movement_documents,id'],
         ];
     }
 

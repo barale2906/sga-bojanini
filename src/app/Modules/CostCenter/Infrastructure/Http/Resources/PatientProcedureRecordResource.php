@@ -19,6 +19,7 @@ class PatientProcedureRecordResource extends JsonResource
                 'id'                   => $record->getId(),
                 'medical_service_id'   => $record->getMedicalServiceId(),
                 'medical_service_name' => $record->getMedicalServiceName(),
+                'movement_document_id' => $record->getMovementDocumentId(),
                 'patient_external_id'  => $record->getPatientExternalId(),
                 'patient_document'     => $record->getPatientDocument(),
                 'patient_first_name'   => $record->getPatientFirstName(),
@@ -36,6 +37,8 @@ class PatientProcedureRecordResource extends JsonResource
         return [
             'id'                   => $record->id,
             'medical_service_id'   => $record->medical_service_id,
+            'medical_service_name' => $record->medicalService?->name,
+            'movement_document_id' => $record->movement_document_id,
             'patient_external_id'  => $record->patient_external_id,
             'patient_document'     => $record->patient_document,
             'patient_first_name'   => $record->patient_first_name,

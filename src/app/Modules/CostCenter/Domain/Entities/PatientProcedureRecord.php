@@ -30,6 +30,7 @@ class PatientProcedureRecord
         private ?string $medicalServiceName = null,
         private ?string $seller = null,
         private ?string $referrer = null,
+        private ?int $movementDocumentId = null,
     ) {}
 
     public static function create(
@@ -44,21 +45,23 @@ class PatientProcedureRecord
         ?string $notes = null,
         ?string $seller = null,
         ?string $referrer = null,
+        ?int $movementDocumentId = null,
     ): self {
         return new self(
-            id:                null,
-            medicalServiceId:  $medicalServiceId,
-            patientExternalId: $patientExternalId,
-            patientDocument:   $patientDocument,
-            patientFirstName:  $patientFirstName,
-            patientLastName:   $patientLastName,
-            quantity:          $quantity,
-            unitPrice:         $unitPrice,
-            total:             self::calculateTotal($quantity, $unitPrice),
-            serviceDate:       $serviceDate,
-            notes:             $notes,
-            seller:            $seller,
-            referrer:          $referrer,
+            id:                 null,
+            medicalServiceId:   $medicalServiceId,
+            patientExternalId:  $patientExternalId,
+            patientDocument:    $patientDocument,
+            patientFirstName:   $patientFirstName,
+            patientLastName:    $patientLastName,
+            quantity:           $quantity,
+            unitPrice:          $unitPrice,
+            total:              self::calculateTotal($quantity, $unitPrice),
+            serviceDate:        $serviceDate,
+            notes:              $notes,
+            seller:             $seller,
+            referrer:           $referrer,
+            movementDocumentId: $movementDocumentId,
         );
     }
 
@@ -140,6 +143,11 @@ class PatientProcedureRecord
     public function getReferrer(): ?string
     {
         return $this->referrer;
+    }
+
+    public function getMovementDocumentId(): ?int
+    {
+        return $this->movementDocumentId;
     }
 
     public function activate(): void

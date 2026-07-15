@@ -108,17 +108,18 @@ class PatientProcedureRecordController extends Controller
         $validated = $request->validated();
 
         $record = $useCase->execute(new PatientProcedureRecordData(
-            medicalServiceId:  (int) $validated['medical_service_id'],
-            patientExternalId: $validated['patient_external_id'],
-            patientDocument:   $validated['patient_document'],
-            patientFirstName:  $validated['patient_first_name'],
-            patientLastName:   $validated['patient_last_name'],
-            quantity:          (float) $validated['quantity'],
-            unitPrice:         (float) $validated['unit_price'],
-            serviceDate:       new DateTimeImmutable($validated['service_date']),
-            notes:             $validated['notes'] ?? null,
-            seller:            $validated['seller'] ?? null,
-            referrer:          $validated['referrer'] ?? null,
+            medicalServiceId:   (int) $validated['medical_service_id'],
+            patientExternalId:  $validated['patient_external_id'],
+            patientDocument:    $validated['patient_document'],
+            patientFirstName:   $validated['patient_first_name'],
+            patientLastName:    $validated['patient_last_name'],
+            quantity:           (float) $validated['quantity'],
+            unitPrice:          (float) $validated['unit_price'],
+            serviceDate:        new DateTimeImmutable($validated['service_date']),
+            notes:              $validated['notes'] ?? null,
+            seller:             $validated['seller'] ?? null,
+            referrer:           $validated['referrer'] ?? null,
+            movementDocumentId: isset($validated['movement_document_id']) ? (int) $validated['movement_document_id'] : null,
         ));
 
         return $this->created(new PatientProcedureRecordResource($record), 'Registro creado exitosamente');
@@ -137,18 +138,19 @@ class PatientProcedureRecordController extends Controller
         $validated = $request->validated();
 
         $record = $useCase->execute($patient_procedure_record, new PatientProcedureRecordData(
-            medicalServiceId:  (int) $validated['medical_service_id'],
-            patientExternalId: $validated['patient_external_id'],
-            patientDocument:   $validated['patient_document'],
-            patientFirstName:  $validated['patient_first_name'],
-            patientLastName:   $validated['patient_last_name'],
-            quantity:          (float) $validated['quantity'],
-            unitPrice:         (float) $validated['unit_price'],
-            serviceDate:       new DateTimeImmutable($validated['service_date']),
-            notes:             $validated['notes'] ?? null,
-            seller:            $validated['seller'] ?? null,
-            referrer:          $validated['referrer'] ?? null,
-            isActive:          (bool) ($validated['is_active'] ?? true),
+            medicalServiceId:   (int) $validated['medical_service_id'],
+            patientExternalId:  $validated['patient_external_id'],
+            patientDocument:    $validated['patient_document'],
+            patientFirstName:   $validated['patient_first_name'],
+            patientLastName:    $validated['patient_last_name'],
+            quantity:           (float) $validated['quantity'],
+            unitPrice:          (float) $validated['unit_price'],
+            serviceDate:        new DateTimeImmutable($validated['service_date']),
+            notes:              $validated['notes'] ?? null,
+            seller:             $validated['seller'] ?? null,
+            referrer:           $validated['referrer'] ?? null,
+            isActive:           (bool) ($validated['is_active'] ?? true),
+            movementDocumentId: isset($validated['movement_document_id']) ? (int) $validated['movement_document_id'] : null,
         ));
 
         return $this->success(new PatientProcedureRecordResource($record), 'Registro actualizado exitosamente');

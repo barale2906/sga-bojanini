@@ -37,17 +37,18 @@ class CreatePatientProcedureRecordUseCase
         }
 
         $record = PatientProcedureRecord::create(
-            medicalServiceId:  $data->medicalServiceId,
-            patientExternalId: $data->patientExternalId,
-            patientDocument:   $data->patientDocument,
-            patientFirstName:  $data->patientFirstName,
-            patientLastName:   $data->patientLastName,
-            quantity:          $data->quantity,
-            unitPrice:         $data->unitPrice,
-            serviceDate:       $data->serviceDate,
-            notes:             $data->notes,
-            seller:            $data->seller,
-            referrer:          $data->referrer,
+            medicalServiceId:   $data->medicalServiceId,
+            patientExternalId:  $data->patientExternalId,
+            patientDocument:    $data->patientDocument,
+            patientFirstName:   $data->patientFirstName,
+            patientLastName:    $data->patientLastName,
+            quantity:           $data->quantity,
+            unitPrice:          $data->unitPrice,
+            serviceDate:        $data->serviceDate,
+            notes:              $data->notes,
+            seller:             $data->seller,
+            referrer:           $data->referrer,
+            movementDocumentId: $data->movementDocumentId,
         );
 
         return $this->repository->save($record);
