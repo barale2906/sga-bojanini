@@ -4,33 +4,33 @@ declare(strict_types=1);
 
 namespace App\Modules\Catalog\Domain\Services;
 
+use App\Modules\Catalog\Domain\Repositories\GenericProductRepositoryInterface;
 use App\Modules\Catalog\Domain\Repositories\ProductKitComponentRepositoryInterface;
-use App\Modules\Catalog\Domain\Repositories\ProductRepositoryInterface;
 
 class KitExplosionService
 {
     public function __construct(
-        private readonly ProductRepositoryInterface $productRepository,
+        private readonly GenericProductRepositoryInterface $genericProductRepository,
         private readonly ProductKitComponentRepositoryInterface $kitComponentRepository,
         private readonly KitRecipeValidator $validator,
     ) {}
 
     /**
-     * @return array<int, array{component_product_id: int, component_code: string, component_name: string, quantity_base: int}>
+     * @return array<int, array{component_generic_id: int, component_barcode: string, component_name: string, quantity_base: int}>
      */
-    public function explode(int $kitProductId, int $quantityKits): array
+    public function explode(int $kitGenericId, int $quantityKits): array
     {
         if ($quantityKits < 1) {
             throw new \DomainException('La cantidad de kits debe ser mayor a cero.');
         }
 
-        $kit = $this->productRepository->findById($kitProductId);
+        $kit = $this->genericProductRepository->findById($kitGenericId);
 
         if ($kit === null || ! $kit->isKit()) {
             throw new \DomainException('Producto kit no válido.');
         }
 
-        $components = $this->kitComponentRepository->findByKitProductId($kitProductId);
+        $components = $this->kitComponentRepository->findByKitGenericId($kitGenericId);
 
         if ($components === []) {
             throw new \DomainException('El kit no tiene componentes definidos.');
@@ -39,12 +39,12 @@ class KitExplosionService
         $lines = [];
 
         foreach ($components as $component) {
-            $product = $this->productRepository->findById($component->getComponentProductId());
+            $generic = $this->genericProductRepository->findById($component->getComponentGenericId());
 
             $lines[] = [
-                'component_product_id' => $component->getComponentProductId(),
-                'component_code'       => $product?->getCode() ?? '',
-                'component_name'       => $product?->getName() ?? '',
+                'component_generic_id' => $component->getComponentGenericId(),
+                'component_barcode'    => $generic?->getBarcode() ?? '',
+                'component_name'       => $generic?->getName() ?? '',
                 'quantity_base'        => $component->getQuantityPerKit() * $quantityKits,
             ];
         }

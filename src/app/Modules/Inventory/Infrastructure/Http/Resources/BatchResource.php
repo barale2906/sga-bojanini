@@ -17,7 +17,7 @@ class BatchResource extends JsonResource
         if (method_exists($batch, 'getId')) {
             return [
                 'id'                  => $batch->getId(),
-                'product_id'          => $batch->getProductId(),
+                'product_variant_id'          => $batch->getProductVariantId(),
                 'lot_number'          => $batch->getLotNumber(),
                 'expiration_date'     => $batch->getExpirationDate(),
                 'manufacturing_date'  => $batch->getManufacturingDate(),
@@ -31,7 +31,7 @@ class BatchResource extends JsonResource
 
         return [
             'id'                  => $batch->id,
-            'product_id'          => $batch->product_id,
+            'product_variant_id'          => $batch->product_variant_id,
             'lot_number'          => $batch->lot_number,
             'expiration_date'     => $batch->expiration_date?->format('Y-m-d'),
             'manufacturing_date'  => $batch->manufacturing_date?->format('Y-m-d'),
@@ -42,10 +42,14 @@ class BatchResource extends JsonResource
                 ? (int) now()->diffInDays(Carbon::parse($batch->expiration_date), false)
                 : null,
             'received_at'         => $batch->received_at?->toIso8601String(),
-            'product'             => $batch->relationLoaded('product') ? [
-                'id'   => $batch->product->id,
-                'code' => $batch->product->code,
-                'name' => $batch->product->name,
+            'variant'             => $batch->relationLoaded('variant') ? [
+                'id'        => $batch->variant->id,
+                'lab_brand' => $batch->variant->lab_brand,
+                'generic'   => $batch->variant->relationLoaded('genericProduct') ? [
+                    'id'      => $batch->variant->genericProduct->id,
+                    'barcode' => $batch->variant->genericProduct->barcode,
+                    'name'    => $batch->variant->genericProduct->name,
+                ] : null,
             ] : null,
             'locations'           => $batch->relationLoaded('locations')
                 ? $batch->locations->map(fn ($location) => [

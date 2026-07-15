@@ -4,24 +4,23 @@ declare(strict_types=1);
 
 namespace App\Modules\Catalog\Domain\Services;
 
-use App\Modules\Catalog\Domain\Enums\ProductType;
-use App\Modules\Catalog\Domain\Repositories\ProductRepositoryInterface;
+use App\Modules\Catalog\Domain\Repositories\GenericProductRepositoryInterface;
 
 class KitRecipeValidator
 {
     public function __construct(
-        private readonly ProductRepositoryInterface $productRepository,
+        private readonly GenericProductRepositoryInterface $genericProductRepository,
     ) {}
 
     /**
-     * @param array<int, array{component_product_id: int, quantity_per_kit: int}> $components
+     * @param array<int, array{component_generic_id: int, quantity_per_kit: int}> $components
      */
-    public function validate(int $kitProductId, array $components): void
+    public function validate(int $kitGenericId, array $components): void
     {
-        $kit = $this->productRepository->findById($kitProductId);
+        $kit = $this->genericProductRepository->findById($kitGenericId);
 
         if ($kit === null) {
-            throw new \DomainException('El producto kit no existe.');
+            throw new \DomainException('El producto genérico kit no existe.');
         }
 
         if (! $kit->isKit()) {
@@ -35,9 +34,9 @@ class KitRecipeValidator
         $seen = [];
 
         foreach ($components as $index => $row) {
-            $componentId = (int) $row['component_product_id'];
+            $componentId = (int) $row['component_generic_id'];
 
-            if ($componentId === $kitProductId) {
+            if ($componentId === $kitGenericId) {
                 throw new \DomainException('Un kit no puede incluirse a sí mismo como componente.');
             }
 
@@ -47,7 +46,7 @@ class KitRecipeValidator
 
             $seen[$componentId] = true;
 
-            $component = $this->productRepository->findById($componentId);
+            $component = $this->genericProductRepository->findById($componentId);
 
             if ($component === null) {
                 throw new \DomainException("Componente en posición {$index} no existe.");

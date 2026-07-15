@@ -6,7 +6,7 @@ namespace App\Modules\Catalog\Infrastructure\Persistence;
 
 use App\Modules\Catalog\Domain\Entities\ProductPresentation;
 use App\Modules\Catalog\Domain\Repositories\ProductPresentationRepositoryInterface;
-use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductModel;
+use App\Modules\Catalog\Infrastructure\Persistence\Models\GenericProductModel;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductPresentationModel;
 
 class EloquentProductPresentationRepository implements ProductPresentationRepositoryInterface
@@ -29,7 +29,7 @@ class EloquentProductPresentationRepository implements ProductPresentationReposi
 
     public function findByProductId(int $productId): array
     {
-        $product = ProductModel::find($productId);
+        $product = GenericProductModel::find($productId);
 
         if ($product === null) {
             return [];
@@ -73,12 +73,12 @@ class EloquentProductPresentationRepository implements ProductPresentationReposi
         bool $isPurchaseDefault = false,
         int $sortOrder = 0,
     ): void {
-        $product = ProductModel::findOrFail($productId);
+        $product = GenericProductModel::findOrFail($productId);
 
         if ($isPurchaseDefault) {
             // Desmarcar cualquier otra presentación default para este producto
             $product->presentations()->newPivotStatement()
-                ->where('product_id', $productId)
+                ->where('generic_product_id', $productId)
                 ->update(['is_purchase_default' => false]);
         }
 
@@ -92,17 +92,17 @@ class EloquentProductPresentationRepository implements ProductPresentationReposi
 
     public function detachFromProduct(int $presentationId, int $productId): void
     {
-        $product = ProductModel::findOrFail($productId);
+        $product = GenericProductModel::findOrFail($productId);
         $product->presentations()->detach($presentationId);
     }
 
     public function setProductDefault(int $presentationId, int $productId): void
     {
-        $product = ProductModel::findOrFail($productId);
+        $product = GenericProductModel::findOrFail($productId);
 
         // Quitar el default anterior
         $product->presentations()->newPivotStatement()
-            ->where('product_id', $productId)
+            ->where('generic_product_id', $productId)
             ->update(['is_purchase_default' => false]);
 
         // Establecer el nuevo default

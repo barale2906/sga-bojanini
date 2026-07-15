@@ -6,9 +6,10 @@ namespace App\Modules\Catalog\Domain\Services;
 
 use App\Modules\Catalog\Domain\Enums\ProductType;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\CategoryModel;
+use App\Modules\Catalog\Infrastructure\Persistence\Models\GenericProductModel;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductClassificationModel;
-use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductModel;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductSanitaryRegistrationModel;
+use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductVariantModel;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\UnitOfMeasureModel;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -33,8 +34,6 @@ class ProductImportService
             try {
                 $validator = Validator::make($row, [
                     'name'                => 'required|string|max:255',
-                    'code'                => 'required|string|max:50|unique:products,code',
-                    'sku'                 => 'nullable|string|max:100|unique:products,sku',
                     'category_code'       => 'required|string|exists:categories,code',
                     'unit_abbreviation'   => 'required|string|exists:units_of_measure,abbreviation',
                     'classification_code' => 'nullable|string|exists:product_classifications,code',
@@ -50,9 +49,6 @@ class ProductImportService
                     'sanitary_registration'    => 'nullable|string|max:100',
                 ], [
                     'name.required'              => 'El nombre es obligatorio.',
-                    'code.required'               => 'El código es obligatorio.',
-                    'code.unique'                  => 'Ya existe un producto con este código.',
-                    'sku.unique'                   => 'Ya existe un producto con este SKU.',
                     'category_code.required'      => 'El código de categoría es obligatorio.',
                     'category_code.exists'        => 'No existe ninguna categoría con este código. Revise la hoja "Categorías" de la plantilla.',
                     'unit_abbreviation.required'  => 'La abreviatura de unidad de medida es obligatoria.',
@@ -78,10 +74,12 @@ class ProductImportService
                     : null;
 
                 DB::transaction(function () use ($row, $category, $unit, $classification) {
-                    $product = ProductModel::create([
+                    $maxBarcode = (int) GenericProductModel::max('barcode');
+                    $barcode    = str_pad((string) ($maxBarcode + 1), 6, '0', STR_PAD_LEFT);
+
+                    $generic = GenericProductModel::create([
                         'name'                => $row['name'],
-                        'code'                => $row['code'],
-                        'sku'                 => ! empty($row['sku']) ? $row['sku'] : null,
+                        'barcode'             => $barcode,
                         'category_id'         => $category->id,
                         'base_unit_id'        => $unit->id,
                         'classification_id'   => $classification?->id,
@@ -94,19 +92,25 @@ class ProductImportService
                         'max_stock'           => (int) ($row['max_stock'] ?? 0),
                         'volume_cm3'          => ! empty($row['volume_cm3']) ? (float) $row['volume_cm3'] : null,
                         'weight_kg'           => ! empty($row['weight_kg']) ? (float) $row['weight_kg'] : null,
-                        'concentration'            => ! empty($row['concentration']) ? $row['concentration'] : null,
-                        'risk_level'               => ! empty($row['risk_level']) ? $row['risk_level'] : null,
-                        'lab_brand'                => ! empty($row['lab_brand']) ? $row['lab_brand'] : null,
-                        'pharmaceutical_form'      => ! empty($row['pharmaceutical_form']) ? $row['pharmaceutical_form'] : null,
-                        'commercial_presentation'  => ! empty($row['commercial_presentation']) ? $row['commercial_presentation'] : null,
-                        'serie_reference'          => ! empty($row['serie_reference']) ? $row['serie_reference'] : null,
-                        'useful_life'              => ! empty($row['useful_life']) ? $row['useful_life'] : null,
+                        'concentration'       => ! empty($row['concentration']) ? $row['concentration'] : null,
+                        'pharmaceutical_form' => ! empty($row['pharmaceutical_form']) ? $row['pharmaceutical_form'] : null,
                         'is_active'           => true,
+                    ]);
+
+                    $variant = ProductVariantModel::create([
+                        'generic_product_id'      => $generic->id,
+                        'lab_brand'               => ! empty($row['lab_brand']) ? $row['lab_brand'] : null,
+                        'brand_sku'               => ! empty($row['sku']) ? (string) $row['sku'] : null,
+                        'risk_level'              => ! empty($row['risk_level']) ? $row['risk_level'] : null,
+                        'commercial_presentation' => ! empty($row['commercial_presentation']) ? $row['commercial_presentation'] : null,
+                        'serie_reference'         => ! empty($row['serie_reference']) ? $row['serie_reference'] : null,
+                        'useful_life'             => ! empty($row['useful_life']) ? $row['useful_life'] : null,
+                        'is_active'               => true,
                     ]);
 
                     if (! empty($row['sanitary_registration'])) {
                         ProductSanitaryRegistrationModel::create([
-                            'product_id'          => $product->id,
+                            'product_variant_id'  => $variant->id,
                             'registration_number' => $row['sanitary_registration'],
                             'expiry_date'         => '2099-12-31',
                             'is_active'           => true,

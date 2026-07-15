@@ -32,21 +32,21 @@ return [
 
     'service_product_map' => [
         'Consulta Dermatológica' => [
-            ['product_code' => 'AGU-21G', 'quantity_per_service' => 2],
-            ['product_code' => 'GAS-10X10', 'quantity_per_service' => 1],
+            ['product_barcode' => '000001', 'quantity_per_service' => 2],
+            ['product_barcode' => '000002', 'quantity_per_service' => 1],
         ],
         'Aplicación de Botox' => [
-            ['product_code' => 'AGU-21G', 'quantity_per_service' => 1],
-            ['product_code' => 'GAS-10X10', 'quantity_per_service' => 2],
+            ['product_barcode' => '000001', 'quantity_per_service' => 1],
+            ['product_barcode' => '000002', 'quantity_per_service' => 2],
         ],
         'Peeling Químico' => [
-            ['product_code' => 'GAS-10X10', 'quantity_per_service' => 5],
+            ['product_barcode' => '000002', 'quantity_per_service' => 5],
         ],
         'Láser CO2' => [
-            ['product_code' => 'GAS-10X10', 'quantity_per_service' => 3],
+            ['product_barcode' => '000002', 'quantity_per_service' => 3],
         ],
         'Mesoterapia' => [
-            ['product_code' => 'AGU-21G', 'quantity_per_service' => 1],
+            ['product_barcode' => '000001', 'quantity_per_service' => 1],
         ],
     ],
 

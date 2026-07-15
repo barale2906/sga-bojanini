@@ -15,7 +15,7 @@ class PurchaseOrderItemResource extends JsonResource
     {
         return [
             'id'                      => $this->id,
-            'product_id'              => $this->product_id,
+            'product_variant_id'      => $this->product_variant_id,
             'product_presentation_id' => $this->product_presentation_id,
             'quantity_requested'      => $this->quantity_requested,
             'quantity_requested_base' => $this->quantity_requested_base,
@@ -26,10 +26,15 @@ class PurchaseOrderItemResource extends JsonResource
             'tax_amount'              => $this->tax_amount,
             'total_price'             => $this->total_price,
             'notes'                   => $this->notes,
-            'product'                 => $this->whenLoaded('product', fn () => [
-                'id'   => $this->product->id,
-                'code' => $this->product->code,
-                'name' => $this->product->name,
+            'variant'                 => $this->whenLoaded('variant', fn () => [
+                'id'        => $this->variant->id,
+                'lab_brand' => $this->variant->lab_brand,
+                'brand_sku' => $this->variant->brand_sku,
+                'generic'   => $this->variant->relationLoaded('genericProduct') ? [
+                    'id'      => $this->variant->genericProduct->id,
+                    'name'    => $this->variant->genericProduct->name,
+                    'barcode' => $this->variant->genericProduct->barcode,
+                ] : null,
             ]),
             'presentation' => $this->whenLoaded('presentation', fn () => [
                 'id'   => $this->presentation->id,

@@ -16,7 +16,7 @@ class ProductSanitaryRegistration
 {
     public function __construct(
         private ?int $id,
-        private int $productId,
+        private int $productVariantId,
         private string $registrationNumber,
         private DateTimeImmutable $expiryDate,
         private bool $isActive = true,
@@ -27,9 +27,9 @@ class ProductSanitaryRegistration
         return $this->id;
     }
 
-    public function getProductId(): int
+    public function getProductVariantId(): int
     {
-        return $this->productId;
+        return $this->productVariantId;
     }
 
     public function getRegistrationNumber(): string

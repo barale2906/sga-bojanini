@@ -3,10 +3,12 @@
 namespace Tests\Feature;
 
 use App\Modules\Auth\Infrastructure\Persistence\Models\UserModel;
-use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductModel;
+use App\Modules\Catalog\Infrastructure\Persistence\Models\GenericProductModel;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductPresentationModel;
+use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductVariantModel;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\SupplierModel;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\UnitOfMeasureModel;
+use App\Modules\Inventory\Infrastructure\Persistence\Models\MovementDocumentModel;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\StockMovementModel;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\StockSummaryModel;
 use App\Modules\Purchasing\Infrastructure\Persistence\Models\PurchaseOrderModel;
@@ -40,9 +42,10 @@ class PurchasingTest extends TestCase
 
     public function test_ciclo_completo_orden_compra_con_recepcion_parcial_y_total(): void
     {
-        $setup = $this->createWarehouseSetup();
+        $setup    = $this->createWarehouseSetup();
         $supplier = SupplierModel::first();
-        $product = ProductModel::where('code', 'AGU-21G')->first();
+        $generic  = GenericProductModel::where('barcode', '000001')->first();
+        $variant  = ProductVariantModel::where('generic_product_id', $generic->id)->first();
         $presentation = ProductPresentationModel::where('code', 'PQ-100')->first();
 
         $create = $this->withHeaders($this->auth())
@@ -51,7 +54,7 @@ class PurchasingTest extends TestCase
                 'warehouse_id' => $setup['warehouse']->id,
                 'items'        => [
                     [
-                        'product_id'              => $product->id,
+                        'product_variant_id'      => $variant->id,
                         'product_presentation_id' => $presentation->id,
                         'quantity'                => 2,
                         'unit_price'              => 50000,
@@ -63,7 +66,7 @@ class PurchasingTest extends TestCase
             ->assertJsonPath('data.status', 'draft');
 
         $orderId = $create->json('data.id');
-        $itemId = $create->json('data.items.0.id');
+        $itemId  = $create->json('data.items.0.id');
 
         $this->withHeaders($this->auth())
             ->postJson("/api/v1/purchase-orders/{$orderId}/submit")
@@ -96,7 +99,7 @@ class PurchasingTest extends TestCase
             ->assertJsonPath('data.status', 'partially_received');
 
         $this->assertDatabaseHas('stock_summaries', [
-            'product_id'         => $product->id,
+            'product_variant_id' => $variant->id,
             'warehouse_id'       => $setup['warehouse']->id,
             'available_quantity' => 100,
         ]);
@@ -117,7 +120,7 @@ class PurchasingTest extends TestCase
             ->assertJsonPath('data.status', 'received');
 
         $this->assertDatabaseHas('stock_summaries', [
-            'product_id'         => $product->id,
+            'product_variant_id' => $variant->id,
             'warehouse_id'       => $setup['warehouse']->id,
             'available_quantity' => 200,
         ]);
@@ -131,9 +134,10 @@ class PurchasingTest extends TestCase
 
     public function test_rechazo_orden_compra(): void
     {
-        $setup = $this->createWarehouseSetup();
+        $setup    = $this->createWarehouseSetup();
         $supplier = SupplierModel::first();
-        $product = ProductModel::where('code', 'AGU-21G')->first();
+        $generic  = GenericProductModel::where('barcode', '000001')->first();
+        $variant  = ProductVariantModel::where('generic_product_id', $generic->id)->first();
         $presentation = ProductPresentationModel::where('code', 'PQ-100')->first();
 
         $create = $this->withHeaders($this->auth())
@@ -142,7 +146,7 @@ class PurchasingTest extends TestCase
                 'warehouse_id' => $setup['warehouse']->id,
                 'items'        => [
                     [
-                        'product_id'              => $product->id,
+                        'product_variant_id'      => $variant->id,
                         'product_presentation_id' => $presentation->id,
                         'quantity'                => 1,
                         'unit_price'              => 10000,
@@ -172,24 +176,35 @@ class PurchasingTest extends TestCase
 
     public function test_sugerencias_reorden(): void
     {
-        $setup = $this->createWarehouseSetup();
-        $product = ProductModel::where('code', 'AGU-21G')->first();
-        $product->update([
+        $setup   = $this->createWarehouseSetup();
+        $generic = GenericProductModel::where('barcode', '000001')->first();
+        $variant = ProductVariantModel::where('generic_product_id', $generic->id)->first();
+
+        $generic->update([
             'reorder_point' => 100,
             'min_stock'     => 50,
         ]);
 
+        $doc = MovementDocumentModel::create([
+            'document_number' => 'SAL-REORDER-TEST-001',
+            'document_type'   => 'exit',
+            'warehouse_id'    => $setup['warehouse']->id,
+            'user_id'         => UserModel::first()->id,
+            'status'          => 'confirmed',
+        ]);
+
         StockMovementModel::create([
-            'warehouse_id'  => $setup['warehouse']->id,
-            'product_id'    => $product->id,
-            'movement_type' => 'exit',
-            'quantity'      => -900,
-            'user_id'       => UserModel::first()->id,
+            'movement_document_id' => $doc->id,
+            'warehouse_id'         => $setup['warehouse']->id,
+            'product_variant_id'   => $variant->id,
+            'movement_type'        => 'exit',
+            'quantity'             => -900,
+            'user_id'              => UserModel::first()->id,
         ]);
 
         StockSummaryModel::create([
             'warehouse_id'       => $setup['warehouse']->id,
-            'product_id'         => $product->id,
+            'product_variant_id' => $variant->id,
             'total_quantity'     => 30,
             'reserved_quantity'  => 0,
             'available_quantity' => 30,
@@ -201,26 +216,17 @@ class PurchasingTest extends TestCase
             ->assertStatus(200)
             ->assertJsonPath('success', true);
 
-        $codes = collect($response->json('data'))->pluck('product_code');
-        $this->assertTrue($codes->contains('AGU-21G'));
+        $barcodes = collect($response->json('data'))->pluck('product_barcode');
+        $this->assertTrue($barcodes->contains('000001'));
     }
 
     public function test_no_permite_producto_kit_en_orden_compra(): void
     {
-        $setup = $this->createWarehouseSetup();
+        $setup    = $this->createWarehouseSetup();
         $supplier = SupplierModel::first();
-        $kit = ProductModel::where('code', 'KIT-CIR-BAS')->first();
-        $kitUnit = UnitOfMeasureModel::where('abbreviation', 'KIT')->first();
-
-        $presentation = ProductPresentationModel::create([
-            'product_id'          => $kit->id,
-            'code'                => 'KIT-UNIT-TEST',
-            'name'                => 'Kit unidad test',
-            'units_of_measure_id' => $kitUnit->id,
-            'factor_to_base'      => 1,
-            'level'               => 1,
-            'sort_order'          => 1,
-        ]);
+        $kitGeneric = GenericProductModel::where('barcode', '000003')->first();
+        $kitVariant = ProductVariantModel::where('generic_product_id', $kitGeneric->id)->first();
+        $presentation = ProductPresentationModel::where('code', 'PQ-100')->first();
 
         $this->withHeaders($this->auth())
             ->postJson('/api/v1/purchase-orders', [
@@ -228,7 +234,7 @@ class PurchasingTest extends TestCase
                 'warehouse_id' => $setup['warehouse']->id,
                 'items'        => [
                     [
-                        'product_id'              => $kit->id,
+                        'product_variant_id'      => $kitVariant->id,
                         'product_presentation_id' => $presentation->id,
                         'quantity'                => 1,
                         'unit_price'              => 10000,

@@ -6,9 +6,11 @@ namespace App\Modules\Inventory\Application\UseCases;
 
 use App\Modules\Inventory\Domain\Events\StockMovementCreated;
 use App\Modules\Inventory\Domain\Services\BatchLocationService;
+use App\Modules\Inventory\Domain\Services\DocumentNumberGenerator;
 use App\Modules\Inventory\Domain\Services\FEFOService;
 use App\Modules\Inventory\Domain\ValueObjects\MovementStatus;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\BatchModel;
+use App\Modules\Inventory\Infrastructure\Persistence\Models\MovementDocumentModel;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\StockMovementModel;
 use Illuminate\Support\Facades\DB;
 
@@ -17,6 +19,7 @@ class AdjustStockUseCase
     public function __construct(
         private readonly FEFOService $fefoService,
         private readonly BatchLocationService $batchLocationService,
+        private readonly DocumentNumberGenerator $numberGenerator,
     ) {}
 
     public function execute(array $data): StockMovementModel
@@ -25,7 +28,7 @@ class AdjustStockUseCase
     }
 
     /**
-     * Valida la disponibilidad y crea el registro pendiente de firma.
+     * Valida la disponibilidad y crea el documento + registro pendiente de firma.
      * Para ajustes negativos corre FEFO para detectar stock insuficiente o vencido.
      * Para ajustes positivos verifica que exista un lote activo.
      */
@@ -43,7 +46,7 @@ class AdjustStockUseCase
                 // descartes por conteo físico), por lo que se incluyen lotes con
                 // expiration_date pasada.
                 $selectedBatches = $this->fefoService->selectBatchesForExit(
-                    $data['product_id'],
+                    $data['product_variant_id'],
                     $data['warehouse_id'],
                     abs($quantity),
                     includeExpired: true,
@@ -51,7 +54,7 @@ class AdjustStockUseCase
 
                 $firstBatchId = $selectedBatches[0]['batch_id'];
             } else {
-                $batch = BatchModel::where('product_id', $data['product_id'])
+                $batch = BatchModel::where('product_variant_id', $data['product_variant_id'])
                     ->where('status', 'active')
                     ->orderBy('expiration_date')
                     ->first();
@@ -63,17 +66,27 @@ class AdjustStockUseCase
                 $firstBatchId = $batch->id;
             }
 
+            $document = MovementDocumentModel::create([
+                'document_number' => $this->numberGenerator->next('adjustment'),
+                'document_type'   => 'adjustment',
+                'warehouse_id'    => $data['warehouse_id'],
+                'reason'          => $data['reason'],
+                'user_id'         => $data['user_id'],
+                'status'          => MovementStatus::PENDING_SIGNATURE->value,
+            ]);
+
             return StockMovementModel::create([
-                'warehouse_id'     => $data['warehouse_id'],
-                'product_id'       => $data['product_id'],
-                'batch_id'         => $firstBatchId,
-                'location_from_id' => $quantity < 0 ? ($data['location_id'] ?? null) : null,
-                'location_to_id'   => $quantity > 0 ? ($data['location_id'] ?? null) : null,
-                'movement_type'    => 'adjustment',
-                'quantity'         => $quantity,
-                'reason'           => $data['reason'],
-                'user_id'          => $data['user_id'],
-                'status'           => MovementStatus::PENDING_SIGNATURE->value,
+                'movement_document_id' => $document->id,
+                'warehouse_id'         => $data['warehouse_id'],
+                'product_variant_id'   => $data['product_variant_id'],
+                'batch_id'             => $firstBatchId,
+                'location_from_id'     => $quantity < 0 ? ($data['location_id'] ?? null) : null,
+                'location_to_id'       => $quantity > 0 ? ($data['location_id'] ?? null) : null,
+                'movement_type'        => 'adjustment',
+                'quantity'             => $quantity,
+                'reason'               => $data['reason'],
+                'user_id'              => $data['user_id'],
+                'status'               => MovementStatus::PENDING_SIGNATURE->value,
             ]);
         });
     }
@@ -125,7 +138,7 @@ class AdjustStockUseCase
 
         event(new StockMovementCreated(
             movementId: $movement->id,
-            productId: $movement->product_id,
+            productVariantId: $movement->product_variant_id,
             warehouseId: $movement->warehouse_id,
             movementType: 'adjustment',
             quantity: $quantity,
@@ -140,7 +153,7 @@ class AdjustStockUseCase
         // descartes por conteo físico), por lo que se incluyen lotes con
         // expiration_date pasada.
         $selectedBatches = $this->fefoService->selectBatchesForExit(
-            $movement->product_id,
+            $movement->product_variant_id,
             $movement->warehouse_id,
             $quantity,
             includeExpired: true,
@@ -162,7 +175,7 @@ class AdjustStockUseCase
 
         event(new StockMovementCreated(
             movementId: $movement->id,
-            productId: $movement->product_id,
+            productVariantId: $movement->product_variant_id,
             warehouseId: $movement->warehouse_id,
             movementType: 'adjustment',
             quantity: $quantity,

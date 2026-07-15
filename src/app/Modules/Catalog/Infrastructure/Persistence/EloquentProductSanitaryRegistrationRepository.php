@@ -18,9 +18,9 @@ class EloquentProductSanitaryRegistrationRepository implements ProductSanitaryRe
         return $model ? $this->toDomain($model) : null;
     }
 
-    public function findByProductId(int $productId, bool $onlyActive = false): array
+    public function findByProductVariantId(int $productVariantId, bool $onlyActive = false): array
     {
-        $query = ProductSanitaryRegistrationModel::where('product_id', $productId);
+        $query = ProductSanitaryRegistrationModel::where('product_variant_id', $productVariantId);
 
         if ($onlyActive) {
             $query->where('is_active', true)
@@ -33,9 +33,9 @@ class EloquentProductSanitaryRegistrationRepository implements ProductSanitaryRe
             ->toArray();
     }
 
-    public function findByProductAndNumber(int $productId, string $registrationNumber): ?ProductSanitaryRegistration
+    public function findByVariantAndNumber(int $productVariantId, string $registrationNumber): ?ProductSanitaryRegistration
     {
-        $model = ProductSanitaryRegistrationModel::where('product_id', $productId)
+        $model = ProductSanitaryRegistrationModel::where('product_variant_id', $productVariantId)
             ->where('registration_number', $registrationNumber)
             ->first();
 
@@ -48,7 +48,7 @@ class EloquentProductSanitaryRegistrationRepository implements ProductSanitaryRe
             ? ProductSanitaryRegistrationModel::findOrFail($registration->getId())
             : new ProductSanitaryRegistrationModel();
 
-        $model->product_id          = $registration->getProductId();
+        $model->product_variant_id  = $registration->getProductVariantId();
         $model->registration_number = $registration->getRegistrationNumber();
         $model->expiry_date         = $registration->getExpiryDate()->format('Y-m-d');
         $model->is_active           = $registration->isActive();
@@ -66,7 +66,7 @@ class EloquentProductSanitaryRegistrationRepository implements ProductSanitaryRe
     {
         return new ProductSanitaryRegistration(
             id:                 $model->id,
-            productId:          $model->product_id,
+            productVariantId:   $model->product_variant_id,
             registrationNumber: $model->registration_number,
             expiryDate:         new DateTimeImmutable($model->expiry_date->format('Y-m-d')),
             isActive:           (bool) $model->is_active,

@@ -12,9 +12,9 @@ class ReorderSuggestionResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'product_id'         => $this->resource['product_id'],
+            'generic_product_id' => $this->resource['generic_product_id'],
             'product_name'       => $this->resource['product_name'],
-            'product_code'       => $this->resource['product_code'],
+            'product_barcode'    => $this->resource['product_barcode'],
             'current_stock'      => $this->resource['current_stock'],
             'reorder_point'      => $this->resource['reorder_point'],
             'daily_consumption'  => $this->resource['daily_consumption'],

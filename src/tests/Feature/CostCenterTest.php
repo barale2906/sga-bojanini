@@ -3,7 +3,8 @@
 namespace Tests\Feature;
 
 use App\Modules\Auth\Infrastructure\Persistence\Models\UserModel;
-use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductModel;
+use App\Modules\Catalog\Infrastructure\Persistence\Models\GenericProductModel;
+use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductVariantModel;
 use App\Modules\CostCenter\Infrastructure\Persistence\Models\CostCenterModel;
 use App\Modules\CostCenter\Infrastructure\Persistence\Models\MedicalServiceModel;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\BatchModel;
@@ -182,16 +183,27 @@ class CostCenterTest extends TestCase
     public function test_no_eliminar_centro_con_movimientos_asociados(): void
     {
         $center  = CostCenterModel::where('code', 'ENF')->first();
-        $product = ProductModel::first();
+        $variant = ProductVariantModel::first();
         $user    = UserModel::first();
+        $wh      = WarehouseModel::create(['name' => 'WH-TEST', 'code' => 'WH-T', 'is_active' => true]);
+
+        $document = \App\Modules\Inventory\Infrastructure\Persistence\Models\MovementDocumentModel::create([
+            'document_number' => 'SAL-TEST-001',
+            'document_type'   => 'exit',
+            'warehouse_id'    => $wh->id,
+            'cost_center_id'  => $center->id,
+            'user_id'         => $user->id,
+            'status'          => 'confirmed',
+        ]);
 
         StockMovementModel::create([
-            'warehouse_id'   => WarehouseModel::create(['name' => 'WH-TEST', 'code' => 'WH-T', 'is_active' => true])->id,
-            'product_id'     => $product->id,
-            'movement_type'  => 'exit',
-            'quantity'       => -1,
-            'cost_center_id' => $center->id,
-            'user_id'        => $user->id,
+            'movement_document_id' => $document->id,
+            'warehouse_id'         => $wh->id,
+            'product_variant_id'   => $variant->id,
+            'movement_type'        => 'exit',
+            'quantity'             => -1,
+            'cost_center_id'       => $center->id,
+            'user_id'              => $user->id,
         ]);
 
         $this->withHeaders($this->auth())
@@ -205,13 +217,11 @@ class CostCenterTest extends TestCase
     public function test_salida_sin_cost_center_falla_validacion(): void
     {
         $setup   = $this->createInventorySetup();
-        $product = ProductModel::where('code', 'AGU-21G')->first();
 
         $this->withHeaders($this->auth())
             ->postJson('/api/v1/movements/exit', [
-                'product_id'   => $product->id,
                 'warehouse_id' => $setup['warehouse']->id,
-                'quantity'     => 5,
+                'items'        => [['generic_product_id' => $setup['generic']->id, 'quantity' => 5]],
                 // sin cost_center_id
             ])
             ->assertUnprocessable()
@@ -220,49 +230,46 @@ class CostCenterTest extends TestCase
 
     public function test_salida_con_centro_interno_no_requiere_datos_paciente(): void
     {
-        $setup   = $this->createInventorySetup();
-        $product = ProductModel::where('code', 'AGU-21G')->first();
-        $center  = CostCenterModel::where('type', 'internal')->first();
+        $setup  = $this->createInventorySetup();
+        $center = CostCenterModel::where('type', 'internal')->first();
 
         $this->withHeaders($this->auth())
             ->postJson('/api/v1/movements/exit', [
-                'product_id'     => $product->id,
                 'warehouse_id'   => $setup['warehouse']->id,
-                'quantity'       => 5,
                 'cost_center_id' => $center->id,
+                'items'          => [['generic_product_id' => $setup['generic']->id, 'quantity' => 5]],
             ])
             ->assertStatus(201)
             ->assertJsonPath('success', true)
-            ->assertJsonPath('data.0.cost_center_id', $center->id);
+            ->assertJsonPath('data.cost_center_id', $center->id);
 
         $this->assertDatabaseHas('stock_movements', [
-            'product_id'     => $product->id,
-            'movement_type'  => 'exit',
-            'cost_center_id' => $center->id,
+            'product_variant_id' => $setup['variant']->id,
+            'movement_type'      => 'exit',
+            'cost_center_id'     => $center->id,
         ]);
     }
 
     public function test_salida_con_centro_externo_registra_datos_paciente(): void
     {
         $setup   = $this->createInventorySetup();
-        $product = ProductModel::where('code', 'AGU-21G')->first();
         $center  = CostCenterModel::where('type', 'external')->first();
         $service = MedicalServiceModel::first();
+
         $this->withHeaders($this->auth())
             ->postJson('/api/v1/movements/exit', [
-                'product_id'          => $product->id,
                 'warehouse_id'        => $setup['warehouse']->id,
-                'quantity'            => 3,
                 'cost_center_id'      => $center->id,
                 'service_id'          => $service->id,
                 'patient_document'    => '1012345678',
                 'patient_external_id' => 'EXT-00892',
+                'items'               => [['generic_product_id' => $setup['generic']->id, 'quantity' => 3]],
             ])
             ->assertStatus(201)
-            ->assertJsonPath('data.0.cost_center_id', $center->id)
-            ->assertJsonPath('data.0.service_id', $service->id)
-            ->assertJsonPath('data.0.patient_document', '1012345678')
-            ->assertJsonPath('data.0.patient_external_id', 'EXT-00892');
+            ->assertJsonPath('data.cost_center_id', $center->id)
+            ->assertJsonPath('data.service_id', $service->id)
+            ->assertJsonPath('data.patient_document', '1012345678')
+            ->assertJsonPath('data.patient_external_id', 'EXT-00892');
 
         $this->assertDatabaseHas('stock_movements', [
             'cost_center_id'      => $center->id,
@@ -274,19 +281,17 @@ class CostCenterTest extends TestCase
 
     public function test_salida_con_centro_externo_sin_service_id_retorna_409(): void
     {
-        $setup   = $this->createInventorySetup();
-        $product = ProductModel::where('code', 'AGU-21G')->first();
-        $center  = CostCenterModel::where('type', 'external')->first();
+        $setup  = $this->createInventorySetup();
+        $center = CostCenterModel::where('type', 'external')->first();
 
         $this->withHeaders($this->auth())
             ->postJson('/api/v1/movements/exit', [
-                'product_id'          => $product->id,
                 'warehouse_id'        => $setup['warehouse']->id,
-                'quantity'            => 2,
                 'cost_center_id'      => $center->id,
                 // sin service_id
                 'patient_document'    => '1012345678',
                 'patient_external_id' => 'EXT-00892',
+                'items'               => [['generic_product_id' => $setup['generic']->id, 'quantity' => 2]],
             ])
             ->assertStatus(409)
             ->assertJsonPath('success', false);
@@ -295,19 +300,17 @@ class CostCenterTest extends TestCase
     public function test_salida_con_centro_externo_sin_documento_paciente_retorna_409(): void
     {
         $setup   = $this->createInventorySetup();
-        $product = ProductModel::where('code', 'AGU-21G')->first();
         $center  = CostCenterModel::where('type', 'external')->first();
         $service = MedicalServiceModel::first();
 
         $this->withHeaders($this->auth())
             ->postJson('/api/v1/movements/exit', [
-                'product_id'          => $product->id,
                 'warehouse_id'        => $setup['warehouse']->id,
-                'quantity'            => 2,
                 'cost_center_id'      => $center->id,
                 'service_id'          => $service->id,
                 // sin patient_document
                 'patient_external_id' => 'EXT-00892',
+                'items'               => [['generic_product_id' => $setup['generic']->id, 'quantity' => 2]],
             ])
             ->assertStatus(409)
             ->assertJsonPath('success', false);
@@ -316,19 +319,17 @@ class CostCenterTest extends TestCase
     public function test_salida_con_centro_externo_sin_id_externo_paciente_retorna_409(): void
     {
         $setup   = $this->createInventorySetup();
-        $product = ProductModel::where('code', 'AGU-21G')->first();
         $center  = CostCenterModel::where('type', 'external')->first();
         $service = MedicalServiceModel::first();
 
         $this->withHeaders($this->auth())
             ->postJson('/api/v1/movements/exit', [
-                'product_id'       => $product->id,
                 'warehouse_id'     => $setup['warehouse']->id,
-                'quantity'         => 2,
                 'cost_center_id'   => $center->id,
                 'service_id'       => $service->id,
                 'patient_document' => '1012345678',
                 // sin patient_external_id
+                'items'            => [['generic_product_id' => $setup['generic']->id, 'quantity' => 2]],
             ])
             ->assertStatus(409)
             ->assertJsonPath('success', false);
@@ -336,17 +337,15 @@ class CostCenterTest extends TestCase
 
     public function test_salida_con_centro_inactivo_retorna_409(): void
     {
-        $setup   = $this->createInventorySetup();
-        $product = ProductModel::where('code', 'AGU-21G')->first();
-        $center  = CostCenterModel::where('type', 'internal')->first();
+        $setup  = $this->createInventorySetup();
+        $center = CostCenterModel::where('type', 'internal')->first();
         $center->update(['is_active' => false]);
 
         $this->withHeaders($this->auth())
             ->postJson('/api/v1/movements/exit', [
-                'product_id'     => $product->id,
                 'warehouse_id'   => $setup['warehouse']->id,
-                'quantity'       => 2,
                 'cost_center_id' => $center->id,
+                'items'          => [['generic_product_id' => $setup['generic']->id, 'quantity' => 2]],
             ])
             ->assertStatus(409)
             ->assertJsonPath('success', false);
@@ -355,33 +354,30 @@ class CostCenterTest extends TestCase
     public function test_respuesta_salida_incluye_centro_y_servicio_cargados(): void
     {
         $setup   = $this->createInventorySetup();
-        $product = ProductModel::where('code', 'AGU-21G')->first();
         $center  = CostCenterModel::where('type', 'external')->first();
         $service = MedicalServiceModel::first();
 
         $response = $this->withHeaders($this->auth())
             ->postJson('/api/v1/movements/exit', [
-                'product_id'          => $product->id,
                 'warehouse_id'        => $setup['warehouse']->id,
-                'quantity'            => 1,
                 'cost_center_id'      => $center->id,
                 'service_id'          => $service->id,
                 'patient_document'    => '9876543210',
                 'patient_external_id' => 'EXT-TEST',
+                'items'               => [['generic_product_id' => $setup['generic']->id, 'quantity' => 1]],
             ])
             ->assertStatus(201);
 
-        $response->assertJsonPath('data.0.cost_center.id', $center->id)
-            ->assertJsonPath('data.0.cost_center.type', 'external')
-            ->assertJsonPath('data.0.medical_service.id', $service->id);
+        $response->assertJsonPath('data.cost_center.id', $center->id)
+            ->assertJsonPath('data.cost_center.type', 'external')
+            ->assertJsonPath('data.medical_service.id', $service->id);
     }
 
     // ─── Filtros en listado de movimientos ────────────────────────────────────
 
     public function test_filtrar_movimientos_por_centro_de_costo(): void
     {
-        $setup   = $this->createInventorySetup();
-        $product = ProductModel::where('code', 'AGU-21G')->first();
+        $setup    = $this->createInventorySetup();
         $internal = CostCenterModel::where('type', 'internal')->first();
         $external = CostCenterModel::where('type', 'external')->first();
         $service  = MedicalServiceModel::first();
@@ -389,22 +385,20 @@ class CostCenterTest extends TestCase
         // Una salida interna
         $this->withHeaders($this->auth())
             ->postJson('/api/v1/movements/exit', [
-                'product_id'     => $product->id,
                 'warehouse_id'   => $setup['warehouse']->id,
-                'quantity'       => 1,
                 'cost_center_id' => $internal->id,
+                'items'          => [['generic_product_id' => $setup['generic']->id, 'quantity' => 1]],
             ]);
 
         // Una salida externa
         $this->withHeaders($this->auth())
             ->postJson('/api/v1/movements/exit', [
-                'product_id'          => $product->id,
                 'warehouse_id'        => $setup['warehouse']->id,
-                'quantity'            => 1,
                 'cost_center_id'      => $external->id,
                 'service_id'          => $service->id,
                 'patient_document'    => '1111111111',
                 'patient_external_id' => 'EXT-001',
+                'items'               => [['generic_product_id' => $setup['generic']->id, 'quantity' => 1]],
             ]);
 
         // Filtrar solo por centro interno
@@ -423,7 +417,7 @@ class CostCenterTest extends TestCase
     // ─── Helpers ─────────────────────────────────────────────────────────────
 
     /**
-     * @return array{warehouse: WarehouseModel, location: LocationModel}
+     * @return array{warehouse: WarehouseModel, location: LocationModel, generic: GenericProductModel, variant: ProductVariantModel}
      */
     private function createInventorySetup(): array
     {
@@ -443,12 +437,12 @@ class CostCenterTest extends TestCase
             'zone_id' => $zone->id, 'name' => 'Ubicación CC', 'code' => 'U-CC', 'is_active' => true,
         ]);
 
-        // Crear lote con stock suficiente para las pruebas
-        $product = ProductModel::where('code', 'AGU-21G')->first();
+        $generic = GenericProductModel::where('barcode', '000001')->firstOrFail();
+        $variant = ProductVariantModel::where('generic_product_id', $generic->id)->firstOrFail();
         $user    = UserModel::first();
 
         $batch = BatchModel::create([
-            'product_id'         => $product->id,
+            'product_variant_id' => $variant->id,
             'lot_number'         => 'LOT-CC-TEST',
             'expiration_date'    => now()->addYear()->format('Y-m-d'),
             'quantity_received'  => 200,
@@ -459,19 +453,28 @@ class CostCenterTest extends TestCase
 
         $batch->locations()->attach($location->id, ['quantity' => 200]);
 
+        $entryDoc = \App\Modules\Inventory\Infrastructure\Persistence\Models\MovementDocumentModel::create([
+            'document_number' => 'ENT-CC-TEST-001',
+            'document_type'   => 'entry',
+            'warehouse_id'    => $warehouse->id,
+            'user_id'         => $user->id,
+            'status'          => 'confirmed',
+        ]);
+
         StockMovementModel::create([
-            'warehouse_id'   => $warehouse->id,
-            'product_id'     => $product->id,
-            'batch_id'       => $batch->id,
-            'location_to_id' => $location->id,
-            'movement_type'  => 'entry',
-            'quantity'       => 200,
-            'user_id'        => $user->id,
+            'movement_document_id' => $entryDoc->id,
+            'warehouse_id'         => $warehouse->id,
+            'product_variant_id'   => $variant->id,
+            'batch_id'             => $batch->id,
+            'location_to_id'       => $location->id,
+            'movement_type'        => 'entry',
+            'quantity'             => 200,
+            'user_id'              => $user->id,
         ]);
 
         app(\App\Modules\Inventory\Domain\Services\StockCalculator::class)
-            ->recalculateSummary($product->id, $warehouse->id);
+            ->recalculateSummary($variant->id, $warehouse->id);
 
-        return compact('warehouse', 'location');
+        return compact('warehouse', 'location', 'generic', 'variant');
     }
 }

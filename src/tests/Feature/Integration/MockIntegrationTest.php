@@ -3,7 +3,8 @@
 namespace Tests\Feature\Integration;
 
 use App\Modules\Auth\Infrastructure\Persistence\Models\UserModel;
-use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductModel;
+use App\Modules\Catalog\Infrastructure\Persistence\Models\GenericProductModel;
+use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductVariantModel;
 use App\Modules\CostCenter\Infrastructure\Persistence\Models\CostCenterModel;
 use App\Modules\CostCenter\Infrastructure\Persistence\Models\MedicalServiceModel;
 use App\Modules\Integration\Domain\Ports\ClinicalRecordsServiceInterface;
@@ -11,6 +12,7 @@ use App\Modules\Integration\Domain\Ports\SchedulingServiceInterface;
 use App\Modules\Integration\Infrastructure\Jobs\SyncConsumptionToHCJob;
 use App\Modules\Integration\Infrastructure\Persistence\Models\ConsumptionRecordModel;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\BatchModel;
+use App\Modules\Inventory\Infrastructure\Persistence\Models\MovementDocumentModel;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\StockMovementModel;
 use App\Modules\Warehouse\Infrastructure\Persistence\Models\LocationModel;
 use App\Modules\Warehouse\Infrastructure\Persistence\Models\WarehouseModel;
@@ -60,10 +62,11 @@ class MockIntegrationTest extends TestCase
     public function test_demand_analysis_identifies_deficit(): void
     {
         $setup   = $this->createWarehouseSetup();
-        $product = ProductModel::where('code', 'AGU-21G')->firstOrFail();
+        $generic = GenericProductModel::where('barcode', '000001')->firstOrFail();
+        $variant = ProductVariantModel::where('generic_product_id', $generic->id)->firstOrFail();
 
-        $this->createBatch($product->id, 'LOT-LOW', now()->addDays(30)->format('Y-m-d'), 2, $setup['location'], $setup['warehouse']->id);
-        $this->recalculateStock($product->id, $setup['warehouse']->id);
+        $this->createBatch($variant->id, 'LOT-LOW', now()->addDays(30)->format('Y-m-d'), 2, $setup['location'], $setup['warehouse']->id);
+        $this->recalculateStock($variant->id, $setup['warehouse']->id);
 
         $appointments = [];
         for ($i = 0; $i < 10; $i++) {
@@ -92,7 +95,7 @@ class MockIntegrationTest extends TestCase
         $deficitProducts = $response->json('data.deficit_products');
         $this->assertNotEmpty($deficitProducts);
 
-        $agujaDeficit = collect($deficitProducts)->firstWhere('product_code', 'AGU-21G');
+        $agujaDeficit = collect($deficitProducts)->firstWhere('product_barcode', $generic->barcode);
         $this->assertNotNull($agujaDeficit);
         $this->assertGreaterThan(0, $agujaDeficit['deficit']);
     }
@@ -100,10 +103,11 @@ class MockIntegrationTest extends TestCase
     public function test_register_consumption_deducts_stock(): void
     {
         $setup   = $this->createWarehouseSetup();
-        $product = ProductModel::where('code', 'AGU-21G')->firstOrFail();
+        $generic = GenericProductModel::where('barcode', '000001')->firstOrFail();
+        $variant = ProductVariantModel::where('generic_product_id', $generic->id)->firstOrFail();
 
-        $this->createBatch($product->id, 'LOT-CONS', now()->addMonths(3)->format('Y-m-d'), 50, $setup['location'], $setup['warehouse']->id);
-        $this->recalculateStock($product->id, $setup['warehouse']->id);
+        $this->createBatch($variant->id, 'LOT-CONS', now()->addMonths(3)->format('Y-m-d'), 50, $setup['location'], $setup['warehouse']->id);
+        $this->recalculateStock($variant->id, $setup['warehouse']->id);
 
         $costCenter = CostCenterModel::where('type', 'external')->first();
         $service    = MedicalServiceModel::first();
@@ -117,7 +121,7 @@ class MockIntegrationTest extends TestCase
                 'cost_center_id'     => $costCenter->id,
                 'service_id'         => $service->id,
                 'items'              => [
-                    ['product_id' => $product->id, 'quantity' => 10],
+                    ['generic_product_id' => $generic->id, 'quantity' => 10],
                 ],
             ])
             ->assertStatus(201)
@@ -125,29 +129,30 @@ class MockIntegrationTest extends TestCase
             ->assertJsonPath('data.total_items', 1);
 
         $this->assertDatabaseHas('stock_summaries', [
-            'product_id'         => $product->id,
+            'product_variant_id' => $variant->id,
             'warehouse_id'       => $setup['warehouse']->id,
             'available_quantity' => 40,
         ]);
 
         $this->assertDatabaseHas('consumption_records', [
-            'appointment_id' => 'CITA-00001',
-            'product_id'     => $product->id,
-            'quantity'       => 10,
+            'appointment_id'     => 'CITA-00001',
+            'product_variant_id' => $variant->id,
+            'quantity'           => 10,
         ]);
     }
 
     public function test_sync_job_updates_status(): void
     {
         $setup   = $this->createWarehouseSetup();
-        $product = ProductModel::where('code', 'AGU-21G')->firstOrFail();
-        $batch   = $this->createBatch($product->id, 'LOT-SYNC', now()->addMonths(3)->format('Y-m-d'), 5, $setup['location'], $setup['warehouse']->id);
+        $generic = GenericProductModel::where('barcode', '000001')->firstOrFail();
+        $variant = ProductVariantModel::where('generic_product_id', $generic->id)->firstOrFail();
+        $batch   = $this->createBatch($variant->id, 'LOT-SYNC', now()->addMonths(3)->format('Y-m-d'), 5, $setup['location'], $setup['warehouse']->id);
 
         $record = ConsumptionRecordModel::create([
             'appointment_id'     => 'CITA-SYNC',
             'patient_identifier' => 'PAC-SYNC',
             'service_type'       => 'Consulta',
-            'product_id'         => $product->id,
+            'product_variant_id' => $variant->id,
             'batch_id'           => $batch->id,
             'quantity'           => 2,
             'user_id'            => UserModel::first()->id,
@@ -195,10 +200,10 @@ class MockIntegrationTest extends TestCase
         return compact('warehouse', 'zone', 'location');
     }
 
-    private function createBatch(int $productId, string $lotNumber, string $expirationDate, int $quantity, LocationModel $location, int $warehouseId): BatchModel
+    private function createBatch(int $variantId, string $lotNumber, string $expirationDate, int $quantity, LocationModel $location, int $warehouseId): BatchModel
     {
         $batch = BatchModel::create([
-            'product_id'         => $productId,
+            'product_variant_id' => $variantId,
             'lot_number'         => $lotNumber,
             'expiration_date'    => $expirationDate,
             'quantity_received'  => $quantity,
@@ -209,22 +214,31 @@ class MockIntegrationTest extends TestCase
 
         $batch->locations()->attach($location->id, ['quantity' => $quantity]);
 
+        $doc = MovementDocumentModel::create([
+            'document_number' => 'ENT-INT-TEST-' . $batch->id,
+            'document_type'   => 'entry',
+            'warehouse_id'    => $warehouseId,
+            'user_id'         => UserModel::first()->id,
+            'status'          => 'confirmed',
+        ]);
+
         StockMovementModel::create([
-            'warehouse_id'   => $warehouseId,
-            'product_id'     => $productId,
-            'batch_id'       => $batch->id,
-            'location_to_id' => $location->id,
-            'movement_type'  => 'entry',
-            'quantity'       => $quantity,
-            'user_id'        => UserModel::first()->id,
+            'movement_document_id' => $doc->id,
+            'warehouse_id'         => $warehouseId,
+            'product_variant_id'   => $variantId,
+            'batch_id'             => $batch->id,
+            'location_to_id'       => $location->id,
+            'movement_type'        => 'entry',
+            'quantity'             => $quantity,
+            'user_id'              => UserModel::first()->id,
         ]);
 
         return $batch;
     }
 
-    private function recalculateStock(int $productId, int $warehouseId): void
+    private function recalculateStock(int $variantId, int $warehouseId): void
     {
         app(\App\Modules\Inventory\Domain\Services\StockCalculator::class)
-            ->recalculateSummary($productId, $warehouseId);
+            ->recalculateSummary($variantId, $warehouseId);
     }
 }

@@ -31,7 +31,7 @@ class PurchaseOrderController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $query = PurchaseOrderModel::with(['supplier', 'warehouse', 'items.product']);
+        $query = PurchaseOrderModel::with(['supplier', 'warehouse', 'items.variant']);
 
         if ($request->filled('status')) {
             $query->where('status', $request->string('status'));
@@ -69,7 +69,7 @@ class PurchaseOrderController extends Controller
 
     public function show(int $id): JsonResponse
     {
-        $order = PurchaseOrderModel::with(['supplier', 'warehouse', 'items.product', 'items.presentation'])
+        $order = PurchaseOrderModel::with(['supplier', 'warehouse', 'items.variant', 'items.presentation'])
             ->findOrFail($id);
 
         return $this->success(new PurchaseOrderResource($order), 'Detalle de orden de compra');

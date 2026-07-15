@@ -12,7 +12,7 @@ class StockBelowReorderPoint
     use Dispatchable, SerializesModels;
 
     public function __construct(
-        public readonly int $productId,
+        public readonly int $genericProductId,
         public readonly int $warehouseId,
         public readonly int $currentStock,
         public readonly int $reorderPoint,

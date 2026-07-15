@@ -10,9 +10,10 @@ return new class extends Migration
     {
         Schema::create('stock_movements', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('movement_document_id')->constrained('movement_documents')->cascadeOnDelete();
             $table->foreignId('warehouse_id')->constrained('warehouses');
             $table->foreignId('warehouse_to_id')->nullable()->constrained('warehouses');
-            $table->foreignId('product_id')->constrained('products');
+            $table->foreignId('product_variant_id')->constrained('product_variants');
             $table->foreignId('batch_id')->nullable()->constrained('batches');
             $table->foreignId('location_from_id')->nullable()->constrained('locations');
             $table->foreignId('location_to_id')->nullable()->constrained('locations');
@@ -41,7 +42,7 @@ return new class extends Migration
             $table->enum('status', ['pending_signature', 'confirmed'])->default('confirmed');
             $table->timestamp('created_at')->useCurrent();
 
-            $table->index(['product_id', 'created_at'], 'idx_mov_product_created');
+            $table->index(['product_variant_id', 'created_at'], 'idx_mov_variant_created');
             $table->index(['movement_type', 'created_at'], 'idx_mov_type_created');
             $table->index(['cost_center_id', 'created_at'], 'idx_mov_costcenter_created');
             $table->index(['status', 'created_at'], 'idx_mov_status_created');

@@ -13,7 +13,7 @@ return new class extends Migration
             $table->string('appointment_id', 100)->nullable();
             $table->string('patient_identifier', 100)->nullable();
             $table->string('service_type', 255)->nullable();
-            $table->foreignId('product_id')->constrained('products');
+            $table->foreignId('product_variant_id')->constrained('product_variants');
             $table->foreignId('batch_id')->nullable()->constrained('batches');
             $table->unsignedInteger('quantity');
             $table->foreignId('user_id')->constrained('users');

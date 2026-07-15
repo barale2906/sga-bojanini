@@ -9,7 +9,7 @@ use App\Modules\Catalog\Infrastructure\Http\Requests\AttachSupplierProductReques
 use App\Modules\Catalog\Infrastructure\Http\Requests\DetachSupplierProductByCategoryRequest;
 use App\Modules\Catalog\Infrastructure\Http\Requests\UpdateSupplierProductRequest;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\CategoryModel;
-use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductModel;
+use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductVariantModel;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\SupplierModel;
 use App\Modules\Shared\Infrastructure\Http\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
@@ -27,49 +27,49 @@ class SupplierProductController extends Controller
             return $this->error('Proveedor no encontrado', 404);
         }
 
-        $products = $supplier->products()
-            ->with('category:id,name,code')
-            ->orderBy('name')
+        $variants = $supplier->products()
+            ->with('genericProduct:id,name,barcode,category_id', 'genericProduct.category:id,name,code')
+            ->orderBy('lab_brand')
             ->get()
-            ->map(fn ($p) => $this->formatProduct($p));
+            ->map(fn ($v) => $this->formatVariant($v));
 
-        return $this->success($products, 'Productos del proveedor');
+        return $this->success($variants, 'Variantes del proveedor');
     }
 
-    public function suppliersByProduct(int $productId): JsonResponse
+    public function suppliersByProduct(int $variantId): JsonResponse
     {
-        $product = ProductModel::find($productId);
+        $variant = ProductVariantModel::find($variantId);
 
-        if ($product === null) {
-            return $this->error('Producto no encontrado', 404);
+        if ($variant === null) {
+            return $this->error('Variante no encontrada', 404);
         }
 
-        $suppliers = $product->suppliers()
+        $suppliers = $variant->suppliers()
             ->orderBy('name')
             ->get()
             ->map(fn ($s) => $this->formatSupplier($s));
 
-        return $this->success($suppliers, 'Proveedores del producto');
+        return $this->success($suppliers, 'Proveedores de la variante');
     }
 
-    public function attach(int $supplierId, int $productId, AttachSupplierProductRequest $request): JsonResponse
+    public function attach(int $supplierId, int $variantId, AttachSupplierProductRequest $request): JsonResponse
     {
         $supplier = SupplierModel::find($supplierId);
         if ($supplier === null) {
             return $this->error('Proveedor no encontrado', 404);
         }
 
-        if (! ProductModel::where('id', $productId)->exists()) {
-            return $this->error('Producto no encontrado', 404);
+        if (! ProductVariantModel::where('id', $variantId)->exists()) {
+            return $this->error('Variante no encontrada', 404);
         }
 
-        if ($supplier->products()->where('product_id', $productId)->exists()) {
-            return $this->error('El producto ya está asignado a este proveedor', 422);
+        if ($supplier->products()->where('product_variants.id', $variantId)->exists()) {
+            return $this->error('La variante ya está asignada a este proveedor', 422);
         }
 
         $data = $request->validated();
 
-        $supplier->products()->attach($productId, [
+        $supplier->products()->attach($variantId, [
             'supplier_sku'            => $data['supplier_sku'] ?? null,
             'product_presentation_id' => $data['product_presentation_id'] ?? null,
             'lead_time_days'          => $data['lead_time_days'] ?? 0,
@@ -77,9 +77,11 @@ class SupplierProductController extends Controller
             'is_preferred'            => $data['is_preferred'] ?? false,
         ]);
 
-        $product = $supplier->products()->with('category:id,name,code')->find($productId);
+        $variant = $supplier->products()
+            ->with('genericProduct:id,name,barcode,category_id', 'genericProduct.category:id,name,code')
+            ->find($variantId);
 
-        return $this->created($this->formatProduct($product), 'Producto asignado al proveedor');
+        return $this->created($this->formatVariant($variant), 'Variante asignada al proveedor');
     }
 
     public function attachByCategory(int $supplierId, AttachSupplierProductByCategoryRequest $request): JsonResponse
@@ -92,23 +94,23 @@ class SupplierProductController extends Controller
         $data = $request->validated();
         $category = CategoryModel::find($data['category_id']);
 
-        $products = ProductModel::where('category_id', $data['category_id'])
-            ->where('is_active', true)
+        $variantIds = ProductVariantModel::where('is_active', true)
+            ->whereHas('genericProduct', fn ($q) => $q->where('category_id', $data['category_id'])->where('is_active', true))
             ->pluck('id');
 
-        if ($products->isEmpty()) {
-            return $this->error('La categoría no tiene productos activos', 422);
+        if ($variantIds->isEmpty()) {
+            return $this->error('La categoría no tiene variantes activas', 422);
         }
 
-        $alreadyAssigned = $supplier->products()->pluck('product_id');
-        $toAttach = $products->diff($alreadyAssigned);
+        $alreadyAssigned = $supplier->products()->pluck('product_variants.id');
+        $toAttach        = $variantIds->diff($alreadyAssigned);
 
         if ($toAttach->isEmpty()) {
             return $this->success([
                 'assigned' => 0,
-                'skipped'  => $alreadyAssigned->intersect($products)->count(),
+                'skipped'  => $alreadyAssigned->intersect($variantIds)->count(),
                 'category' => $category->name,
-            ], 'Todos los productos de la categoría ya estaban asignados');
+            ], 'Todas las variantes de la categoría ya estaban asignadas');
         }
 
         $pivotData = [
@@ -123,46 +125,48 @@ class SupplierProductController extends Controller
 
         return $this->success([
             'assigned' => $toAttach->count(),
-            'skipped'  => $alreadyAssigned->intersect($products)->count(),
+            'skipped'  => $alreadyAssigned->intersect($variantIds)->count(),
             'category' => $category->name,
-        ], 'Productos de la categoría asignados al proveedor');
+        ], 'Variantes de la categoría asignadas al proveedor');
     }
 
-    public function update(int $supplierId, int $productId, UpdateSupplierProductRequest $request): JsonResponse
+    public function update(int $supplierId, int $variantId, UpdateSupplierProductRequest $request): JsonResponse
     {
         $supplier = SupplierModel::find($supplierId);
         if ($supplier === null) {
             return $this->error('Proveedor no encontrado', 404);
         }
 
-        if (! $supplier->products()->where('product_id', $productId)->exists()) {
-            return $this->error('El producto no está asignado a este proveedor', 404);
+        if (! $supplier->products()->where('product_variants.id', $variantId)->exists()) {
+            return $this->error('La variante no está asignada a este proveedor', 404);
         }
 
-        $supplier->products()->updateExistingPivot($productId, array_filter(
+        $supplier->products()->updateExistingPivot($variantId, array_filter(
             $request->validated(),
             fn ($v) => $v !== null
         ));
 
-        $product = $supplier->products()->with('category:id,name,code')->find($productId);
+        $variant = $supplier->products()
+            ->with('genericProduct:id,name,barcode,category_id', 'genericProduct.category:id,name,code')
+            ->find($variantId);
 
-        return $this->success($this->formatProduct($product), 'Datos del producto actualizados');
+        return $this->success($this->formatVariant($variant), 'Datos de la variante actualizados');
     }
 
-    public function detach(int $supplierId, int $productId): JsonResponse
+    public function detach(int $supplierId, int $variantId): JsonResponse
     {
         $supplier = SupplierModel::find($supplierId);
         if ($supplier === null) {
             return $this->error('Proveedor no encontrado', 404);
         }
 
-        if (! $supplier->products()->where('product_id', $productId)->exists()) {
-            return $this->error('El producto no está asignado a este proveedor', 404);
+        if (! $supplier->products()->where('product_variants.id', $variantId)->exists()) {
+            return $this->error('La variante no está asignada a este proveedor', 404);
         }
 
-        $supplier->products()->detach($productId);
+        $supplier->products()->detach($variantId);
 
-        return $this->noContent('Producto eliminado del proveedor');
+        return $this->noContent('Variante eliminada del proveedor');
     }
 
     public function detachByCategory(int $supplierId, DetachSupplierProductByCategoryRequest $request): JsonResponse
@@ -175,18 +179,19 @@ class SupplierProductController extends Controller
         $data = $request->validated();
         $category = CategoryModel::find($data['category_id']);
 
-        $productIds = ProductModel::where('category_id', $data['category_id'])->pluck('id');
+        $variantIds = ProductVariantModel::whereHas('genericProduct', fn ($q) => $q->where('category_id', $data['category_id']))
+            ->pluck('id');
 
         $removed = $supplier->products()
-            ->whereIn('product_id', $productIds)
+            ->whereIn('product_variants.id', $variantIds)
             ->count();
 
-        $supplier->products()->detach($productIds);
+        $supplier->products()->detach($variantIds);
 
         return $this->success([
             'removed'  => $removed,
             'category' => $category->name,
-        ], 'Productos de la categoría eliminados del proveedor');
+        ], 'Variantes de la categoría eliminadas del proveedor');
     }
 
     private function formatSupplier(mixed $supplier): array
@@ -209,25 +214,31 @@ class SupplierProductController extends Controller
         ];
     }
 
-    private function formatProduct(mixed $product): array
+    private function formatVariant(mixed $variant): array
     {
+        $generic = $variant->genericProduct;
+
         return [
-            'id'        => $product->id,
-            'name'      => $product->name,
-            'code'      => $product->code,
-            'sku'       => $product->sku,
-            'is_active' => (bool) $product->is_active,
-            'category'  => $product->relationLoaded('category') && $product->category ? [
-                'id'   => $product->category->id,
-                'name' => $product->category->name,
-                'code' => $product->category->code,
+            'id'        => $variant->id,
+            'lab_brand' => $variant->lab_brand,
+            'brand_sku' => $variant->brand_sku,
+            'is_active' => (bool) $variant->is_active,
+            'generic'   => $generic ? [
+                'id'      => $generic->id,
+                'name'    => $generic->name,
+                'barcode' => $generic->barcode,
+                'category' => $generic->relationLoaded('category') && $generic->category ? [
+                    'id'   => $generic->category->id,
+                    'name' => $generic->category->name,
+                    'code' => $generic->category->code,
+                ] : null,
             ] : null,
             'pivot' => [
-                'supplier_sku'            => $product->pivot->supplier_sku,
-                'product_presentation_id' => $product->pivot->product_presentation_id,
-                'lead_time_days'          => (int) $product->pivot->lead_time_days,
-                'unit_price'              => (float) $product->pivot->unit_price,
-                'is_preferred'            => (bool) $product->pivot->is_preferred,
+                'supplier_sku'            => $variant->pivot->supplier_sku,
+                'product_presentation_id' => $variant->pivot->product_presentation_id,
+                'lead_time_days'          => (int) $variant->pivot->lead_time_days,
+                'unit_price'              => (float) $variant->pivot->unit_price,
+                'is_preferred'            => (bool) $variant->pivot->is_preferred,
             ],
         ];
     }

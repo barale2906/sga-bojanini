@@ -8,9 +8,9 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('product_supplier', function (Blueprint $table) {
+        Schema::create('product_variant_supplier', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('product_id')->constrained('products')->cascadeOnDelete();
+            $table->foreignId('product_variant_id')->constrained('product_variants')->cascadeOnDelete();
             $table->foreignId('supplier_id')->constrained('suppliers')->cascadeOnDelete();
             $table->string('supplier_sku', 100)->nullable();
             $table->foreignId('product_presentation_id')
@@ -22,12 +22,12 @@ return new class extends Migration
             $table->boolean('is_preferred')->default(false);
             $table->timestamps();
 
-            $table->unique(['product_id', 'supplier_id']);
+            $table->unique(['product_variant_id', 'supplier_id']);
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('product_supplier');
+        Schema::dropIfExists('product_variant_supplier');
     }
 };

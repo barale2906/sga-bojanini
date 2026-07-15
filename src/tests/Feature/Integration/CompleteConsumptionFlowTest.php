@@ -3,11 +3,13 @@
 namespace Tests\Feature\Integration;
 
 use App\Modules\Auth\Infrastructure\Persistence\Models\UserModel;
-use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductModel;
+use App\Modules\Catalog\Infrastructure\Persistence\Models\GenericProductModel;
+use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductVariantModel;
 use App\Modules\CostCenter\Infrastructure\Persistence\Models\CostCenterModel;
 use App\Modules\CostCenter\Infrastructure\Persistence\Models\MedicalServiceModel;
 use App\Modules\Integration\Infrastructure\Jobs\SyncConsumptionToHCJob;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\BatchModel;
+use App\Modules\Inventory\Infrastructure\Persistence\Models\MovementDocumentModel;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\StockMovementModel;
 use App\Modules\Warehouse\Infrastructure\Persistence\Models\LocationModel;
 use App\Modules\Warehouse\Infrastructure\Persistence\Models\WarehouseModel;
@@ -41,17 +43,18 @@ class CompleteConsumptionFlowTest extends TestCase
 
     public function test_complete_consumption_flow(): void
     {
-        $setup = $this->createWarehouseSetup();
-        $product = ProductModel::where('code', 'AGU-21G')->firstOrFail();
+        $setup   = $this->createWarehouseSetup();
+        $generic = GenericProductModel::where('barcode', '000001')->firstOrFail();
+        $variant = ProductVariantModel::where('generic_product_id', $generic->id)->firstOrFail();
 
         $batchSoon = BatchModel::create([
-            'product_id' => $product->id, 'lot_number' => 'LOT-FEFO-SOON',
+            'product_variant_id' => $variant->id, 'lot_number' => 'LOT-FEFO-SOON',
             'expiration_date' => now()->addDays(15)->format('Y-m-d'),
             'quantity_received' => 20, 'quantity_available' => 20,
             'status' => 'active', 'received_at' => now(),
         ]);
         $batchLater = BatchModel::create([
-            'product_id' => $product->id, 'lot_number' => 'LOT-FEFO-LATE',
+            'product_variant_id' => $variant->id, 'lot_number' => 'LOT-FEFO-LATE',
             'expiration_date' => now()->addDays(90)->format('Y-m-d'),
             'quantity_received' => 50, 'quantity_available' => 50,
             'status' => 'active', 'received_at' => now(),
@@ -60,7 +63,7 @@ class CompleteConsumptionFlowTest extends TestCase
         $batchLater->locations()->attach($setup['location']->id, ['quantity' => 50]);
 
         app(\App\Modules\Inventory\Domain\Services\StockCalculator::class)
-            ->recalculateSummary($product->id, $setup['warehouse']->id);
+            ->recalculateSummary($variant->id, $setup['warehouse']->id);
 
         $costCenter = CostCenterModel::where('type', 'external')->first();
         $service    = MedicalServiceModel::first();
@@ -74,7 +77,7 @@ class CompleteConsumptionFlowTest extends TestCase
                 'cost_center_id'     => $costCenter->id,
                 'service_id'         => $service->id,
                 'items'              => [
-                    ['product_id' => $product->id, 'quantity' => 25],
+                    ['generic_product_id' => $generic->id, 'quantity' => 25],
                 ],
             ])
             ->assertStatus(201);
@@ -85,7 +88,7 @@ class CompleteConsumptionFlowTest extends TestCase
         $this->assertSame(45, $batchLater->quantity_available);
 
         $this->assertDatabaseHas('stock_summaries', [
-            'product_id'         => $product->id,
+            'product_variant_id' => $variant->id,
             'warehouse_id'       => $setup['warehouse']->id,
             'available_quantity' => 45,
         ]);
@@ -109,12 +112,23 @@ class CompleteConsumptionFlowTest extends TestCase
             'zone_id' => $zone->id, 'name' => 'Ubicación', 'code' => 'U-CONS', 'is_active' => true,
         ]);
 
+        $variant = ProductVariantModel::whereHas('genericProduct', fn ($q) => $q->where('barcode', '000001'))->firstOrFail();
+
+        $doc = MovementDocumentModel::create([
+            'document_number' => 'ENT-CONS-TEST-001',
+            'document_type'   => 'entry',
+            'warehouse_id'    => $warehouse->id,
+            'user_id'         => UserModel::first()->id,
+            'status'          => 'confirmed',
+        ]);
+
         StockMovementModel::create([
-            'warehouse_id' => $warehouse->id,
-            'product_id'   => ProductModel::where('code', 'AGU-21G')->value('id'),
-            'movement_type' => 'entry',
-            'quantity'     => 70,
-            'user_id'      => UserModel::first()->id,
+            'movement_document_id' => $doc->id,
+            'warehouse_id'         => $warehouse->id,
+            'product_variant_id'   => $variant->id,
+            'movement_type'        => 'entry',
+            'quantity'             => 70,
+            'user_id'              => UserModel::first()->id,
         ]);
 
         return compact('warehouse', 'zone', 'location');

@@ -21,7 +21,7 @@ class StorePurchaseOrderRequest extends FormRequest
             'notes'                  => ['nullable', 'string'],
             'expected_delivery_date' => ['nullable', 'date'],
             'items'                  => ['required', 'array', 'min:1'],
-            'items.*.product_id'              => ['required', 'integer', 'exists:products,id'],
+            'items.*.product_variant_id'       => ['required', 'integer', 'exists:product_variants,id'],
             'items.*.product_presentation_id' => ['required', 'integer', 'exists:product_presentations,id'],
             'items.*.quantity'                => ['required', 'integer', 'min:1'],
             'items.*.unit_price'              => ['required', 'numeric', 'min:0'],

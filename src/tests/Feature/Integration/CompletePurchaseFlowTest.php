@@ -3,8 +3,9 @@
 namespace Tests\Feature\Integration;
 
 use App\Modules\Auth\Infrastructure\Persistence\Models\UserModel;
-use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductModel;
+use App\Modules\Catalog\Infrastructure\Persistence\Models\GenericProductModel;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductPresentationModel;
+use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductVariantModel;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\SupplierModel;
 use App\Modules\Warehouse\Infrastructure\Persistence\Models\LocationModel;
 use App\Modules\Warehouse\Infrastructure\Persistence\Models\WarehouseModel;
@@ -34,9 +35,10 @@ class CompletePurchaseFlowTest extends TestCase
 
     public function test_complete_purchase_flow(): void
     {
-        $setup = $this->createWarehouseSetup();
+        $setup    = $this->createWarehouseSetup();
         $supplier = SupplierModel::firstOrFail();
-        $product = ProductModel::where('code', 'AGU-21G')->firstOrFail();
+        $generic  = GenericProductModel::where('barcode', '000001')->firstOrFail();
+        $variant  = ProductVariantModel::where('generic_product_id', $generic->id)->firstOrFail();
         $presentation = ProductPresentationModel::where('code', 'PQ-100')->firstOrFail();
 
         $create = $this->withHeaders($this->auth)
@@ -45,7 +47,7 @@ class CompletePurchaseFlowTest extends TestCase
                 'warehouse_id' => $setup['warehouse']->id,
                 'items'        => [
                     [
-                        'product_id'              => $product->id,
+                        'product_variant_id'      => $variant->id,
                         'product_presentation_id' => $presentation->id,
                         'quantity'                => 1,
                         'unit_price'              => 50000,
@@ -55,7 +57,7 @@ class CompletePurchaseFlowTest extends TestCase
             ->assertStatus(201);
 
         $orderId = $create->json('data.id');
-        $itemId = $create->json('data.items.0.id');
+        $itemId  = $create->json('data.items.0.id');
 
         $this->withHeaders($this->auth)
             ->postJson("/api/v1/purchase-orders/{$orderId}/submit")
@@ -86,13 +88,13 @@ class CompletePurchaseFlowTest extends TestCase
             ->assertJsonPath('data.status', 'received');
 
         $this->assertDatabaseHas('stock_summaries', [
-            'product_id'         => $product->id,
+            'product_variant_id' => $variant->id,
             'warehouse_id'       => $setup['warehouse']->id,
             'available_quantity' => 100,
         ]);
     }
 
-  /**
+    /**
      * @return array{warehouse: WarehouseModel, zone: ZoneModel, location: LocationModel}
      */
     private function createWarehouseSetup(): array

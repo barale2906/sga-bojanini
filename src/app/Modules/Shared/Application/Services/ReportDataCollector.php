@@ -55,14 +55,14 @@ class ReportDataCollector
 
     private function inventoryQuery(array $filters): Builder
     {
-        $query = StockSummaryModel::with(['product.category', 'warehouse']);
+        $query = StockSummaryModel::with(['variant.genericProduct.category', 'warehouse']);
 
         if (!empty($filters['warehouse_id'])) {
             $query->where('warehouse_id', $filters['warehouse_id']);
         }
 
         if (!empty($filters['category_id'])) {
-            $query->whereHas('product', fn ($q) => $q->where('category_id', $filters['category_id']));
+            $query->whereHas('variant.genericProduct', fn ($q) => $q->where('category_id', $filters['category_id']));
         }
 
         return $query;
@@ -75,10 +75,10 @@ class ReportDataCollector
         $stockOk = $stockLow = $stockCritical = 0;
 
         foreach ($rows as $row) {
-            $product = $row->product;
+            $generic = $row->variant?->genericProduct;
             $stock = (int) $row->available_quantity;
-            $min = (int) ($product->min_stock ?? 0);
-            $reorder = (int) ($product->reorder_point ?? 0);
+            $min = (int) ($generic->min_stock ?? 0);
+            $reorder = (int) ($generic->reorder_point ?? 0);
 
             if ($stock <= $min) {
                 $status = 'Crítico';
@@ -95,13 +95,13 @@ class ReportDataCollector
             }
 
             $products[] = [
-                'code'          => $product->code,
-                'name'          => $product->name,
-                'category'      => $product->category?->name ?? '-',
+                'code'          => $generic?->barcode ?? '-',
+                'name'          => $generic?->name ?? '-',
+                'category'      => $generic?->category?->name ?? '-',
                 'location'      => $row->warehouse?->name ?? '-',
                 'current_stock' => $stock,
                 'min_stock'     => $min,
-                'max_stock'     => (int) ($product->max_stock ?? 0),
+                'max_stock'     => (int) ($generic->max_stock ?? 0),
                 'stock_status'  => $status,
                 'stock_class'   => $class,
                 'stock_value'   => 0,
@@ -136,7 +136,7 @@ class ReportDataCollector
 
     private function movementsQuery(array $filters, Carbon $from, Carbon $to): Builder
     {
-        $query = StockMovementModel::with(['product', 'warehouse', 'user'])
+        $query = StockMovementModel::with(['variant.genericProduct', 'warehouse', 'user'])
             ->whereBetween('created_at', [$from, $to]);
 
         if (!empty($filters['type'])) {
@@ -163,7 +163,7 @@ class ReportDataCollector
             ->map(fn ($m) => [
                 'date'      => $m->created_at->format('Y-m-d H:i'),
                 'type'      => $m->movement_type,
-                'product'   => $m->product?->name ?? '-',
+                'product'   => $m->variant?->genericProduct?->name ?? '-',
                 'warehouse' => $m->warehouse?->name ?? '-',
                 'quantity'  => $m->quantity,
                 'user'      => $m->user?->name ?? '-',
@@ -183,7 +183,7 @@ class ReportDataCollector
         $days = (int) ($filters['days'] ?? 30);
         $limit = Carbon::today()->addDays($days);
 
-        $query = BatchModel::with('product')
+        $query = BatchModel::with('variant.genericProduct')
             ->where('status', 'active')
             ->where('quantity_available', '>', 0)
             ->whereDate('expiration_date', '<=', $limit);
@@ -212,7 +212,7 @@ class ReportDataCollector
             ->get()
             ->map(fn ($b) => [
                 'lot'        => $b->lot_number,
-                'product'    => $b->product?->name ?? '-',
+                'product'    => $b->variant?->genericProduct?->name ?? '-',
                 'expires'    => $b->expiration_date->format('Y-m-d'),
                 'quantity'   => $b->quantity_available,
                 'days_left'  => (int) now()->diffInDays($b->expiration_date, false),
@@ -269,7 +269,7 @@ class ReportDataCollector
 
     private function consumptionQuery(Carbon $from, Carbon $to): Builder
     {
-        return ConsumptionRecordModel::with(['product', 'user'])
+        return ConsumptionRecordModel::with(['variant.genericProduct', 'user'])
             ->whereBetween('consumed_at', [$from, $to]);
     }
 
@@ -290,7 +290,7 @@ class ReportDataCollector
             ->map(fn ($r) => [
                 'date'     => $r->consumed_at->format('Y-m-d H:i'),
                 'patient'  => $r->patient_identifier ?? '-',
-                'product'  => $r->product?->name ?? '-',
+                'product'  => $r->variant?->genericProduct?->name ?? '-',
                 'quantity' => $r->quantity,
                 'sync'     => $r->sync_status,
                 'user'     => $r->user?->name ?? '-',

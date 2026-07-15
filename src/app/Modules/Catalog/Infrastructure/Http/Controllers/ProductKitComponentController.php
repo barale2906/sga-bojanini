@@ -17,23 +17,23 @@ class ProductKitComponentController extends Controller
 {
     use ApiResponse;
 
-    public function index(int $productId, ProductKitComponentRepositoryInterface $repository): JsonResponse
+    public function index(int $genericId, ProductKitComponentRepositoryInterface $repository): JsonResponse
     {
-        $components = $repository->findWithDetailsByKitProductId($productId, false);
+        $components = $repository->findWithDetailsByKitGenericId($genericId, false);
 
         return $this->success($components, 'Componentes del kit');
     }
 
-    public function sync(int $productId, SyncKitComponentsRequest $request, SyncKitComponentsUseCase $useCase): JsonResponse
+    public function sync(int $genericId, SyncKitComponentsRequest $request, SyncKitComponentsUseCase $useCase): JsonResponse
     {
-        $saved = $useCase->execute($productId, $request->validated('components'));
+        $saved = $useCase->execute($genericId, $request->validated('components'));
 
         return $this->success($saved, 'Receta del kit sincronizada');
     }
 
-    public function destroy(int $productId, int $componentId, ProductKitComponentRepositoryInterface $repository): JsonResponse
+    public function destroy(int $genericId, int $componentId, ProductKitComponentRepositoryInterface $repository): JsonResponse
     {
-        $deleted = $repository->deleteById($componentId, $productId);
+        $deleted = $repository->deleteById($componentId, $genericId);
 
         if (! $deleted) {
             return $this->error('Componente no encontrado en este kit.', 404);
@@ -42,10 +42,10 @@ class ProductKitComponentController extends Controller
         return $this->success(null, 'Componente eliminado del kit.');
     }
 
-    public function explode(int $productId, ExplodeKitRequest $request, KitExplosionService $service): JsonResponse
+    public function explode(int $genericId, ExplodeKitRequest $request, KitExplosionService $service): JsonResponse
     {
         try {
-            $lines = $service->explode($productId, $request->validated('quantity_kits'));
+            $lines = $service->explode($genericId, $request->validated('quantity_kits'));
 
             return $this->success($lines, 'Explosión del kit');
         } catch (\DomainException $e) {

@@ -11,7 +11,7 @@ class Batch
 {
     public function __construct(
         private ?int $id,
-        private int $productId,
+        private int $productVariantId,
         private string $lotNumber,
         private string $expirationDate,
         private ?string $manufacturingDate,
@@ -27,9 +27,9 @@ class Batch
         return $this->id;
     }
 
-    public function getProductId(): int
+    public function getProductVariantId(): int
     {
-        return $this->productId;
+        return $this->productVariantId;
     }
 
     public function getLotNumber(): string

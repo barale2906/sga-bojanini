@@ -23,7 +23,7 @@ class StoreConsumptionRequest extends FormRequest
             'cost_center_id'     => ['required', 'integer', 'exists:cost_centers,id'],
             'service_id'         => ['nullable', 'integer', 'exists:medical_services,id'],
             'items'              => ['required', 'array', 'min:1'],
-            'items.*.product_id' => ['required', 'integer', 'exists:products,id'],
+            'items.*.generic_product_id' => ['required', 'integer', 'exists:product_generics,id'],
             'items.*.quantity'   => ['required', 'integer', 'min:1'],
         ];
     }

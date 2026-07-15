@@ -6,7 +6,8 @@ namespace Tests\Feature\Reports;
 
 use App\Modules\Auth\Infrastructure\Persistence\Models\UserModel;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\CategoryModel;
-use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductModel;
+use App\Modules\Catalog\Infrastructure\Persistence\Models\GenericProductModel;
+use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductVariantModel;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\UnitOfMeasureModel;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\BatchModel;
 use App\Modules\Warehouse\Infrastructure\Persistence\Models\LocationModel;
@@ -66,17 +67,26 @@ class ExpiringReportTest extends TestCase
         $cat  = CategoryModel::first();
         $unit = UnitOfMeasureModel::where('abbreviation', 'UND')->first();
 
-        $product = ProductModel::create([
+        $maxBarcode = (int) GenericProductModel::max('barcode');
+        $barcode    = str_pad((string) ($maxBarcode + 1), 6, '0', STR_PAD_LEFT);
+
+        $generic = GenericProductModel::create([
             'category_id'  => $cat->id,
             'base_unit_id' => $unit->id,
             'product_type' => 'simple',
             'name'         => "Producto {$lot}",
-            'code'         => "PROD-{$lot}",
+            'barcode'      => $barcode,
             'is_active'    => true,
         ]);
 
+        $variant = ProductVariantModel::create([
+            'generic_product_id' => $generic->id,
+            'lab_brand'          => 'Marca Test',
+            'is_active'          => true,
+        ]);
+
         $batch = BatchModel::create([
-            'product_id'         => $product->id,
+            'product_variant_id' => $variant->id,
             'lot_number'         => $lot,
             'expiration_date'    => now()->addDays($daysToExpire)->format('Y-m-d'),
             'quantity_received'  => 10,

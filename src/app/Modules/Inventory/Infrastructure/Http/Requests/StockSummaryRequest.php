@@ -17,7 +17,7 @@ class StockSummaryRequest extends FormRequest
     {
         return [
             'warehouse_id' => ['required', 'integer', 'exists:warehouses,id'],
-            'product_id'   => ['required', 'integer', 'exists:products,id'],
+            'product_variant_id' => ['required', 'integer', 'exists:product_variants,id'],
         ];
     }
 }

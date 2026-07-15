@@ -31,6 +31,6 @@ class UnitOfMeasureModel extends Model
 
     public function products(): HasMany
     {
-        return $this->hasMany(ProductModel::class, 'base_unit_id');
+        return $this->hasMany(GenericProductModel::class, 'base_unit_id');
     }
 }

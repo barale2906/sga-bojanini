@@ -2,7 +2,8 @@
 
 namespace Tests\Unit\Inventory;
 
-use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductModel;
+use App\Modules\Catalog\Infrastructure\Persistence\Models\GenericProductModel;
+use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductVariantModel;
 use App\Modules\Inventory\Domain\Exceptions\ExpiredStockException;
 use App\Modules\Inventory\Domain\Exceptions\InsufficientStockException;
 use App\Modules\Inventory\Domain\Services\FEFOService;
@@ -26,13 +27,13 @@ class FEFOServiceTest extends TestCase
 
     public function test_selects_batch_with_earliest_expiry(): void
     {
-        $setup = $this->createWarehouseSetup();
-        $product = ProductModel::where('code', 'AGU-21G')->firstOrFail();
+        $setup   = $this->createWarehouseSetup();
+        $variant = $this->getAgujaVariant();
 
-        $batchSoon = $this->createBatch($product->id, 'LOT-SOON', now()->addDays(30), 50, $setup['location']);
-        $batchLater = $this->createBatch($product->id, 'LOT-LATER', now()->addDays(90), 100, $setup['location']);
+        $batchSoon  = $this->createBatch($variant->id, 'LOT-SOON', now()->addDays(30), 50, $setup['location']);
+        $batchLater = $this->createBatch($variant->id, 'LOT-LATER', now()->addDays(90), 100, $setup['location']);
 
-        $selected = app(FEFOService::class)->selectBatchesForExit($product->id, $setup['warehouse']->id, 30);
+        $selected = app(FEFOService::class)->selectBatchesForExit($variant->id, $setup['warehouse']->id, 30);
 
         $this->assertCount(1, $selected);
         $this->assertSame($batchSoon->id, $selected[0]['batch_id']);
@@ -40,13 +41,13 @@ class FEFOServiceTest extends TestCase
 
     public function test_distributes_across_multiple_batches(): void
     {
-        $setup = $this->createWarehouseSetup();
-        $product = ProductModel::where('code', 'AGU-21G')->firstOrFail();
+        $setup   = $this->createWarehouseSetup();
+        $variant = $this->getAgujaVariant();
 
-        $batchSoon = $this->createBatch($product->id, 'LOT-SOON', now()->addDays(30), 30, $setup['location']);
-        $batchLater = $this->createBatch($product->id, 'LOT-LATER', now()->addDays(90), 50, $setup['location']);
+        $batchSoon  = $this->createBatch($variant->id, 'LOT-SOON', now()->addDays(30), 30, $setup['location']);
+        $batchLater = $this->createBatch($variant->id, 'LOT-LATER', now()->addDays(90), 50, $setup['location']);
 
-        $selected = app(FEFOService::class)->selectBatchesForExit($product->id, $setup['warehouse']->id, 50);
+        $selected = app(FEFOService::class)->selectBatchesForExit($variant->id, $setup['warehouse']->id, 50);
 
         $this->assertCount(2, $selected);
         $this->assertSame($batchSoon->id, $selected[0]['batch_id']);
@@ -57,26 +58,25 @@ class FEFOServiceTest extends TestCase
 
     public function test_throws_when_insufficient_stock(): void
     {
-        $setup = $this->createWarehouseSetup();
-        $product = ProductModel::where('code', 'AGU-21G')->firstOrFail();
+        $setup   = $this->createWarehouseSetup();
+        $variant = $this->getAgujaVariant();
 
-        $this->createBatch($product->id, 'LOT-LOW', now()->addDays(30), 10, $setup['location']);
+        $this->createBatch($variant->id, 'LOT-LOW', now()->addDays(30), 10, $setup['location']);
 
         $this->expectException(InsufficientStockException::class);
 
-        app(FEFOService::class)->selectBatchesForExit($product->id, $setup['warehouse']->id, 100);
+        app(FEFOService::class)->selectBatchesForExit($variant->id, $setup['warehouse']->id, 100);
     }
 
     public function test_excludes_expired_batch_even_if_earliest_expiry(): void
     {
-        $setup = $this->createWarehouseSetup();
-        $product = ProductModel::where('code', 'AGU-21G')->firstOrFail();
+        $setup   = $this->createWarehouseSetup();
+        $variant = $this->getAgujaVariant();
 
-        // Lote vencido ayer pero aún con status 'active' (job sga:check-expirations sin ejecutar).
-        $this->createBatch($product->id, 'LOT-EXPIRED', now()->subDay(), 50, $setup['location']);
-        $batchValid = $this->createBatch($product->id, 'LOT-VALID', now()->addDays(30), 100, $setup['location']);
+        $this->createBatch($variant->id, 'LOT-EXPIRED', now()->subDay(), 50, $setup['location']);
+        $batchValid = $this->createBatch($variant->id, 'LOT-VALID', now()->addDays(30), 100, $setup['location']);
 
-        $selected = app(FEFOService::class)->selectBatchesForExit($product->id, $setup['warehouse']->id, 30);
+        $selected = app(FEFOService::class)->selectBatchesForExit($variant->id, $setup['warehouse']->id, 30);
 
         $this->assertCount(1, $selected);
         $this->assertSame($batchValid->id, $selected[0]['batch_id']);
@@ -84,15 +84,14 @@ class FEFOServiceTest extends TestCase
 
     public function test_fefo_order_is_preserved_among_valid_batches_when_an_expired_batch_exists(): void
     {
-        $setup = $this->createWarehouseSetup();
-        $product = ProductModel::where('code', 'AGU-21G')->firstOrFail();
+        $setup   = $this->createWarehouseSetup();
+        $variant = $this->getAgujaVariant();
 
-        // El vencido es el de fecha más próxima, pero debe ignorarse por completo.
-        $this->createBatch($product->id, 'LOT-EXPIRED', now()->subDay(), 999, $setup['location']);
-        $batchSoon = $this->createBatch($product->id, 'LOT-SOON', now()->addDays(30), 30, $setup['location']);
-        $batchLater = $this->createBatch($product->id, 'LOT-LATER', now()->addDays(90), 50, $setup['location']);
+        $this->createBatch($variant->id, 'LOT-EXPIRED', now()->subDay(), 999, $setup['location']);
+        $batchSoon  = $this->createBatch($variant->id, 'LOT-SOON', now()->addDays(30), 30, $setup['location']);
+        $batchLater = $this->createBatch($variant->id, 'LOT-LATER', now()->addDays(90), 50, $setup['location']);
 
-        $selected = app(FEFOService::class)->selectBatchesForExit($product->id, $setup['warehouse']->id, 50);
+        $selected = app(FEFOService::class)->selectBatchesForExit($variant->id, $setup['warehouse']->id, 50);
 
         $this->assertCount(2, $selected);
         $this->assertSame($batchSoon->id, $selected[0]['batch_id']);
@@ -103,24 +102,24 @@ class FEFOServiceTest extends TestCase
 
     public function test_throws_expired_stock_exception_when_only_expired_stock_available(): void
     {
-        $setup = $this->createWarehouseSetup();
-        $product = ProductModel::where('code', 'AGU-21G')->firstOrFail();
+        $setup   = $this->createWarehouseSetup();
+        $variant = $this->getAgujaVariant();
 
-        $this->createBatch($product->id, 'LOT-EXPIRED', now()->subDay(), 50, $setup['location']);
+        $this->createBatch($variant->id, 'LOT-EXPIRED', now()->subDay(), 50, $setup['location']);
 
         $this->expectException(ExpiredStockException::class);
 
-        app(FEFOService::class)->selectBatchesForExit($product->id, $setup['warehouse']->id, 30);
+        app(FEFOService::class)->selectBatchesForExit($variant->id, $setup['warehouse']->id, 30);
     }
 
     public function test_include_expired_allows_selecting_expired_batch(): void
     {
-        $setup = $this->createWarehouseSetup();
-        $product = ProductModel::where('code', 'AGU-21G')->firstOrFail();
+        $setup   = $this->createWarehouseSetup();
+        $variant = $this->getAgujaVariant();
 
-        $batchExpired = $this->createBatch($product->id, 'LOT-EXPIRED', now()->subDay(), 50, $setup['location']);
+        $batchExpired = $this->createBatch($variant->id, 'LOT-EXPIRED', now()->subDay(), 50, $setup['location']);
 
-        $selected = app(FEFOService::class)->selectBatchesForExit($product->id, $setup['warehouse']->id, 30, includeExpired: true);
+        $selected = app(FEFOService::class)->selectBatchesForExit($variant->id, $setup['warehouse']->id, 30, includeExpired: true);
 
         $this->assertCount(1, $selected);
         $this->assertSame($batchExpired->id, $selected[0]['batch_id']);
@@ -128,16 +127,23 @@ class FEFOServiceTest extends TestCase
 
     public function test_get_expired_quantity_sums_expired_batches_only(): void
     {
-        $setup = $this->createWarehouseSetup();
-        $product = ProductModel::where('code', 'AGU-21G')->firstOrFail();
+        $setup   = $this->createWarehouseSetup();
+        $variant = $this->getAgujaVariant();
 
-        $this->createBatch($product->id, 'LOT-VALID', now()->addDays(30), 30, $setup['location']);
-        $this->createBatch($product->id, 'LOT-EXPIRED-1', now()->subDay(), 50, $setup['location']);
-        $this->createBatch($product->id, 'LOT-EXPIRED-2', now()->subDays(10), 20, $setup['location']);
+        $this->createBatch($variant->id, 'LOT-VALID', now()->addDays(30), 30, $setup['location']);
+        $this->createBatch($variant->id, 'LOT-EXPIRED-1', now()->subDay(), 50, $setup['location']);
+        $this->createBatch($variant->id, 'LOT-EXPIRED-2', now()->subDays(10), 20, $setup['location']);
 
-        $expiredQuantity = app(FEFOService::class)->getExpiredQuantity($product->id, $setup['warehouse']->id);
+        $expiredQuantity = app(FEFOService::class)->getExpiredQuantity($variant->id, $setup['warehouse']->id);
 
         $this->assertSame(70, $expiredQuantity);
+    }
+
+    private function getAgujaVariant(): ProductVariantModel
+    {
+        $generic = GenericProductModel::where('barcode', '000001')->firstOrFail();
+
+        return ProductVariantModel::where('generic_product_id', $generic->id)->firstOrFail();
     }
 
     /**
@@ -169,10 +175,10 @@ class FEFOServiceTest extends TestCase
         return compact('warehouse', 'zone', 'location');
     }
 
-    private function createBatch(int $productId, string $lot, $expiration, int $qty, LocationModel $location): BatchModel
+    private function createBatch(int $variantId, string $lot, $expiration, int $qty, LocationModel $location): BatchModel
     {
         $batch = BatchModel::create([
-            'product_id'         => $productId,
+            'product_variant_id' => $variantId,
             'lot_number'         => $lot,
             'expiration_date'    => $expiration->format('Y-m-d'),
             'quantity_received'  => $qty,

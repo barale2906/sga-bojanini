@@ -10,9 +10,9 @@ use Illuminate\Support\Facades\DB;
 
 class StockCalculator
 {
-    public function getCurrentStock(int $productId, int $warehouseId): int
+    public function getCurrentStock(int $productVariantId, int $warehouseId): int
     {
-        $summary = StockSummaryModel::where('product_id', $productId)
+        $summary = StockSummaryModel::where('product_variant_id', $productVariantId)
             ->where('warehouse_id', $warehouseId)
             ->first();
 
@@ -20,16 +20,25 @@ class StockCalculator
     }
 
     /**
-     * Desglosa el stock vigente (no vencido) de un producto por ubicación
-     * dentro de un almacén.
+     * Suma el stock disponible de todas las variantes de un genérico en un almacén.
      */
-    public function getStockByLocation(int $productId, int $warehouseId): array
+    public function getGenericStock(int $genericProductId, int $warehouseId): int
+    {
+        return (int) StockSummaryModel::where('warehouse_id', $warehouseId)
+            ->whereHas('variant', fn ($q) => $q->where('generic_product_id', $genericProductId))
+            ->sum('available_quantity');
+    }
+
+    /**
+     * Desglosa el stock vigente de una variante por ubicación dentro de un almacén.
+     */
+    public function getStockByLocation(int $productVariantId, int $warehouseId): array
     {
         return DB::table('batch_location')
             ->join('batches', 'batch_location.batch_id', '=', 'batches.id')
             ->join('locations', 'batch_location.location_id', '=', 'locations.id')
             ->join('zones', 'locations.zone_id', '=', 'zones.id')
-            ->where('batches.product_id', $productId)
+            ->where('batches.product_variant_id', $productVariantId)
             ->where('zones.warehouse_id', $warehouseId)
             ->where('batches.status', 'active')
             ->whereDate('batches.expiration_date', '>=', Carbon::today())
@@ -45,20 +54,16 @@ class StockCalculator
     }
 
     /**
-     * Recalcula el resumen de stock de un producto en un almacén a partir de
+     * Recalcula el resumen de stock de una variante en un almacén a partir de
      * los lotes vigentes (status = 'active' y expiration_date >= hoy).
-     *
-     * Los lotes vencidos no se contabilizan como stock disponible, sin
-     * depender de que el job programado sga:check-expirations haya marcado
-     * el lote como 'expired'.
      */
-    public function recalculateSummary(int $productId, int $warehouseId): void
+    public function recalculateSummary(int $productVariantId, int $warehouseId): void
     {
         $totalQuantity = DB::table('batch_location')
             ->join('batches', 'batch_location.batch_id', '=', 'batches.id')
             ->join('locations', 'batch_location.location_id', '=', 'locations.id')
             ->join('zones', 'locations.zone_id', '=', 'zones.id')
-            ->where('batches.product_id', $productId)
+            ->where('batches.product_variant_id', $productVariantId)
             ->where('zones.warehouse_id', $warehouseId)
             ->where('batches.status', 'active')
             ->whereDate('batches.expiration_date', '>=', Carbon::today())
@@ -66,8 +71,8 @@ class StockCalculator
 
         StockSummaryModel::updateOrCreate(
             [
-                'product_id'   => $productId,
-                'warehouse_id' => $warehouseId,
+                'product_variant_id' => $productVariantId,
+                'warehouse_id'       => $warehouseId,
             ],
             [
                 'total_quantity'     => $totalQuantity,

@@ -18,47 +18,65 @@ class StoreTransferRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'product_id'        => ['required', 'integer', 'exists:products,id'],
-            'warehouse_from_id' => ['required', 'integer', 'exists:warehouses,id'],
-            'warehouse_to_id'   => ['required', 'integer', 'exists:warehouses,id'],
-            'location_from_id'  => ['required', 'integer', 'exists:locations,id'],
-            'location_to_id'    => ['required', 'integer', 'exists:locations,id'],
-            'quantity'          => ['required', 'integer', 'min:1'],
-            'reason'            => ['nullable', 'string'],
+            'warehouse_from_id'            => ['required', 'integer', 'exists:warehouses,id'],
+            'warehouse_to_id'              => ['required', 'integer', 'exists:warehouses,id'],
+            'reason'                       => ['nullable', 'string'],
+
+            'items'                        => ['required', 'array', 'min:1'],
+            'items.*.product_variant_id'   => ['required', 'integer', 'exists:product_variants,id'],
+            'items.*.location_from_id'     => ['required', 'integer', 'exists:locations,id'],
+            'items.*.location_to_id'       => ['required', 'integer', 'exists:locations,id'],
+            'items.*.quantity'             => ['required', 'integer', 'min:1'],
         ];
     }
 
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $v) {
-            $locationFromId  = (int) $this->input('location_from_id');
-            $locationToId    = (int) $this->input('location_to_id');
             $warehouseFromId = (int) $this->input('warehouse_from_id');
             $warehouseToId   = (int) $this->input('warehouse_to_id');
 
-            if ($warehouseFromId === $warehouseToId && $locationFromId === $locationToId) {
-                $v->errors()->add('location_to_id', 'La ubicación de destino debe ser diferente a la de origen.');
+            foreach ((array) $this->input('items', []) as $i => $item) {
+                $locationFromId = (int) ($item['location_from_id'] ?? 0);
+                $locationToId   = (int) ($item['location_to_id'] ?? 0);
 
-                return;
-            }
+                if ($warehouseFromId === $warehouseToId && $locationFromId === $locationToId) {
+                    $v->errors()->add("items.{$i}.location_to_id", 'La ubicación de destino debe ser diferente a la de origen.');
+                    continue;
+                }
 
-            $fromWarehouse = DB::table('locations')
-                ->join('zones', 'locations.zone_id', '=', 'zones.id')
-                ->where('locations.id', $locationFromId)
-                ->value('zones.warehouse_id');
+                $fromWarehouse = DB::table('locations')
+                    ->join('zones', 'locations.zone_id', '=', 'zones.id')
+                    ->where('locations.id', $locationFromId)
+                    ->value('zones.warehouse_id');
 
-            if ((int) $fromWarehouse !== $warehouseFromId) {
-                $v->errors()->add('location_from_id', 'La ubicación de origen no pertenece al almacén de origen.');
-            }
+                if ((int) $fromWarehouse !== $warehouseFromId) {
+                    $v->errors()->add("items.{$i}.location_from_id", 'La ubicación de origen no pertenece al almacén de origen.');
+                }
 
-            $toWarehouse = DB::table('locations')
-                ->join('zones', 'locations.zone_id', '=', 'zones.id')
-                ->where('locations.id', $locationToId)
-                ->value('zones.warehouse_id');
+                $toWarehouse = DB::table('locations')
+                    ->join('zones', 'locations.zone_id', '=', 'zones.id')
+                    ->where('locations.id', $locationToId)
+                    ->value('zones.warehouse_id');
 
-            if ((int) $toWarehouse !== $warehouseToId) {
-                $v->errors()->add('location_to_id', 'La ubicación de destino no pertenece al almacén de destino.');
+                if ((int) $toWarehouse !== $warehouseToId) {
+                    $v->errors()->add("items.{$i}.location_to_id", 'La ubicación de destino no pertenece al almacén de destino.');
+                }
             }
         });
+    }
+
+    public function messages(): array
+    {
+        return [
+            'items.required'                       => 'Debe incluir al menos un ítem.',
+            'items.min'                            => 'Debe incluir al menos un ítem.',
+            'items.*.product_variant_id.required'  => 'La variante de producto es obligatoria en cada ítem.',
+            'items.*.product_variant_id.exists'    => 'Una de las variantes no existe.',
+            'items.*.location_from_id.required'    => 'La ubicación de origen es obligatoria en cada ítem.',
+            'items.*.location_to_id.required'      => 'La ubicación de destino es obligatoria en cada ítem.',
+            'items.*.quantity.required'            => 'La cantidad es obligatoria en cada ítem.',
+            'items.*.quantity.min'                 => 'La cantidad debe ser mayor a cero.',
+        ];
     }
 }

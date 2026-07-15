@@ -42,6 +42,6 @@ class ProductClassificationModel extends Model
 
     public function products(): HasMany
     {
-        return $this->hasMany(ProductModel::class, 'classification_id');
+        return $this->hasMany(GenericProductModel::class, 'classification_id');
     }
 }

@@ -18,10 +18,10 @@ class EloquentCapacityRepository implements CapacityRepositoryInterface
     {
         $row = DB::table('batch_location as bl')
             ->join('batches as b', 'bl.batch_id', '=', 'b.id')
-            ->join('products as p', 'b.product_id', '=', 'p.id')
+            ->join('product_variants as pv', 'b.product_variant_id', '=', 'pv.id')
+            ->join('product_generics as p', 'pv.generic_product_id', '=', 'p.id')
             ->where('bl.location_id', $locationId)
             ->where('b.status', 'active')
-            // batches no usa SoftDeletes → sin filtro deleted_at
             ->selectRaw('
                 COALESCE(SUM(bl.quantity * COALESCE(p.volume_cm3, 0)), 0) AS used_volume_cm3,
                 COALESCE(SUM(bl.quantity * COALESCE(p.weight_kg, 0)), 0)  AS used_weight_kg
@@ -43,7 +43,8 @@ class EloquentCapacityRepository implements CapacityRepositoryInterface
     {
         $row = DB::table('batch_location as bl')
             ->join('batches as b', 'bl.batch_id', '=', 'b.id')
-            ->join('products as p', 'b.product_id', '=', 'p.id')
+            ->join('product_variants as pv', 'b.product_variant_id', '=', 'pv.id')
+            ->join('product_generics as p', 'pv.generic_product_id', '=', 'p.id')
             ->join('locations as l', 'bl.location_id', '=', 'l.id')
             ->where('l.zone_id', $zoneId)
             ->where('b.status', 'active')
@@ -69,7 +70,8 @@ class EloquentCapacityRepository implements CapacityRepositoryInterface
     {
         $row = DB::table('batch_location as bl')
             ->join('batches as b', 'bl.batch_id', '=', 'b.id')
-            ->join('products as p', 'b.product_id', '=', 'p.id')
+            ->join('product_variants as pv', 'b.product_variant_id', '=', 'pv.id')
+            ->join('product_generics as p', 'pv.generic_product_id', '=', 'p.id')
             ->join('locations as l', 'bl.location_id', '=', 'l.id')
             ->join('zones as z', 'l.zone_id', '=', 'z.id')
             ->where('z.warehouse_id', $warehouseId)

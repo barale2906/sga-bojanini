@@ -17,7 +17,7 @@ class NotifyExpiringBatch
 
     public function handle(BatchExpiringSoon $event): void
     {
-        $batch = BatchModel::with(['product'])->find($event->batchId);
+        $batch = BatchModel::with(['variant.genericProduct'])->find($event->batchId);
 
         if ($batch === null) {
             return;
@@ -28,7 +28,7 @@ class NotifyExpiringBatch
         $this->notificationService->notifyByType(
             'batch_expiring_soon',
             new BatchExpiringSoonNotification(
-                productName: $batch->product->name ?? 'Producto',
+                productName: $batch->variant?->genericProduct?->name ?? 'Producto',
                 batchNumber: $event->lotNumber,
                 expiryDate: $event->expirationDate,
                 daysUntilExpiry: $event->daysUntilExpiry,

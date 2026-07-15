@@ -23,7 +23,7 @@ class StockController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $query = StockSummaryModel::with(['product', 'warehouse'])
+        $query = StockSummaryModel::with(['variant.genericProduct', 'warehouse'])
             ->where('available_quantity', '>', 0);
 
         if ($request->filled('warehouse_id')) {
@@ -33,8 +33,12 @@ class StockController extends Controller
             $this->scopeQueryToAllowedWarehouses($query, $request->user());
         }
 
-        if ($request->filled('product_id')) {
-            $query->where('product_id', $request->integer('product_id'));
+        if ($request->filled('generic_product_id')) {
+            $query->join('product_variants', 'stock_summaries.product_variant_id', '=', 'product_variants.id')
+                  ->where('product_variants.generic_product_id', $request->integer('generic_product_id'))
+                  ->select('stock_summaries.*');
+        } elseif ($request->filled('product_variant_id')) {
+            $query->where('product_variant_id', $request->integer('product_variant_id'));
         }
 
         $perPage = min(
@@ -59,21 +63,21 @@ class StockController extends Controller
      */
     public function summary(StockSummaryRequest $request, FEFOService $fefoService): JsonResponse
     {
-        $productId = $request->integer('product_id');
+        $productId = $request->integer('product_variant_id');
         $warehouseId = $request->integer('warehouse_id');
 
         $this->assertWarehouseAccess($request->user(), $warehouseId);
 
-        $summary = StockSummaryModel::with(['product', 'warehouse'])
+        $summary = StockSummaryModel::with(['variant.genericProduct', 'warehouse'])
             ->where('warehouse_id', $warehouseId)
-            ->where('product_id', $productId)
+            ->where('product_variant_id', $productId)
             ->first();
 
         $expiredQuantity = $fefoService->getExpiredQuantity($productId, $warehouseId);
 
         if ($summary === null) {
             return $this->success([
-                'product_id'         => $productId,
+                'product_variant_id'         => $productId,
                 'warehouse_id'       => $warehouseId,
                 'total_quantity'     => 0,
                 'reserved_quantity'  => 0,
@@ -102,31 +106,32 @@ class StockController extends Controller
      */
     public function kitAvailability(KitAvailabilityRequest $request, KitAvailabilityService $service): JsonResponse
     {
-        $kitProductId = $request->integer('kit_product_id');
+        $kitGenericId = $request->integer('kit_generic_id');
         $warehouseId  = $request->integer('warehouse_id');
 
         $this->assertWarehouseAccess($request->user(), $warehouseId);
 
         try {
-            $available = $service->getAvailableKits($kitProductId, $warehouseId);
+            $available = $service->getAvailableKits($kitGenericId, $warehouseId);
         } catch (\DomainException $e) {
             return $this->error($e->getMessage(), 422);
         }
 
         return $this->success([
-            'kit_product_id'  => $kitProductId,
-            'warehouse_id'    => $warehouseId,
-            'available_kits'  => $available,
+            'generic_product_id' => $kitGenericId,
+            'warehouse_id'       => $warehouseId,
+            'available_kits'     => $available,
         ], 'Disponibilidad de kit');
     }
 
     public function low(Request $request): JsonResponse
     {
         $query = StockSummaryModel::query()
-            ->with(['product', 'warehouse'])
-            ->join('products', 'stock_summaries.product_id', '=', 'products.id')
-            ->where('products.reorder_point', '>', 0)
-            ->whereColumn('stock_summaries.available_quantity', '<=', 'products.reorder_point')
+            ->with(['variant.genericProduct', 'warehouse'])
+            ->join('product_variants', 'stock_summaries.product_variant_id', '=', 'product_variants.id')
+            ->join('product_generics', 'product_variants.generic_product_id', '=', 'product_generics.id')
+            ->where('product_generics.reorder_point', '>', 0)
+            ->whereColumn('stock_summaries.available_quantity', '<=', 'product_generics.reorder_point')
             ->select('stock_summaries.*');
 
         if ($request->filled('warehouse_id')) {

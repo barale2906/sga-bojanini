@@ -3,9 +3,10 @@
 namespace Tests\Feature;
 
 use App\Modules\Catalog\Infrastructure\Persistence\Models\CategoryModel;
+use App\Modules\Catalog\Infrastructure\Persistence\Models\GenericProductModel;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductClassificationModel;
-use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductModel;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductSanitaryRegistrationModel;
+use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductVariantModel;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\SupplierModel;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\UnitOfMeasureModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -151,17 +152,21 @@ class CatalogImportTest extends TestCase
             ->assertJsonPath('data.errors.0.row', 3)
             ->assertJsonPath('data.errors.0.errors.category_code.0', 'No existe ninguna categoría con este código. Revise la hoja "Categorías" de la plantilla.');
 
-        $product = ProductModel::where('code', 'IMP-001')->first();
-        $this->assertNotNull($product);
-        $this->assertTrue($product->requires_cold_chain);
-        $this->assertTrue($product->is_active);
-        $this->assertSame('simple', $product->product_type);
+        $generic = GenericProductModel::where('name', 'Producto Importado')->first();
+        $this->assertNotNull($generic);
+        $this->assertTrue($generic->requires_cold_chain);
+        $this->assertTrue($generic->is_active);
+        $this->assertSame('simple', $generic->product_type);
         $this->assertSame(
             ProductClassificationModel::where('code', 'DM')->first()->id,
-            $product->classification_id,
+            $generic->classification_id,
         );
 
-        $this->assertFalse(ProductModel::where('code', 'IMP-002')->exists());
+        $variant = ProductVariantModel::where('generic_product_id', $generic->id)->where('is_active', true)->first();
+        $this->assertNotNull($variant, 'El import masivo debe crear una variante activa para el producto genérico.');
+        $this->assertSame('SKU-IMP-001', $variant->brand_sku);
+
+        $this->assertFalse(GenericProductModel::where('name', 'Producto Invalido')->exists());
     }
 
     public function test_importar_producto_con_registro_sanitario(): void
@@ -189,27 +194,30 @@ class CatalogImportTest extends TestCase
             ->assertJsonPath('data.failed', 0);
 
         // Producto 1: DM + registro sanitario
-        $p1 = ProductModel::where('code', 'IMP-SR-001')->first();
+        $p1 = GenericProductModel::where('name', 'Producto DM con INVIMA')->first();
         $this->assertNotNull($p1);
         $this->assertSame(ProductClassificationModel::where('code', 'DM')->first()->id, $p1->classification_id);
-        $sr1 = ProductSanitaryRegistrationModel::where('product_id', $p1->id)->first();
+        $v1  = ProductVariantModel::where('generic_product_id', $p1->id)->first();
+        $sr1 = ProductSanitaryRegistrationModel::where('product_variant_id', $v1->id)->first();
         $this->assertNotNull($sr1);
         $this->assertSame('2024DM-0099999', $sr1->registration_number);
         $this->assertSame('2099-12-31', $sr1->expiry_date->format('Y-m-d'));
         $this->assertTrue($sr1->is_active);
 
         // Producto 2: sin clasificación pero con registro sanitario → importa y crea el registro
-        $p2 = ProductModel::where('code', 'IMP-SR-002')->first();
+        $p2 = GenericProductModel::where('name', 'Producto sin clasif')->first();
         $this->assertNotNull($p2);
         $this->assertNull($p2->classification_id);
-        $sr2 = ProductSanitaryRegistrationModel::where('product_id', $p2->id)->first();
+        $v2  = ProductVariantModel::where('generic_product_id', $p2->id)->first();
+        $sr2 = ProductSanitaryRegistrationModel::where('product_variant_id', $v2->id)->first();
         $this->assertNotNull($sr2);
         $this->assertSame('2024MED-0001', $sr2->registration_number);
 
         // Producto 3: MED sin registro sanitario → importa sin crear registro
-        $p3 = ProductModel::where('code', 'IMP-SR-003')->first();
+        $p3 = GenericProductModel::where('name', 'Producto sin INVIMA')->first();
         $this->assertNotNull($p3);
-        $this->assertFalse(ProductSanitaryRegistrationModel::where('product_id', $p3->id)->exists());
+        $v3 = ProductVariantModel::where('generic_product_id', $p3->id)->first();
+        $this->assertFalse(ProductSanitaryRegistrationModel::where('product_variant_id', $v3->id)->exists());
     }
 
     public function test_importar_proveedores(): void
@@ -314,11 +322,11 @@ class CatalogImportTest extends TestCase
         $this->assertNotNull($newClassification);
         $this->assertTrue($newClassification->has_sanitary_registration);
 
-        $product = ProductModel::where('code', 'IMP-010')->first();
-        $this->assertNotNull($product);
-        $this->assertSame($newCategory->id, $product->category_id);
-        $this->assertSame($newUnit->id, $product->base_unit_id);
-        $this->assertSame($newClassification->id, $product->classification_id);
+        $generic = GenericProductModel::where('name', 'Producto Nuevo')->first();
+        $this->assertNotNull($generic);
+        $this->assertSame($newCategory->id, $generic->category_id);
+        $this->assertSame($newUnit->id, $generic->base_unit_id);
+        $this->assertSame($newClassification->id, $generic->classification_id);
 
         $this->assertFalse(CategoryModel::where('code', 'CAT-INVALIDA')->exists());
     }
@@ -341,8 +349,9 @@ class CatalogImportTest extends TestCase
             ->assertJsonPath('data.success', 1)
             ->assertJsonPath('data.failed', 0);
 
-        $product = ProductModel::where('code', 'IMP-SKU-001')->first();
-        $this->assertNotNull($product);
-        $this->assertSame('123456', $product->sku);
+        $generic = GenericProductModel::where('name', 'Producto SKU Numérico')->first();
+        $this->assertNotNull($generic);
+        $variant = ProductVariantModel::where('generic_product_id', $generic->id)->first();
+        $this->assertSame('123456', $variant->brand_sku);
     }
 }

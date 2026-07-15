@@ -14,12 +14,16 @@ class StockResource extends JsonResource
         $summary = $this->resource;
 
         return [
-            'product' => $summary->relationLoaded('product') ? [
-                'id'   => $summary->product->id,
-                'code' => $summary->product->code,
-                'name' => $summary->product->name,
+            'variant' => $summary->relationLoaded('variant') ? [
+                'id'        => $summary->variant->id,
+                'lab_brand' => $summary->variant->lab_brand,
+                'generic'   => $summary->variant->relationLoaded('genericProduct') ? [
+                    'id'      => $summary->variant->genericProduct->id,
+                    'barcode' => $summary->variant->genericProduct->barcode,
+                    'name'    => $summary->variant->genericProduct->name,
+                ] : null,
             ] : [
-                'id' => $summary->product_id,
+                'product_variant_id' => $summary->product_variant_id,
             ],
             'warehouse' => $summary->relationLoaded('warehouse') ? [
                 'id'   => $summary->warehouse->id,

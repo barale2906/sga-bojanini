@@ -3,7 +3,8 @@
 namespace Tests\Feature;
 
 use App\Modules\Catalog\Infrastructure\Persistence\Models\CategoryModel;
-use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductModel;
+use App\Modules\Catalog\Infrastructure\Persistence\Models\GenericProductModel;
+use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductVariantModel;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\UnitOfMeasureModel;
 use App\Modules\Warehouse\Infrastructure\Persistence\Models\LocationModel;
 use App\Modules\Warehouse\Infrastructure\Persistence\Models\WarehouseModel;
@@ -62,11 +63,12 @@ class InitialEntriesImportTest extends TestCase
     public function test_importa_entrada_simple_al_primer_almacen_y_primera_zona(): void
     {
         $product = $this->createProduct('PROD-A');
+        $barcode = $product->genericProduct->barcode;
 
         $response = $this->withHeaders($this->auth)
             ->post('/api/v1/movements/initial-entries/import', [
                 'file' => $this->makeEntriesUpload([
-                    ['PROD-A', 'LOTE-001', 100, '2027-01-31', '', 'FAC-001', '4.5', 'Carga inicial'],
+                    [$barcode, 'LOTE-001', 100, '2027-01-31', '', 'FAC-001', '4.5', 'Carga inicial'],
                 ]),
             ]);
 
@@ -76,16 +78,16 @@ class InitialEntriesImportTest extends TestCase
             ->assertJsonPath('data.failed', 0);
 
         $this->assertDatabaseHas('batches', [
-            'product_id'         => $product->id,
+            'product_variant_id' => $product->id,
             'lot_number'         => 'LOTE-001',
             'quantity_available' => 100,
         ]);
 
         $this->assertDatabaseHas('stock_movements', [
-            'product_id'    => $product->id,
-            'warehouse_id'  => $this->warehouse->id,
-            'movement_type' => 'entry',
-            'quantity'      => 100,
+            'product_variant_id' => $product->id,
+            'warehouse_id'       => $this->warehouse->id,
+            'movement_type'      => 'entry',
+            'quantity'           => 100,
         ]);
 
         // El estante se generó dentro de la primera zona del primer almacén.
@@ -98,6 +100,7 @@ class InitialEntriesImportTest extends TestCase
     public function test_permite_elegir_el_almacen_destino_al_importar(): void
     {
         $product = $this->createProduct('PROD-B');
+        $barcode = $product->genericProduct->barcode;
 
         $otherWarehouse = WarehouseModel::create([
             'name'      => 'Almacén Secundario',
@@ -116,22 +119,22 @@ class InitialEntriesImportTest extends TestCase
             ->post('/api/v1/movements/initial-entries/import', [
                 'warehouse_id' => $otherWarehouse->id,
                 'file'         => $this->makeEntriesUpload([
-                    ['PROD-B', 'LOTE-002', 50, '2027-01-31', '', '', '', ''],
+                    [$barcode, 'LOTE-002', 50, '2027-01-31', '', '', '', ''],
                 ]),
             ]);
 
         $response->assertStatus(200)->assertJsonPath('data.success', 1);
 
         $this->assertDatabaseHas('stock_movements', [
-            'product_id'   => $product->id,
-            'warehouse_id' => $otherWarehouse->id,
-            'quantity'     => 50,
+            'product_variant_id' => $product->id,
+            'warehouse_id'       => $otherWarehouse->id,
+            'quantity'           => 50,
         ]);
 
         // No debe haber tocado el almacén/zona "por defecto" (el primero registrado).
         $this->assertDatabaseMissing('stock_movements', [
-            'product_id'   => $product->id,
-            'warehouse_id' => $this->warehouse->id,
+            'product_variant_id' => $product->id,
+            'warehouse_id'       => $this->warehouse->id,
         ]);
 
         $this->assertNotNull(LocationModel::where('zone_id', $otherZone->id)->first());
@@ -139,13 +142,14 @@ class InitialEntriesImportTest extends TestCase
 
     public function test_rechaza_un_warehouse_id_inexistente(): void
     {
-        $this->createProduct('PROD-C');
+        $product = $this->createProduct('PROD-C');
+        $barcode = $product->genericProduct->barcode;
 
         $response = $this->withHeaders($this->auth)
             ->post('/api/v1/movements/initial-entries/import', [
                 'warehouse_id' => 999999,
                 'file'         => $this->makeEntriesUpload([
-                    ['PROD-C', 'LOTE-003', 10, '2027-01-31', '', '', '', ''],
+                    [$barcode, 'LOTE-003', 10, '2027-01-31', '', '', '', ''],
                 ]),
             ]);
 
@@ -155,11 +159,12 @@ class InitialEntriesImportTest extends TestCase
     public function test_producto_con_cadena_de_frio_crea_zona_y_estante_automaticamente(): void
     {
         $product = $this->createProduct('PROD-FRIO', ['requires_cold_chain' => true]);
+        $barcode = $product->genericProduct->barcode;
 
         $response = $this->withHeaders($this->auth)
             ->post('/api/v1/movements/initial-entries/import', [
                 'file' => $this->makeEntriesUpload([
-                    ['PROD-FRIO', 'LOTE-FRIO-001', 10, '2027-01-31', '', '', '-18', ''],
+                    [$barcode, 'LOTE-FRIO-001', 10, '2027-01-31', '', '', '-18', ''],
                 ]),
             ]);
 
@@ -179,12 +184,13 @@ class InitialEntriesImportTest extends TestCase
     {
         // 1 m³ por unidad: 2 unidades = 2.000.000 cm³ (cabe en un estante de 3.000.000 cm³)
         $product = $this->createProduct('PROD-VOL', ['volume_cm3' => 1_000_000, 'weight_kg' => 0.001]);
+        $barcode = $product->genericProduct->barcode;
 
         $response = $this->withHeaders($this->auth)
             ->post('/api/v1/movements/initial-entries/import', [
                 'file' => $this->makeEntriesUpload([
-                    ['PROD-VOL', 'LOTE-VOL-001', 2, '2027-01-31', '', '', '', ''],
-                    ['PROD-VOL', 'LOTE-VOL-002', 2, '2027-01-31', '', '', '', ''],
+                    [$barcode, 'LOTE-VOL-001', 2, '2027-01-31', '', '', '', ''],
+                    [$barcode, 'LOTE-VOL-002', 2, '2027-01-31', '', '', '', ''],
                 ]),
             ]);
 
@@ -205,13 +211,14 @@ class InitialEntriesImportTest extends TestCase
 
     public function test_fila_con_producto_inexistente_se_reporta_como_fallida_sin_afectar_las_demas(): void
     {
-        $this->createProduct('PROD-OK');
+        $product = $this->createProduct('PROD-OK');
+        $barcode = $product->genericProduct->barcode;
 
         $response = $this->withHeaders($this->auth)
             ->post('/api/v1/movements/initial-entries/import', [
                 'file' => $this->makeEntriesUpload([
-                    ['PROD-OK', 'LOTE-OK-001', 10, '2027-01-31', '', '', '', ''],
-                    ['PROD-NO-EXISTE', 'LOTE-X', 5, '2027-01-31', '', '', '', ''],
+                    [$barcode, 'LOTE-OK-001', 10, '2027-01-31', '', '', '', ''],
+                    ['999999', 'LOTE-X', 5, '2027-01-31', '', '', '', ''],
                 ]),
             ]);
 
@@ -225,33 +232,43 @@ class InitialEntriesImportTest extends TestCase
 
     public function test_usuario_sin_permiso_no_puede_importar(): void
     {
-        $this->createProduct('PROD-A');
-        $user = $this->authenticateAsRole('personal_medico');
+        $product = $this->createProduct('PROD-A');
+        $barcode = $product->genericProduct->barcode;
+        $user    = $this->authenticateAsRole('personal_medico');
 
         $response = $this->withHeaders($this->bearerAuthFor($user))
             ->post('/api/v1/movements/initial-entries/import', [
                 'file' => $this->makeEntriesUpload([
-                    ['PROD-A', 'LOTE-001', 10, '2027-01-31', '', '', '', ''],
+                    [$barcode, 'LOTE-001', 10, '2027-01-31', '', '', '', ''],
                 ]),
             ]);
 
         $response->assertStatus(403);
     }
 
-    private function createProduct(string $code, array $overrides = []): ProductModel
+    private function createProduct(string $code, array $overrides = []): ProductVariantModel
     {
         $category = CategoryModel::where('code', 'INS-MED')->first();
-        $unit = UnitOfMeasureModel::where('abbreviation', 'UND')->first();
+        $unit     = UnitOfMeasureModel::where('abbreviation', 'UND')->first();
 
-        return ProductModel::create(array_merge([
+        $maxBarcode = (int) GenericProductModel::max('barcode');
+        $barcode    = str_pad((string) ($maxBarcode + 1), 6, '0', STR_PAD_LEFT);
+
+        $generic = GenericProductModel::create(array_merge([
             'category_id'         => $category->id,
             'base_unit_id'        => $unit->id,
             'product_type'        => 'simple',
             'name'                => "Producto {$code}",
-            'code'                => $code,
+            'barcode'             => $barcode,
             'requires_cold_chain' => false,
             'is_active'           => true,
         ], $overrides));
+
+        return ProductVariantModel::create([
+            'generic_product_id' => $generic->id,
+            'lab_brand'          => 'Proveedor Test',
+            'is_active'          => true,
+        ]);
     }
 
     /** @param  array<int, array{0: string, 1: string, 2: int, 3: string, 4: string, 5: string, 6: string, 7: string}>  $rows */
@@ -261,7 +278,7 @@ class InitialEntriesImportTest extends TestCase
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Entradas');
 
-        $headers = ['product_code', 'lot_number', 'quantity', 'expiration_date', 'manufacturing_date', 'invoice_number', 'entry_temperature', 'notes'];
+        $headers = ['product_barcode', 'lot_number', 'quantity', 'expiration_date', 'manufacturing_date', 'invoice_number', 'entry_temperature', 'notes'];
 
         foreach ($headers as $col => $header) {
             $sheet->setCellValueByColumnAndRow($col + 1, 1, $header);

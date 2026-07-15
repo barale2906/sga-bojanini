@@ -19,7 +19,7 @@ class ListMovementsRequest extends FormRequest
             'date_from'        => ['nullable', 'date_format:Y-m-d'],
             'date_to'          => ['nullable', 'date_format:Y-m-d', 'after_or_equal:date_from'],
             'warehouse_id'     => ['nullable', 'integer'],
-            'product_id'       => ['nullable', 'integer'],
+            'product_variant_id' => ['nullable', 'integer'],
             'movement_type'    => ['nullable', 'string'],
             'cost_center_id'   => ['nullable', 'integer'],
             'cost_center_type' => ['nullable', 'string', 'in:internal,external'],

@@ -12,8 +12,8 @@ class ProductKitComponentModel extends Model
     protected $table = 'product_kit_components';
 
     protected $fillable = [
-        'kit_product_id',
-        'component_product_id',
+        'kit_generic_id',
+        'component_generic_id',
         'quantity_per_kit',
         'sort_order',
         'notes',
@@ -27,13 +27,13 @@ class ProductKitComponentModel extends Model
         ];
     }
 
-    public function kitProduct(): BelongsTo
+    public function kitGeneric(): BelongsTo
     {
-        return $this->belongsTo(ProductModel::class, 'kit_product_id');
+        return $this->belongsTo(GenericProductModel::class, 'kit_generic_id');
     }
 
-    public function componentProduct(): BelongsTo
+    public function componentGeneric(): BelongsTo
     {
-        return $this->belongsTo(ProductModel::class, 'component_product_id');
+        return $this->belongsTo(GenericProductModel::class, 'component_generic_id');
     }
 }

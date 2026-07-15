@@ -10,7 +10,7 @@ use DateTimeImmutable;
 class ProductSanitaryRegistrationData
 {
     public function __construct(
-        public readonly int $productId,
+        public readonly int $productVariantId,
         public readonly string $registrationNumber,
         public readonly DateTimeImmutable $expiryDate,
         public readonly bool $isActive = true,

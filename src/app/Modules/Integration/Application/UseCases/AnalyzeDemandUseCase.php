@@ -39,10 +39,10 @@ class AnalyzeDemandUseCase
             }
 
             foreach ($serviceProductMap[$serviceType] as $productSpec) {
-                $code = $productSpec['product_code'];
+                $code = $productSpec['product_barcode'];
                 if (!isset($demandByProduct[$code])) {
                     $demandByProduct[$code] = [
-                        'product_code'      => $code,
+                        'product_barcode'      => $code,
                         'expected_demand'   => 0,
                         'appointment_count' => 0,
                     ];
@@ -56,7 +56,7 @@ class AnalyzeDemandUseCase
         $surplusProducts = [];
 
         foreach ($demandByProduct as &$item) {
-            $stock = $this->stockRepository->findByProductCode($item['product_code']);
+            $stock = $this->stockRepository->findByProductCode($item['product_barcode']);
 
             $currentStock = $stock ? $stock->getCurrentQuantity() : 0;
             $item['current_stock'] = $currentStock;

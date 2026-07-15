@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('movement_signatures', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('movement_id')->constrained('stock_movements')->cascadeOnDelete();
+            $table->foreignId('movement_document_id')->constrained('movement_documents')->cascadeOnDelete();
             $table->enum('role', ['delivered_by', 'received_by']);
             $table->string('signer_name', 150);
             $table->string('signer_document', 50);
@@ -18,7 +18,7 @@ return new class extends Migration
             $table->timestamp('signed_at')->useCurrent();
             $table->timestamp('created_at')->useCurrent();
 
-            $table->unique(['movement_id', 'role'], 'uq_movement_role');
+            $table->unique(['movement_document_id', 'role'], 'uq_document_role');
         });
     }
 

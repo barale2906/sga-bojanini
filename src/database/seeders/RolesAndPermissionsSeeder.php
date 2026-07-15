@@ -36,8 +36,11 @@ class RolesAndPermissionsSeeder extends Seeder
             'zonas.ver', 'zonas.crear', 'zonas.editar', 'zonas.eliminar',
             // Ubicaciones
             'ubicaciones.ver', 'ubicaciones.crear', 'ubicaciones.editar', 'ubicaciones.eliminar',
-            // Productos
-            'productos.ver', 'productos.crear', 'productos.editar', 'productos.eliminar', 'productos.importar',
+            // Productos genéricos
+            'generic-products.ver', 'generic-products.crear', 'generic-products.editar',
+            'generic-products.eliminar', 'generic-products.importar', 'generic-products.barcode',
+            // Variantes de producto
+            'product-variants.ver', 'product-variants.crear', 'product-variants.editar', 'product-variants.eliminar',
             // Proveedores
             'proveedores.ver', 'proveedores.crear', 'proveedores.editar', 'proveedores.eliminar', 'proveedores.importar',
             // Lotes
@@ -99,7 +102,9 @@ class RolesAndPermissionsSeeder extends Seeder
             'almacenes.ver', 'almacenes.crear', 'almacenes.editar', 'almacenes.eliminar', 'almacenes.asignar',
             'zonas.ver', 'zonas.crear', 'zonas.editar', 'zonas.eliminar',
             'ubicaciones.ver', 'ubicaciones.crear', 'ubicaciones.editar', 'ubicaciones.eliminar',
-            'productos.ver', 'productos.crear', 'productos.editar', 'productos.eliminar', 'productos.importar',
+            'generic-products.ver', 'generic-products.crear', 'generic-products.editar',
+            'generic-products.eliminar', 'generic-products.importar', 'generic-products.barcode',
+            'product-variants.ver', 'product-variants.crear', 'product-variants.editar', 'product-variants.eliminar',
             'proveedores.ver', 'proveedores.crear', 'proveedores.editar', 'proveedores.eliminar', 'proveedores.importar',
             'lotes.ver', 'lotes.crear',
             'stock.ver',
@@ -129,7 +134,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'almacenes.ver',
             'zonas.ver',
             'ubicaciones.ver',
-            'productos.ver',
+            'generic-products.ver', 'product-variants.ver',
             'proveedores.ver',
             'lotes.ver', 'lotes.crear',
             'stock.ver',
@@ -147,7 +152,7 @@ class RolesAndPermissionsSeeder extends Seeder
         // 4. Compras — Gestiona órdenes de compra
         $purchasing = Role::firstOrCreate(['name' => 'compras', 'guard_name' => 'web']);
         $purchasing->givePermissionTo([
-            'productos.ver',
+            'generic-products.ver', 'product-variants.ver',
             'proveedores.ver', 'proveedores.crear', 'proveedores.editar',
             'stock.ver',
             'ordenes_compra.ver', 'ordenes_compra.crear', 'ordenes_compra.enviar',
@@ -160,7 +165,7 @@ class RolesAndPermissionsSeeder extends Seeder
         $auditor = Role::firstOrCreate(['name' => 'auditor', 'guard_name' => 'web']);
         $auditor->givePermissionTo([
             'almacenes.ver', 'zonas.ver', 'ubicaciones.ver',
-            'productos.ver', 'proveedores.ver',
+            'generic-products.ver', 'product-variants.ver', 'proveedores.ver',
             'lotes.ver', 'stock.ver',
             'sensores.ver', 'lecturas.ver',
             'auditoria.ver', 'auditoria.exportar',
@@ -174,7 +179,9 @@ class RolesAndPermissionsSeeder extends Seeder
             'almacenes.ver', 'almacenes.crear', 'almacenes.editar',
             'zonas.ver', 'zonas.crear', 'zonas.editar',
             'ubicaciones.ver', 'ubicaciones.crear', 'ubicaciones.editar',
-            'productos.ver', 'productos.crear', 'productos.editar', 'productos.importar',
+            'generic-products.ver', 'generic-products.crear', 'generic-products.editar', 'generic-products.importar',
+            'generic-products.barcode',
+            'product-variants.ver', 'product-variants.crear', 'product-variants.editar',
             'proveedores.ver',
             'lotes.ver', 'lotes.crear',
             'stock.ver',
@@ -197,7 +204,7 @@ class RolesAndPermissionsSeeder extends Seeder
         // 7. Personal Médico — Solo ve stock y registra consumos
         $medicalStaff = Role::firstOrCreate(['name' => 'personal_medico', 'guard_name' => 'web']);
         $medicalStaff->givePermissionTo([
-            'productos.ver',
+            'generic-products.ver', 'product-variants.ver',
             'stock.ver',
             'movimientos.salida',
             'consumos.ver', 'consumos.crear',

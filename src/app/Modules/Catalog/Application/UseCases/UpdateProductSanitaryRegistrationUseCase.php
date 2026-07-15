@@ -24,18 +24,18 @@ class UpdateProductSanitaryRegistrationUseCase
             throw new \DomainException('Registro sanitario no encontrado.');
         }
 
-        if ($existing->getProductId() !== $data->productId) {
-            throw new \DomainException('El registro sanitario no pertenece al producto indicado.');
+        if ($existing->getProductVariantId() !== $data->productVariantId) {
+            throw new \DomainException('El registro sanitario no pertenece a la variante indicada.');
         }
 
-        $duplicate = $this->repository->findByProductAndNumber($data->productId, $data->registrationNumber);
+        $duplicate = $this->repository->findByVariantAndNumber($data->productVariantId, $data->registrationNumber);
         if ($duplicate !== null && $duplicate->getId() !== $id) {
-            throw new \DomainException("El producto ya tiene el registro sanitario '{$data->registrationNumber}'.");
+            throw new \DomainException("La variante ya tiene el registro sanitario '{$data->registrationNumber}'.");
         }
 
         $registration = new ProductSanitaryRegistration(
             id:                 $id,
-            productId:          $data->productId,
+            productVariantId:   $data->productVariantId,
             registrationNumber: $data->registrationNumber,
             expiryDate:         $data->expiryDate,
             isActive:           $data->isActive,

@@ -6,10 +6,12 @@ namespace App\Modules\Inventory\Application\UseCases;
 
 use App\Modules\Catalog\Domain\Enums\ProductType;
 use App\Modules\Catalog\Domain\Services\PresentationConverter;
-use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductModel;
+use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductVariantModel;
 use App\Modules\Inventory\Domain\Events\StockMovementCreated;
 use App\Modules\Inventory\Domain\Exceptions\ProductNotFoundException;
+use App\Modules\Inventory\Domain\Services\DocumentNumberGenerator;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\BatchModel;
+use App\Modules\Inventory\Infrastructure\Persistence\Models\MovementDocumentModel;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\StockMovementModel;
 use App\Modules\Warehouse\Infrastructure\Persistence\Models\LocationModel;
 use Illuminate\Support\Facades\DB;
@@ -18,102 +20,122 @@ class RegisterEntryUseCase
 {
     public function __construct(
         private readonly PresentationConverter $presentationConverter,
+        private readonly DocumentNumberGenerator $numberGenerator,
     ) {}
 
-    public function execute(array $data): StockMovementModel
+    public function execute(array $data): MovementDocumentModel
     {
         return DB::transaction(function () use ($data) {
-            $product = ProductModel::find($data['product_id']);
-
-            if ($product === null) {
-                throw new ProductNotFoundException(
-                    "Producto con ID {$data['product_id']} no encontrado."
-                );
-            }
-
-            if ($product->product_type === ProductType::Kit->value) {
-                throw new \DomainException('No se pueden registrar entradas directas de productos tipo kit.');
-            }
-
-            $quantity = $this->resolveQuantity($data);
-
-            $batch = BatchModel::where('product_id', $data['product_id'])
-                ->where('lot_number', $data['lot_number'])
-                ->first();
-
-            if ($batch) {
-                $batch->quantity_received += $quantity;
-                $batch->quantity_available += $quantity;
-                $batch->status = 'active';
-                $batch->save();
-            } else {
-                $batch = BatchModel::create([
-                    'product_id'         => $data['product_id'],
-                    'lot_number'         => $data['lot_number'],
-                    'expiration_date'    => $data['expiration_date'],
-                    'manufacturing_date' => $data['manufacturing_date'] ?? null,
-                    'quantity_received'  => $quantity,
-                    'quantity_available' => $quantity,
-                    'status'             => 'active',
-                    'notes'              => $data['notes'] ?? null,
-                    'received_at'        => now(),
-                ]);
-            }
-
-            LocationModel::findOrFail($data['location_id']);
-
-            $pivotRecord = DB::table('batch_location')
-                ->where('batch_id', $batch->id)
-                ->where('location_id', $data['location_id'])
-                ->first();
-
-            if ($pivotRecord) {
-                DB::table('batch_location')
-                    ->where('batch_id', $batch->id)
-                    ->where('location_id', $data['location_id'])
-                    ->update([
-                        'quantity'   => $pivotRecord->quantity + $quantity,
-                        'updated_at' => now(),
-                    ]);
-            } else {
-                DB::table('batch_location')->insert([
-                    'batch_id'    => $batch->id,
-                    'location_id' => $data['location_id'],
-                    'quantity'    => $quantity,
-                    'created_at'  => now(),
-                    'updated_at'  => now(),
-                ]);
-            }
-
-            $movement = StockMovementModel::create([
-                'warehouse_id'      => $data['warehouse_id'],
-                'product_id'        => $data['product_id'],
-                'batch_id'          => $batch->id,
-                'location_to_id'    => $data['location_id'],
-                'movement_type'     => 'entry',
-                'quantity'          => $quantity,
-                'reason'            => $data['notes'] ?? null,
-                'invoice_number'    => $data['invoice_number'] ?? null,
-                'entry_temperature' => isset($data['entry_temperature']) ? (float) $data['entry_temperature'] : null,
-                'user_id'           => $data['user_id'],
+            $document = MovementDocumentModel::create([
+                'document_number'    => $this->numberGenerator->next('entry'),
+                'document_type'      => 'entry',
+                'warehouse_id'       => $data['warehouse_id'],
+                'invoice_number'     => $data['invoice_number'] ?? null,
+                'entry_temperature'  => isset($data['entry_temperature']) ? (float) $data['entry_temperature'] : null,
+                'reason'             => $data['reason'] ?? null,
+                'user_id'            => $data['user_id'],
+                'status'             => 'confirmed',
             ]);
 
-            event(new StockMovementCreated(
-                movementId: $movement->id,
-                productId: $data['product_id'],
-                warehouseId: $data['warehouse_id'],
-                movementType: 'entry',
-                quantity: $quantity,
-            ));
+            foreach ($data['items'] as $item) {
+                $this->processItem($item, $data['warehouse_id'], $data['user_id'], $document);
+            }
 
-            return $movement;
+            return $document->load(['movements.variant.genericProduct', 'movements.batch', 'warehouse', 'user']);
         });
     }
 
-    private function resolveQuantity(array $data): int
+    private function processItem(array $item, int $warehouseId, int $userId, MovementDocumentModel $document): void
     {
-        if (isset($data['quantity_base'])) {
-            $quantity = (int) $data['quantity_base'];
+        $variant = ProductVariantModel::find($item['product_variant_id']);
+
+        if ($variant === null) {
+            throw new ProductNotFoundException(
+                "Variante de producto con ID {$item['product_variant_id']} no encontrada."
+            );
+        }
+
+        if ($variant->genericProduct->product_type === ProductType::Kit->value) {
+            throw new \DomainException('No se pueden registrar entradas directas de productos tipo kit.');
+        }
+
+        $quantity = $this->resolveQuantity($item);
+
+        $batch = BatchModel::where('product_variant_id', $item['product_variant_id'])
+            ->where('lot_number', $item['lot_number'])
+            ->first();
+
+        if ($batch) {
+            $batch->quantity_received += $quantity;
+            $batch->quantity_available += $quantity;
+            $batch->status = 'active';
+            $batch->save();
+        } else {
+            $batch = BatchModel::create([
+                'product_variant_id' => $item['product_variant_id'],
+                'lot_number'         => $item['lot_number'],
+                'expiration_date'    => $item['expiration_date'],
+                'manufacturing_date' => $item['manufacturing_date'] ?? null,
+                'quantity_received'  => $quantity,
+                'quantity_available' => $quantity,
+                'status'             => 'active',
+                'notes'              => $item['notes'] ?? null,
+                'received_at'        => now(),
+            ]);
+        }
+
+        LocationModel::findOrFail($item['location_id']);
+
+        $pivotRecord = DB::table('batch_location')
+            ->where('batch_id', $batch->id)
+            ->where('location_id', $item['location_id'])
+            ->first();
+
+        if ($pivotRecord) {
+            DB::table('batch_location')
+                ->where('batch_id', $batch->id)
+                ->where('location_id', $item['location_id'])
+                ->update([
+                    'quantity'   => $pivotRecord->quantity + $quantity,
+                    'updated_at' => now(),
+                ]);
+        } else {
+            DB::table('batch_location')->insert([
+                'batch_id'    => $batch->id,
+                'location_id' => $item['location_id'],
+                'quantity'    => $quantity,
+                'created_at'  => now(),
+                'updated_at'  => now(),
+            ]);
+        }
+
+        $movement = StockMovementModel::create([
+            'movement_document_id' => $document->id,
+            'warehouse_id'         => $warehouseId,
+            'product_variant_id'   => $item['product_variant_id'],
+            'batch_id'             => $batch->id,
+            'location_to_id'       => $item['location_id'],
+            'movement_type'        => 'entry',
+            'quantity'             => $quantity,
+            'reason'               => $item['notes'] ?? null,
+            'invoice_number'       => $document->invoice_number,
+            'entry_temperature'    => $document->entry_temperature,
+            'user_id'              => $userId,
+        ]);
+
+        event(new StockMovementCreated(
+            movementId:       $movement->id,
+            productVariantId: $item['product_variant_id'],
+            warehouseId:      $warehouseId,
+            movementType:     'entry',
+            quantity:         $quantity,
+        ));
+    }
+
+    private function resolveQuantity(array $item): int
+    {
+        if (isset($item['quantity_base'])) {
+            $quantity = (int) $item['quantity_base'];
 
             if ($quantity < 1) {
                 throw new \DomainException('La cantidad debe ser mayor a cero.');
@@ -122,10 +144,10 @@ class RegisterEntryUseCase
             return $quantity;
         }
 
-        if (isset($data['product_presentation_id'], $data['quantity_in_presentation'])) {
+        if (isset($item['product_presentation_id'], $item['quantity_in_presentation'])) {
             return $this->presentationConverter->toBase(
-                (int) $data['product_presentation_id'],
-                (int) $data['quantity_in_presentation'],
+                (int) $item['product_presentation_id'],
+                (int) $item['quantity_in_presentation'],
             );
         }
 

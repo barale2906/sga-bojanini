@@ -6,7 +6,7 @@ namespace App\Modules\Purchasing\Application\UseCases\Concerns;
 
 use App\Modules\Catalog\Domain\Enums\ProductType;
 use App\Modules\Catalog\Domain\Services\PresentationConverter;
-use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductModel;
+use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductVariantModel;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductPresentationModel;
 use App\Modules\Purchasing\Infrastructure\Persistence\Models\PurchaseOrderItemModel;
 use App\Modules\Purchasing\Infrastructure\Persistence\Models\PurchaseOrderModel;
@@ -42,13 +42,13 @@ trait ManagesPurchaseOrderItems
         $subtotal = 0.0;
 
         foreach ($items as $index => $item) {
-            $product = ProductModel::find($item['product_id']);
+            $variant = ProductVariantModel::with('genericProduct')->find($item['product_variant_id']);
 
-            if ($product === null) {
-                throw new \DomainException("Producto en línea {$index} no encontrado.");
+            if ($variant === null) {
+                throw new \DomainException("Variante en línea {$index} no encontrada.");
             }
 
-            if ($product->product_type === ProductType::Kit->value) {
+            if ($variant->genericProduct->product_type === ProductType::Kit->value) {
                 throw new \DomainException("No se pueden incluir productos tipo kit en órdenes de compra (línea {$index}).");
             }
 
@@ -58,7 +58,7 @@ trait ManagesPurchaseOrderItems
                 throw new \DomainException("Presentación no encontrada (línea {$index}).");
             }
 
-            $assignedToProduct = $product->presentations()
+            $assignedToProduct = $variant->genericProduct->presentations()
                 ->where('product_presentations.id', $presentation->id)
                 ->exists();
 
@@ -105,7 +105,7 @@ trait ManagesPurchaseOrderItems
         foreach ($items as $item) {
             PurchaseOrderItemModel::create([
                 'purchase_order_id'       => $order->id,
-                'product_id'              => $item['product_id'],
+                'product_variant_id'      => $item['product_variant_id'],
                 'product_presentation_id' => $item['product_presentation_id'],
                 'quantity_requested'      => $item['quantity_requested'],
                 'quantity_requested_base' => $item['quantity_requested_base'],

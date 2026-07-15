@@ -4,22 +4,22 @@ declare(strict_types=1);
 
 namespace App\Modules\Catalog\Application\UseCases;
 
+use App\Modules\Catalog\Domain\Repositories\GenericProductRepositoryInterface;
 use App\Modules\Catalog\Domain\Repositories\ProductPresentationRepositoryInterface;
-use App\Modules\Catalog\Domain\Repositories\ProductRepositoryInterface;
 
 class AttachPresentationToProductUseCase
 {
     public function __construct(
-        private readonly ProductRepositoryInterface $productRepository,
+        private readonly GenericProductRepositoryInterface $genericProductRepository,
         private readonly ProductPresentationRepositoryInterface $presentationRepository,
     ) {}
 
-    public function execute(int $productId, int $presentationId, array $data = []): void
+    public function execute(int $genericProductId, int $presentationId, array $data = []): void
     {
-        $product = $this->productRepository->findById($productId);
+        $product = $this->genericProductRepository->findById($genericProductId);
 
         if ($product === null) {
-            throw new \DomainException('Producto no encontrado.');
+            throw new \DomainException('Producto genérico no encontrado.');
         }
 
         if ($product->isKit()) {
@@ -32,7 +32,7 @@ class AttachPresentationToProductUseCase
 
         $this->presentationRepository->attachToProduct(
             presentationId: $presentationId,
-            productId: $productId,
+            productId: $genericProductId,
             isPurchaseDefault: (bool) ($data['is_purchase_default'] ?? false),
             sortOrder: (int) ($data['sort_order'] ?? 0),
         );

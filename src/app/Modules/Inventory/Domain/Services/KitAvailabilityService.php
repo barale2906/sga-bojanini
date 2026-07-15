@@ -13,9 +13,9 @@ class KitAvailabilityService
         private readonly StockCalculator $stockCalculator,
     ) {}
 
-    public function getAvailableKits(int $kitProductId, int $warehouseId): int
+    public function getAvailableKits(int $kitGenericId, int $warehouseId): int
     {
-        $components = $this->kitExplosionService->explode($kitProductId, 1);
+        $components = $this->kitExplosionService->explode($kitGenericId, 1);
 
         if ($components === []) {
             return 0;
@@ -24,8 +24,8 @@ class KitAvailabilityService
         $available = PHP_INT_MAX;
 
         foreach ($components as $component) {
-            $stock = $this->stockCalculator->getCurrentStock(
-                $component['component_product_id'],
+            $stock = $this->stockCalculator->getGenericStock(
+                $component['component_generic_id'],
                 $warehouseId,
             );
 

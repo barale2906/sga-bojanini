@@ -6,7 +6,8 @@ namespace Tests\Feature\Warehouse;
 
 use App\Modules\Auth\Infrastructure\Persistence\Models\UserModel;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\CategoryModel;
-use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductModel;
+use App\Modules\Catalog\Infrastructure\Persistence\Models\GenericProductModel;
+use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductVariantModel;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\UnitOfMeasureModel;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\BatchModel;
 use App\Modules\Warehouse\Infrastructure\Persistence\Models\LocationModel;
@@ -80,26 +81,35 @@ class CapacityTest extends TestCase
         string $code,
         ?float $volumeCm3 = null,
         ?float $weightKg = null
-    ): ProductModel {
+    ): ProductVariantModel {
         $cat  = CategoryModel::first();
         $unit = UnitOfMeasureModel::where('abbreviation', 'UND')->first();
 
-        return ProductModel::create([
+        $maxBarcode = (int) GenericProductModel::max('barcode');
+        $barcode    = str_pad((string) ($maxBarcode + 1), 6, '0', STR_PAD_LEFT);
+
+        $generic = GenericProductModel::create([
             'category_id'  => $cat->id,
             'base_unit_id' => $unit->id,
             'product_type' => 'simple',
             'name'         => "Producto {$code}",
-            'code'         => $code,
+            'barcode'      => $barcode,
             'volume_cm3'   => $volumeCm3,
             'weight_kg'    => $weightKg,
             'is_active'    => true,
         ]);
+
+        return ProductVariantModel::create([
+            'generic_product_id' => $generic->id,
+            'lab_brand'          => 'Marca Test',
+            'is_active'          => true,
+        ]);
     }
 
-    private function createActiveBatch(int $productId, LocationModel $location, int $quantity): BatchModel
+    private function createActiveBatch(int $variantId, LocationModel $location, int $quantity): BatchModel
     {
         $batch = BatchModel::create([
-            'product_id'         => $productId,
+            'product_variant_id' => $variantId,
             'lot_number'         => 'LOT-'.uniqid(),
             'expiration_date'    => now()->addYear()->format('Y-m-d'),
             'quantity_received'  => $quantity,
@@ -151,10 +161,10 @@ class CapacityTest extends TestCase
         $wh      = $this->createWarehouse('ALM-C02');
         $z       = $this->createZone($wh->id, 'Z-C02');
         $loc     = $this->createLocation($z->id, 'L-C02', 50000.0, 200.0);
-        $product = $this->createProduct('PRD-C02', 1000.0, 2.0); // 1000 cm³/u, 2 kg/u
+        $variant = $this->createProduct('PRD-C02', 1000.0, 2.0); // 1000 cm³/u, 2 kg/u
 
         // Lote de 10 unidades → 10 000 cm³ y 20 kg usados
-        $this->createActiveBatch($product->id, $loc, 10);
+        $this->createActiveBatch($variant->id, $loc, 10);
 
         $resp = $this->withHeaders($this->auth())
             ->getJson("/api/v1/locations/{$loc->id}/capacity")
@@ -174,11 +184,11 @@ class CapacityTest extends TestCase
         $wh      = $this->createWarehouse('ALM-C03');
         $z       = $this->createZone($wh->id, 'Z-C03');
         $loc     = $this->createLocation($z->id, 'L-C03', 50000.0, 200.0);
-        $product = $this->createProduct('PRD-C03', 500.0, 1.0);
+        $variant = $this->createProduct('PRD-C03', 500.0, 1.0);
 
         // Dos lotes: 10 + 20 unidades → 15 000 cm³ y 30 kg
-        $this->createActiveBatch($product->id, $loc, 10);
-        $this->createActiveBatch($product->id, $loc, 20);
+        $this->createActiveBatch($variant->id, $loc, 10);
+        $this->createActiveBatch($variant->id, $loc, 20);
 
         $resp = $this->withHeaders($this->auth())
             ->getJson("/api/v1/locations/{$loc->id}/capacity")
@@ -193,14 +203,14 @@ class CapacityTest extends TestCase
         $wh      = $this->createWarehouse('ALM-C04');
         $z       = $this->createZone($wh->id, 'Z-C04');
         $loc     = $this->createLocation($z->id, 'L-C04', 50000.0, 200.0);
-        $product = $this->createProduct('PRD-C04', 1000.0, 2.0);
+        $variant = $this->createProduct('PRD-C04', 1000.0, 2.0);
 
         // Lote activo: 10 u
-        $this->createActiveBatch($product->id, $loc, 10);
+        $this->createActiveBatch($variant->id, $loc, 10);
 
         // Lote expirado → NO debe contar
         $expired = BatchModel::create([
-            'product_id'         => $product->id,
+            'product_variant_id' => $variant->id,
             'lot_number'         => 'LOT-EXP-'.uniqid(),
             'expiration_date'    => now()->subDay()->format('Y-m-d'),
             'quantity_received'  => 50,
@@ -212,7 +222,7 @@ class CapacityTest extends TestCase
 
         // Lote agotado → NO debe contar
         $depleted = BatchModel::create([
-            'product_id'         => $product->id,
+            'product_variant_id' => $variant->id,
             'lot_number'         => 'LOT-DEP-'.uniqid(),
             'expiration_date'    => now()->addYear()->format('Y-m-d'),
             'quantity_received'  => 30,
@@ -236,9 +246,9 @@ class CapacityTest extends TestCase
         $wh      = $this->createWarehouse('ALM-C05');
         $z       = $this->createZone($wh->id, 'Z-C05');
         $loc     = $this->createLocation($z->id, 'L-C05', null, null); // sin límites
-        $product = $this->createProduct('PRD-C05', 500.0, 1.0);
+        $variant = $this->createProduct('PRD-C05', 500.0, 1.0);
 
-        $this->createActiveBatch($product->id, $loc, 5); // 2500 cm³, 5 kg
+        $this->createActiveBatch($variant->id, $loc, 5); // 2500 cm³, 5 kg
 
         $resp = $this->withHeaders($this->auth())
             ->getJson("/api/v1/locations/{$loc->id}/capacity")
@@ -273,10 +283,10 @@ class CapacityTest extends TestCase
         $z       = $this->createZone($wh->id, 'Z-Z01');
         $loc1    = $this->createLocation($z->id, 'L-Z1A', 30000.0, 100.0);
         $loc2    = $this->createLocation($z->id, 'L-Z1B', 20000.0,  80.0);
-        $product = $this->createProduct('PRD-Z01', 1000.0, 2.0);
+        $variant = $this->createProduct('PRD-Z01', 1000.0, 2.0);
 
-        $this->createActiveBatch($product->id, $loc1, 5);  // 5 000 cm³, 10 kg
-        $this->createActiveBatch($product->id, $loc2, 8);  // 8 000 cm³, 16 kg
+        $this->createActiveBatch($variant->id, $loc1, 5);  // 5 000 cm³, 10 kg
+        $this->createActiveBatch($variant->id, $loc2, 8);  // 8 000 cm³, 16 kg
 
         $resp = $this->withHeaders($this->auth())
             ->getJson("/api/v1/zones/{$z->id}/capacity")
@@ -329,10 +339,10 @@ class CapacityTest extends TestCase
         $z2      = $this->createZone($wh->id, 'Z-W1B');
         $loc1    = $this->createLocation($z1->id, 'L-W1A', 40000.0, 150.0);
         $loc2    = $this->createLocation($z2->id, 'L-W1B', 60000.0, 250.0);
-        $product = $this->createProduct('PRD-W01', 2000.0, 5.0);
+        $variant = $this->createProduct('PRD-W01', 2000.0, 5.0);
 
-        $this->createActiveBatch($product->id, $loc1, 3);  // 6 000 cm³, 15 kg
-        $this->createActiveBatch($product->id, $loc2, 7);  // 14 000 cm³, 35 kg
+        $this->createActiveBatch($variant->id, $loc1, 3);  // 6 000 cm³, 15 kg
+        $this->createActiveBatch($variant->id, $loc2, 7);  // 14 000 cm³, 35 kg
 
         $resp = $this->withHeaders($this->auth())
             ->getJson("/api/v1/warehouses/{$wh->id}/capacity")
@@ -383,12 +393,11 @@ class CapacityTest extends TestCase
         $unit = UnitOfMeasureModel::where('abbreviation', 'UND')->first();
 
         $resp = $this->withHeaders($this->auth())
-            ->postJson('/api/v1/products', [
+            ->postJson('/api/v1/generic-products', [
                 'category_id'  => $cat->id,
                 'base_unit_id' => $unit->id,
                 'product_type' => 'simple',
                 'name'         => 'Producto Dimensional',
-                'code'         => 'PRD-DIM-001',
                 'volume_cm3'   => 1500.00,
                 'weight_kg'    => 3.50,
             ]);
@@ -397,8 +406,8 @@ class CapacityTest extends TestCase
         $this->assertEquals(1500.0, $this->floatOf($resp, 'data.volume_cm3'));
         $this->assertEquals(3.5,    $this->floatOf($resp, 'data.weight_kg'));
 
-        $this->assertDatabaseHas('products', [
-            'code'       => 'PRD-DIM-001',
+        $this->assertDatabaseHas('product_generics', [
+            'name'       => 'Producto Dimensional',
             'volume_cm3' => 1500.00,
             'weight_kg'  => 3.50,
         ]);
@@ -410,11 +419,10 @@ class CapacityTest extends TestCase
         $unit = UnitOfMeasureModel::where('abbreviation', 'UND')->first();
 
         $resp = $this->withHeaders($this->auth())
-            ->postJson('/api/v1/products', [
+            ->postJson('/api/v1/generic-products', [
                 'category_id'  => $cat->id,
                 'base_unit_id' => $unit->id,
                 'name'         => 'Producto Sin Dimensiones',
-                'code'         => 'PRD-NODIM-001',
             ]);
 
         $resp->assertStatus(201);
@@ -428,22 +436,20 @@ class CapacityTest extends TestCase
         $unit = UnitOfMeasureModel::where('abbreviation', 'UND')->first();
 
         $this->withHeaders($this->auth())
-            ->postJson('/api/v1/products', [
+            ->postJson('/api/v1/generic-products', [
                 'category_id'  => $cat->id,
                 'base_unit_id' => $unit->id,
                 'name'         => 'Producto inválido V',
-                'code'         => 'PRD-NEG-001',
                 'volume_cm3'   => -10,
             ])
             ->assertStatus(422)
             ->assertJsonPath('success', false);
 
         $this->withHeaders($this->auth())
-            ->postJson('/api/v1/products', [
+            ->postJson('/api/v1/generic-products', [
                 'category_id'  => $cat->id,
                 'base_unit_id' => $unit->id,
                 'name'         => 'Producto inválido W',
-                'code'         => 'PRD-NEG-002',
                 'weight_kg'    => -5,
             ])
             ->assertStatus(422)
@@ -456,22 +462,20 @@ class CapacityTest extends TestCase
         $unit = UnitOfMeasureModel::where('abbreviation', 'UND')->first();
 
         $productId = $this->withHeaders($this->auth())
-            ->postJson('/api/v1/products', [
+            ->postJson('/api/v1/generic-products', [
                 'category_id'  => $cat->id,
                 'base_unit_id' => $unit->id,
                 'name'         => 'Producto Actualizable',
-                'code'         => 'PRD-UPD-DIM',
                 'volume_cm3'   => 1000.0,
                 'weight_kg'    => 2.0,
             ])
             ->json('data.id');
 
         $resp = $this->withHeaders($this->auth())
-            ->putJson("/api/v1/products/{$productId}", [
+            ->putJson("/api/v1/generic-products/{$productId}", [
                 'category_id'  => $cat->id,
                 'base_unit_id' => $unit->id,
                 'name'         => 'Producto Actualizable',
-                'code'         => 'PRD-UPD-DIM',
                 'volume_cm3'   => 2000.0,
                 'weight_kg'    => 4.5,
             ])

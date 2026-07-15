@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Inventory\Infrastructure\Export;
 
-use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductModel;
+use App\Modules\Catalog\Infrastructure\Persistence\Models\GenericProductModel;
 use App\Modules\Shared\Infrastructure\Export\ExcelTemplateWriter;
 use App\Modules\Warehouse\Infrastructure\Persistence\Models\WarehouseModel;
 use App\Modules\Warehouse\Infrastructure\Persistence\Models\ZoneModel;
@@ -40,7 +40,7 @@ class InitialEntryTemplateBuilder
             $spreadsheet->getActiveSheet(),
             'Entradas',
             [
-                'product_code',
+                'product_barcode',
                 'lot_number',
                 'quantity',
                 'expiration_date',
@@ -60,7 +60,7 @@ class InitialEntryTemplateBuilder
                 'Notas',
             ],
             [
-                'AGU-EJ-001',
+                '000001',
                 'LOTE-2024-001',
                 '100',
                 '2026-12-31',
@@ -73,7 +73,7 @@ class InitialEntryTemplateBuilder
 
         $this->writer->addInstructionsSheet($spreadsheet, [
             ['Columna', 'Nombre en español', 'Obligatorio', 'Tipo / formato', 'Descripción y valores válidos'],
-            ['product_code', 'Código de producto', 'Sí', 'Texto', 'Código de un producto existente. Ver hoja "Productos".'],
+            ['product_barcode', 'Código de barras', 'Sí', 'Texto (6 dígitos)', 'Código de barras del producto (columna "barcode" de la hoja "Productos").'],
             ['lot_number', 'Número de lote', 'Sí', 'Texto (máx. 100)', 'Número de lote del producto. Si ya existe un lote con este número para el mismo producto, se suma la cantidad a dicho lote en vez de crear uno nuevo.'],
             ['quantity', 'Cantidad', 'Sí', 'Entero >= 1', 'Cantidad en unidad base del producto. No se admiten presentaciones de compra en esta carga.'],
             ['expiration_date', 'Fecha de vencimiento', 'Sí', 'Fecha (AAAA-MM-DD)', 'Fecha de vencimiento del lote.'],
@@ -96,14 +96,14 @@ class InitialEntryTemplateBuilder
         $this->writer->addReferenceSheet(
             $spreadsheet,
             'Productos',
-            ['code', 'name', 'requires_cold_chain', 'base_unit'],
-            ProductModel::where('is_active', true)
+            ['barcode', 'name', 'requires_cold_chain', 'base_unit'],
+            GenericProductModel::where('is_active', true)
                 ->where('product_type', 'simple')
                 ->with('baseUnit')
-                ->orderBy('code')
-                ->get(['id', 'code', 'name', 'requires_cold_chain', 'base_unit_id'])
+                ->orderBy('barcode')
+                ->get(['id', 'barcode', 'name', 'requires_cold_chain', 'base_unit_id'])
                 ->map(fn ($p) => [
-                    $p->code,
+                    $p->barcode,
                     $p->name,
                     $p->requires_cold_chain ? 'TRUE' : 'FALSE',
                     $p->baseUnit?->abbreviation ?? '',

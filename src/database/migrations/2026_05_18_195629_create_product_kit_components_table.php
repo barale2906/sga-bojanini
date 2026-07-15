@@ -10,15 +10,15 @@ return new class extends Migration
     {
         Schema::create('product_kit_components', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('kit_product_id')->constrained('products')->cascadeOnDelete();
-            $table->foreignId('component_product_id')->constrained('products')->restrictOnDelete();
+            $table->foreignId('kit_generic_id')->constrained('product_generics')->cascadeOnDelete();
+            $table->foreignId('component_generic_id')->constrained('product_generics')->restrictOnDelete();
             $table->unsignedInteger('quantity_per_kit');
             $table->unsignedInteger('sort_order')->default(0);
             $table->string('notes', 500)->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
 
-            $table->unique(['kit_product_id', 'component_product_id'], 'kit_component_unique');
+            $table->unique(['kit_generic_id', 'component_generic_id'], 'kit_component_unique');
         });
     }
 

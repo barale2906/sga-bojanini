@@ -47,9 +47,9 @@ class ProductPresentationModel extends Model
         return $this->belongsTo(UnitOfMeasureModel::class, 'units_of_measure_id');
     }
 
-    public function products(): BelongsToMany
+    public function generics(): BelongsToMany
     {
-        return $this->belongsToMany(ProductModel::class, 'product_presentation', 'presentation_id', 'product_id')
+        return $this->belongsToMany(GenericProductModel::class, 'product_presentation', 'presentation_id', 'generic_product_id')
             ->withPivot(['is_purchase_default', 'sort_order'])
             ->withTimestamps();
     }

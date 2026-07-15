@@ -8,8 +8,8 @@ class ProductKitComponent
 {
     public function __construct(
         private ?int $id,
-        private int $kitProductId,
-        private int $componentProductId,
+        private int $kitGenericId,
+        private int $componentGenericId,
         private int $quantityPerKit,
         private int $sortOrder = 0,
         private ?string $notes = null,
@@ -21,14 +21,14 @@ class ProductKitComponent
         return $this->id;
     }
 
-    public function getKitProductId(): int
+    public function getKitGenericId(): int
     {
-        return $this->kitProductId;
+        return $this->kitGenericId;
     }
 
-    public function getComponentProductId(): int
+    public function getComponentGenericId(): int
     {
-        return $this->componentProductId;
+        return $this->componentGenericId;
     }
 
     public function getQuantityPerKit(): int

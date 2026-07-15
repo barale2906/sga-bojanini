@@ -6,21 +6,18 @@ namespace Database\Seeders;
 
 use App\Modules\Catalog\Domain\Enums\ProductType;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\CategoryModel;
+use App\Modules\Catalog\Infrastructure\Persistence\Models\GenericProductModel;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductClassificationModel;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductKitComponentModel;
-use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductModel;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductPresentationModel;
+use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductVariantModel;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\UnitOfMeasureModel;
 use Illuminate\Database\Seeder;
 
 /**
- * Fixtures de productos solo para el entorno de testing.
- *
- * Nunca se ejecuta en producción ni staging — el guard al inicio lo garantiza.
- * Es llamado automáticamente por CatalogSeeder cuando app()->environment('testing').
- *
- * Depende de que CatalogSeeder haya creado previamente las presentaciones,
- * unidades de medida y categorías (UND, KIT, CJ-M5000, CJ-500, PQ-100, INS-MED).
+ * Fixtures de productos para el entorno de testing.
+ * Llamado automáticamente por CatalogSeeder cuando app()->environment('testing').
+ * Depende de que CatalogSeeder haya creado presentaciones, unidades y categorías.
  */
 class TestProductsSeeder extends Seeder
 {
@@ -30,18 +27,18 @@ class TestProductsSeeder extends Seeder
             return;
         }
 
-        $und     = UnitOfMeasureModel::where('abbreviation', 'UND')->first();
-        $kitUnit = UnitOfMeasureModel::where('abbreviation', 'KIT')->first();
-        $cat     = CategoryModel::where('code', 'INS-MED')->first();
-        $dmClass = ProductClassificationModel::where('code', 'DM')->first();
+        $und      = UnitOfMeasureModel::where('abbreviation', 'UND')->first();
+        $kitUnit  = UnitOfMeasureModel::where('abbreviation', 'KIT')->first();
+        $cat      = CategoryModel::where('code', 'INS-MED')->first();
+        $dmClass  = ProductClassificationModel::where('code', 'DM')->first();
         $otrClass = ProductClassificationModel::where('code', 'OTR')->first();
         $master   = ProductPresentationModel::where('code', 'CJ-M5000')->first();
         $cajaPres = ProductPresentationModel::where('code', 'CJ-500')->first();
         $paqPres  = ProductPresentationModel::where('code', 'PQ-100')->first();
 
-        // ── Aguja ─────────────────────────────────────────────────────────────
-        $aguja = ProductModel::firstOrCreate(
-            ['code' => 'AGU-21G'],
+        // ── Aguja 21G (genérico) ──────────────────────────────────────────────
+        $aguja = GenericProductModel::firstOrCreate(
+            ['barcode' => '000001'],
             [
                 'category_id'         => $cat?->id,
                 'classification_id'   => $dmClass?->id,
@@ -49,10 +46,18 @@ class TestProductsSeeder extends Seeder
                 'product_type'        => ProductType::Simple->value,
                 'name'                => 'Aguja 21G',
                 'description'         => 'Aguja hipodérmica 21G',
-                'risk_level'          => 'Clase I',
-                'lab_brand'           => 'BD Becton Dickinson',
                 'requires_cold_chain' => false,
+                'reorder_point'       => 500,
+                'min_stock'           => 100,
                 'is_active'           => true,
+            ]
+        );
+
+        ProductVariantModel::firstOrCreate(
+            ['generic_product_id' => $aguja->id, 'lab_brand' => 'BD Becton Dickinson'],
+            [
+                'brand_sku' => 'BD-AGU-21G',
+                'is_active' => true,
             ]
         );
 
@@ -64,17 +69,26 @@ class TestProductsSeeder extends Seeder
             ]);
         }
 
-        // ── Gasa ──────────────────────────────────────────────────────────────
-        $gasa = ProductModel::firstOrCreate(
-            ['code' => 'GAS-10X10'],
+        // ── Gasa estéril 10x10 (genérico) ────────────────────────────────────
+        $gasa = GenericProductModel::firstOrCreate(
+            ['barcode' => '000002'],
             [
-                'category_id'      => $cat?->id,
-                'classification_id'=> $dmClass?->id,
-                'base_unit_id'     => $und?->id,
-                'product_type'     => ProductType::Simple->value,
-                'name'             => 'Gasa estéril 10x10',
-                'risk_level'       => 'Clase I',
-                'is_active'        => true,
+                'category_id'       => $cat?->id,
+                'classification_id' => $dmClass?->id,
+                'base_unit_id'      => $und?->id,
+                'product_type'      => ProductType::Simple->value,
+                'name'              => 'Gasa estéril 10x10',
+                'reorder_point'     => 200,
+                'min_stock'         => 50,
+                'is_active'         => true,
+            ]
+        );
+
+        ProductVariantModel::firstOrCreate(
+            ['generic_product_id' => $gasa->id, 'lab_brand' => 'Suavetex'],
+            [
+                'brand_sku' => 'SVT-GAS-10',
+                'is_active' => true,
             ]
         );
 
@@ -85,27 +99,32 @@ class TestProductsSeeder extends Seeder
             ]);
         }
 
-        // ── Kit de cirugía básica ──────────────────────────────────────────────
-        $kit = ProductModel::firstOrCreate(
-            ['code' => 'KIT-CIR-BAS'],
+        // ── Paquete cirugía básica (kit genérico) ─────────────────────────────
+        $kit = GenericProductModel::firstOrCreate(
+            ['barcode' => '000003'],
             [
-                'category_id'      => $cat?->id,
-                'classification_id'=> $otrClass?->id,
-                'base_unit_id'     => $kitUnit?->id,
-                'product_type'     => ProductType::Kit->value,
-                'name'             => 'Paquete cirugía básica',
-                'description'      => 'Kit de insumos para cirugía menor',
-                'is_active'        => true,
+                'category_id'       => $cat?->id,
+                'classification_id' => $otrClass?->id,
+                'base_unit_id'      => $kitUnit?->id,
+                'product_type'      => ProductType::Kit->value,
+                'name'              => 'Paquete cirugía básica',
+                'description'       => 'Kit de insumos para cirugía menor',
+                'is_active'         => true,
             ]
         );
 
+        ProductVariantModel::firstOrCreate(
+            ['generic_product_id' => $kit->id, 'lab_brand' => 'Genérico'],
+            ['is_active' => true]
+        );
+
         ProductKitComponentModel::firstOrCreate(
-            ['kit_product_id' => $kit->id, 'component_product_id' => $gasa->id],
+            ['kit_generic_id' => $kit->id, 'component_generic_id' => $gasa->id],
             ['quantity_per_kit' => 5, 'sort_order' => 1]
         );
 
         ProductKitComponentModel::firstOrCreate(
-            ['kit_product_id' => $kit->id, 'component_product_id' => $aguja->id],
+            ['kit_generic_id' => $kit->id, 'component_generic_id' => $aguja->id],
             ['quantity_per_kit' => 10, 'sort_order' => 2]
         );
     }

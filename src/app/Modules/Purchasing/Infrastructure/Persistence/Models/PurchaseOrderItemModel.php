@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Purchasing\Infrastructure\Persistence\Models;
 
-use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductModel;
+use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductVariantModel;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductPresentationModel;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -15,7 +15,7 @@ class PurchaseOrderItemModel extends Model
 
     protected $fillable = [
         'purchase_order_id',
-        'product_id',
+        'product_variant_id',
         'product_presentation_id',
         'quantity_requested',
         'quantity_requested_base',
@@ -43,9 +43,9 @@ class PurchaseOrderItemModel extends Model
         return $this->belongsTo(PurchaseOrderModel::class, 'purchase_order_id');
     }
 
-    public function product(): BelongsTo
+    public function variant(): BelongsTo
     {
-        return $this->belongsTo(ProductModel::class, 'product_id');
+        return $this->belongsTo(ProductVariantModel::class, 'product_variant_id');
     }
 
     public function presentation(): BelongsTo

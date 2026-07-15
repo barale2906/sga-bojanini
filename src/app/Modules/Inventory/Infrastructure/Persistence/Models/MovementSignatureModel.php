@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Inventory\Infrastructure\Persistence\Models;
 
+use App\Modules\Inventory\Infrastructure\Persistence\Models\MovementDocumentModel;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -14,7 +15,7 @@ class MovementSignatureModel extends Model
     protected $table = 'movement_signatures';
 
     protected $fillable = [
-        'movement_id',
+        'movement_document_id',
         'role',
         'signer_name',
         'signer_document',
@@ -30,8 +31,8 @@ class MovementSignatureModel extends Model
         ];
     }
 
-    public function movement(): BelongsTo
+    public function movementDocument(): BelongsTo
     {
-        return $this->belongsTo(StockMovementModel::class, 'movement_id');
+        return $this->belongsTo(MovementDocumentModel::class, 'movement_document_id');
     }
 }

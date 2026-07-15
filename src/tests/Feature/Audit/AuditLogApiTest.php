@@ -5,7 +5,7 @@ namespace Tests\Feature\Audit;
 use App\Modules\Audit\Infrastructure\Persistence\Models\AuditLogModel;
 use App\Modules\Auth\Infrastructure\Persistence\Models\UserModel;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\CategoryModel;
-use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductModel;
+use App\Modules\Catalog\Infrastructure\Persistence\Models\GenericProductModel;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\UnitOfMeasureModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
@@ -29,12 +29,12 @@ class AuditLogApiTest extends TestCase
 
         $category = CategoryModel::first();
         $unit     = UnitOfMeasureModel::where('abbreviation', 'UND')->first();
-        ProductModel::create([
+        GenericProductModel::create([
             'category_id'  => $category->id,
             'base_unit_id' => $unit->id,
             'product_type' => 'simple',
             'name'         => 'Producto Audit API',
-            'code'         => 'AUD-API-001',
+            'barcode'      => '000097',
         ]);
 
         $this->token = $admin->createToken('test', $admin->getAllPermissions()->pluck('name')->toArray())->plainTextToken;

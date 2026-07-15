@@ -16,7 +16,7 @@ class StoreAdjustmentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'product_id'   => ['required', 'integer', 'exists:products,id'],
+            'product_variant_id' => ['required', 'integer', 'exists:product_variants,id'],
             'warehouse_id' => ['required', 'integer', 'exists:warehouses,id'],
             'location_id'  => ['required', 'integer', 'exists:locations,id'],
             'quantity'     => ['required', 'integer', 'not_in:0'],

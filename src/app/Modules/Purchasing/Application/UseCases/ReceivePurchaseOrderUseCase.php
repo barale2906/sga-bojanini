@@ -55,14 +55,16 @@ class ReceivePurchaseOrderUseCase
                 );
 
                 $this->registerEntry->execute([
-                    'product_id'    => $orderItem->product_id,
-                    'warehouse_id'  => $order->warehouse_id,
-                    'location_id'   => $receivedItem['location_id'],
-                    'lot_number'    => $receivedItem['lot_number'],
-                    'expiration_date' => $receivedItem['expiration_date'],
-                    'quantity_base' => $qtyBase,
-                    'notes'         => "Recepción de OC {$order->code}",
-                    'user_id'       => $userId,
+                    'warehouse_id' => $order->warehouse_id,
+                    'user_id'      => $userId,
+                    'items'        => [[
+                        'product_variant_id' => $orderItem->product_variant_id,
+                        'location_id'        => $receivedItem['location_id'],
+                        'lot_number'         => $receivedItem['lot_number'],
+                        'expiration_date'    => $receivedItem['expiration_date'],
+                        'quantity_base'      => $qtyBase,
+                        'notes'              => "Recepción de OC {$order->code}",
+                    ]],
                 ]);
 
                 $orderItem->quantity_received += $qtyPresentation;
@@ -86,7 +88,7 @@ class ReceivePurchaseOrderUseCase
 
             $order->save();
 
-            return $order->fresh(['items.product', 'items.presentation', 'supplier', 'warehouse']);
+            return $order->fresh(['items.variant', 'items.presentation', 'supplier', 'warehouse']);
         });
     }
 }

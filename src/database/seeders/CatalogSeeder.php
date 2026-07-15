@@ -4,11 +4,8 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
-use App\Modules\Catalog\Domain\Enums\ProductType;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\CategoryModel;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductClassificationModel;
-use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductKitComponentModel;
-use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductModel;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductPresentationModel;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\UnitOfMeasureModel;
 use Illuminate\Database\Seeder;

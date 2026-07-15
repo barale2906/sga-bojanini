@@ -35,13 +35,13 @@ class SyncConsumptionToHCJob implements ShouldQueue
         NotificationRecipientService $notificationService,
     ): void
     {
-        $records = ConsumptionRecordModel::with(['product', 'batch'])
+        $records = ConsumptionRecordModel::with(['variant.genericProduct', 'batch'])
             ->whereIn('id', $this->consumptionRecordIds)
             ->get();
 
         $items = $records->map(fn (ConsumptionRecordModel $r) => [
-            'product_name' => $r->product->name ?? 'N/A',
-            'product_code' => $r->product->code ?? 'N/A',
+            'product_name' => $r->variant?->genericProduct?->name ?? 'N/A',
+            'product_code' => $r->variant?->genericProduct?->barcode ?? 'N/A',
             'quantity'     => $r->quantity,
             'batch_code'   => $r->batch?->lot_number ?? 'N/A',
             'expiry_date'  => $r->batch?->expiration_date?->toDateString() ?? 'N/A',

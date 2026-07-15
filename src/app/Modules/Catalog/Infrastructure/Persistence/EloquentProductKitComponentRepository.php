@@ -10,9 +10,9 @@ use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductKitComponentMod
 
 class EloquentProductKitComponentRepository implements ProductKitComponentRepositoryInterface
 {
-    public function findByKitProductId(int $kitProductId, bool $activeOnly = true): array
+    public function findByKitGenericId(int $kitGenericId, bool $activeOnly = true): array
     {
-        $query = ProductKitComponentModel::where('kit_product_id', $kitProductId);
+        $query = ProductKitComponentModel::where('kit_generic_id', $kitGenericId);
 
         if ($activeOnly) {
             $query->where('is_active', true);
@@ -24,10 +24,10 @@ class EloquentProductKitComponentRepository implements ProductKitComponentReposi
             ->toArray();
     }
 
-    public function findWithDetailsByKitProductId(int $kitProductId, bool $activeOnly = false): array
+    public function findWithDetailsByKitGenericId(int $kitGenericId, bool $activeOnly = false): array
     {
-        $query = ProductKitComponentModel::with('componentProduct')
-            ->where('kit_product_id', $kitProductId);
+        $query = ProductKitComponentModel::with('componentGeneric')
+            ->where('kit_generic_id', $kitGenericId);
 
         if ($activeOnly) {
             $query->where('is_active', true);
@@ -37,17 +37,16 @@ class EloquentProductKitComponentRepository implements ProductKitComponentReposi
             ->get()
             ->map(fn ($m) => [
                 'id'                   => $m->id,
-                'kit_product_id'       => $m->kit_product_id,
-                'component_product_id' => $m->component_product_id,
+                'kit_generic_id'       => $m->kit_generic_id,
+                'component_generic_id' => $m->component_generic_id,
                 'quantity_per_kit'     => $m->quantity_per_kit,
                 'sort_order'           => (int) $m->sort_order,
                 'notes'                => $m->notes,
                 'is_active'            => (bool) $m->is_active,
-                'component'            => $m->componentProduct ? [
-                    'id'   => $m->componentProduct->id,
-                    'name' => $m->componentProduct->name,
-                    'code' => $m->componentProduct->code,
-                    'sku'  => $m->componentProduct->sku,
+                'component'            => $m->componentGeneric ? [
+                    'id'      => $m->componentGeneric->id,
+                    'name'    => $m->componentGeneric->name,
+                    'barcode' => $m->componentGeneric->barcode,
                 ] : null,
             ])
             ->toArray();
@@ -59,41 +58,41 @@ class EloquentProductKitComponentRepository implements ProductKitComponentReposi
             ? ProductKitComponentModel::findOrFail($component->getId())
             : new ProductKitComponentModel();
 
-        $model->kit_product_id = $component->getKitProductId();
-        $model->component_product_id = $component->getComponentProductId();
-        $model->quantity_per_kit = $component->getQuantityPerKit();
-        $model->sort_order = $component->getSortOrder();
-        $model->notes = $component->getNotes();
-        $model->is_active = $component->isActive();
+        $model->kit_generic_id       = $component->getKitGenericId();
+        $model->component_generic_id = $component->getComponentGenericId();
+        $model->quantity_per_kit     = $component->getQuantityPerKit();
+        $model->sort_order           = $component->getSortOrder();
+        $model->notes                = $component->getNotes();
+        $model->is_active            = $component->isActive();
         $model->save();
 
         return $this->toDomain($model);
     }
 
-    public function deleteById(int $componentId, int $kitProductId): bool
+    public function deleteById(int $componentId, int $kitGenericId): bool
     {
         $deleted = ProductKitComponentModel::where('id', $componentId)
-            ->where('kit_product_id', $kitProductId)
+            ->where('kit_generic_id', $kitGenericId)
             ->delete();
 
         return $deleted > 0;
     }
 
-    public function deleteByKitProductId(int $kitProductId): void
+    public function deleteByKitGenericId(int $kitGenericId): void
     {
-        ProductKitComponentModel::where('kit_product_id', $kitProductId)->delete();
+        ProductKitComponentModel::where('kit_generic_id', $kitGenericId)->delete();
     }
 
     private function toDomain(ProductKitComponentModel $model): ProductKitComponent
     {
         return new ProductKitComponent(
-            id: $model->id,
-            kitProductId: $model->kit_product_id,
-            componentProductId: $model->component_product_id,
-            quantityPerKit: $model->quantity_per_kit,
-            sortOrder: (int) $model->sort_order,
-            notes: $model->notes,
-            isActive: (bool) $model->is_active,
+            id:                 $model->id,
+            kitGenericId:       $model->kit_generic_id,
+            componentGenericId: $model->component_generic_id,
+            quantityPerKit:     $model->quantity_per_kit,
+            sortOrder:          (int) $model->sort_order,
+            notes:              $model->notes,
+            isActive:           (bool) $model->is_active,
         );
     }
 }

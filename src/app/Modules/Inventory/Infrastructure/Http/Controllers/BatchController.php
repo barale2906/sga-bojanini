@@ -22,10 +22,10 @@ class BatchController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $query = BatchModel::with('product');
+        $query = BatchModel::with('variant.genericProduct');
 
-        if ($request->filled('product_id')) {
-            $query->where('product_id', $request->integer('product_id'));
+        if ($request->filled('product_variant_id')) {
+            $query->where('product_variant_id', $request->integer('product_variant_id'));
         }
 
         if ($request->filled('status')) {
@@ -53,7 +53,7 @@ class BatchController extends Controller
 
     public function show(int $id, Request $request): JsonResponse
     {
-        $batch = BatchModel::with(['product', 'locations.zone'])->find($id);
+        $batch = BatchModel::with(['variant.genericProduct', 'locations.zone'])->find($id);
 
         if ($batch === null) {
             return $this->error('Lote no encontrado', 404);
@@ -78,8 +78,8 @@ class BatchController extends Controller
      */
     public function byProduct(int $id, Request $request): JsonResponse
     {
-        $query = BatchModel::with(['product', 'locations.zone'])
-            ->where('product_id', $id);
+        $query = BatchModel::with(['variant.genericProduct', 'locations.zone'])
+            ->where('product_variant_id', $id);
 
         if ($request->boolean('available_for_exit')) {
             $query->availableForExit();
@@ -98,12 +98,38 @@ class BatchController extends Controller
         return $this->success(BatchResource::collection($batches), 'Lotes del producto');
     }
 
+    /**
+     * Lista los lotes de un producto genérico (todos sus variantes) ordenados FEFO.
+     * Acepta los mismos filtros que byProduct: available_for_exit y warehouse_id.
+     */
+    public function byGenericProduct(int $genericId, Request $request): JsonResponse
+    {
+        $query = BatchModel::with(['variant.genericProduct', 'locations.zone'])
+            ->whereHas('variant', fn ($q) => $q->where('generic_product_id', $genericId));
+
+        if ($request->boolean('available_for_exit')) {
+            $query->availableForExit();
+        }
+
+        if ($request->filled('warehouse_id')) {
+            $warehouseId = $request->integer('warehouse_id');
+            $this->assertWarehouseAccess($request->user(), $warehouseId);
+            $query->whereHas('locations.zone', fn ($q) => $q->where('warehouse_id', $warehouseId));
+        } else {
+            $this->scopeBatchesToAllowedWarehouses($query, $request);
+        }
+
+        $batches = $query->orderBy('expiration_date')->get();
+
+        return $this->success(BatchResource::collection($batches), 'Lotes del producto genérico');
+    }
+
     public function expiring(Request $request): JsonResponse
     {
         $alertDays = (int) $request->query('days', config('sga.fefo.alert_days', 30));
         $alertDate = Carbon::today()->addDays($alertDays);
 
-        $query = BatchModel::with('product')
+        $query = BatchModel::with('variant.genericProduct')
             ->where('status', 'active')
             ->where('quantity_available', '>', 0)
             ->whereDate('expiration_date', '<=', $alertDate)
@@ -118,7 +144,7 @@ class BatchController extends Controller
 
     public function expired(Request $request): JsonResponse
     {
-        $query = BatchModel::with('product')->where('status', 'expired');
+        $query = BatchModel::with('variant.genericProduct')->where('status', 'expired');
 
         $this->scopeBatchesToAllowedWarehouses($query, $request);
 

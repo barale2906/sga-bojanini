@@ -16,7 +16,7 @@ class ProductSanitaryRegistrationModel extends Model
     protected $table = 'product_sanitary_registrations';
 
     protected $fillable = [
-        'product_id',
+        'product_variant_id',
         'registration_number',
         'expiry_date',
         'is_active',
@@ -30,8 +30,8 @@ class ProductSanitaryRegistrationModel extends Model
         ];
     }
 
-    public function product(): BelongsTo
+    public function variant(): BelongsTo
     {
-        return $this->belongsTo(ProductModel::class, 'product_id');
+        return $this->belongsTo(ProductVariantModel::class, 'product_variant_id');
     }
 }

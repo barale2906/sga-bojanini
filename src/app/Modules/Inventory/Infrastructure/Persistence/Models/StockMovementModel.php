@@ -6,7 +6,7 @@ namespace App\Modules\Inventory\Infrastructure\Persistence\Models;
 
 use App\Modules\Audit\Infrastructure\Traits\Auditable;
 use App\Modules\Auth\Infrastructure\Persistence\Models\UserModel;
-use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductModel;
+use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductVariantModel;
 use App\Modules\CostCenter\Infrastructure\Persistence\Models\CostCenterModel;
 use App\Modules\CostCenter\Infrastructure\Persistence\Models\MedicalServiceModel;
 use App\Modules\Inventory\Domain\ValueObjects\MovementStatus;
@@ -25,9 +25,10 @@ class StockMovementModel extends Model
     protected $table = 'stock_movements';
 
     protected $fillable = [
+        'movement_document_id',
         'warehouse_id',
         'warehouse_to_id',
-        'product_id',
+        'product_variant_id',
         'batch_id',
         'location_from_id',
         'location_to_id',
@@ -54,9 +55,9 @@ class StockMovementModel extends Model
         ];
     }
 
-    public function product(): BelongsTo
+    public function variant(): BelongsTo
     {
-        return $this->belongsTo(ProductModel::class, 'product_id');
+        return $this->belongsTo(ProductVariantModel::class, 'product_variant_id');
     }
 
     public function batch(): BelongsTo
@@ -99,8 +100,8 @@ class StockMovementModel extends Model
         return $this->belongsTo(MedicalServiceModel::class, 'service_id');
     }
 
-    public function signatures(): HasMany
+    public function document(): BelongsTo
     {
-        return $this->hasMany(MovementSignatureModel::class, 'movement_id');
+        return $this->belongsTo(MovementDocumentModel::class, 'movement_document_id');
     }
 }

@@ -13,7 +13,7 @@ class StockMovementCreated
 
     public function __construct(
         public readonly int $movementId,
-        public readonly int $productId,
+        public readonly int $productVariantId,
         public readonly int $warehouseId,
         public readonly string $movementType,
         public readonly int $quantity,

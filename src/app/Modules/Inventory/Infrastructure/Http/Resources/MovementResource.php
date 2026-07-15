@@ -17,7 +17,7 @@ class MovementResource extends JsonResource
             return [
                 'id'                  => $movement->getId(),
                 'warehouse_id'        => $movement->getWarehouseId(),
-                'product_id'          => $movement->getProductId(),
+                'product_variant_id'          => $movement->getProductVariantId(),
                 'batch_id'            => $movement->getBatchId(),
                 'location_from_id'    => $movement->getLocationFromId(),
                 'location_to_id'      => $movement->getLocationToId(),
@@ -36,10 +36,11 @@ class MovementResource extends JsonResource
         }
 
         return [
-            'id'                  => $movement->id,
-            'warehouse_id'        => $movement->warehouse_id,
-            'warehouse_to_id'     => $movement->warehouse_to_id,
-            'product_id'          => $movement->product_id,
+            'id'                   => $movement->id,
+            'movement_document_id' => $movement->movement_document_id,
+            'warehouse_id'         => $movement->warehouse_id,
+            'warehouse_to_id'      => $movement->warehouse_to_id,
+            'product_variant_id'   => $movement->product_variant_id,
             'batch_id'            => $movement->batch_id,
             'location_from_id'    => $movement->location_from_id,
             'location_to_id'      => $movement->location_to_id,
@@ -59,7 +60,11 @@ class MovementResource extends JsonResource
                 ? $movement->status->value
                 : $movement->status,
             'created_at'          => $movement->created_at?->toIso8601String(),
-            'product_name'        => $movement->relationLoaded('product') ? $movement->product->name : null,
+            'variant_lab_brand'   => $movement->relationLoaded('variant') && $movement->variant ? $movement->variant->lab_brand : null,
+            'product_name'        => $movement->relationLoaded('variant') && $movement->variant
+                && $movement->variant->relationLoaded('genericProduct') && $movement->variant->genericProduct
+                ? $movement->variant->genericProduct->name
+                : null,
             'batch_lot_number'      => $movement->relationLoaded('batch') && $movement->batch
                 ? $movement->batch->lot_number
                 : null,

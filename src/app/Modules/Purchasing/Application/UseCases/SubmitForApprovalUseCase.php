@@ -39,7 +39,7 @@ class SubmitForApprovalUseCase
 
             $order->update(['status' => PurchaseOrderStatus::PendingApproval->value]);
 
-            $order = $order->fresh(['items.product', 'items.presentation', 'supplier', 'warehouse']);
+            $order = $order->fresh(['items.variant', 'items.presentation', 'supplier', 'warehouse']);
 
             $this->notificationService->notifyByType(
                 'purchase_order_pending_approval',

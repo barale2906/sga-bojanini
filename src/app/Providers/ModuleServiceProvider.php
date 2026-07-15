@@ -9,19 +9,21 @@ use App\Modules\Audit\Infrastructure\Persistence\EloquentAuditLogRepository;
 use App\Modules\Auth\Domain\Repositories\UserRepositoryInterface;
 use App\Modules\Auth\Infrastructure\Persistence\EloquentUserRepository;
 use App\Modules\Catalog\Domain\Repositories\CategoryRepositoryInterface;
+use App\Modules\Catalog\Domain\Repositories\GenericProductRepositoryInterface;
 use App\Modules\Catalog\Domain\Repositories\ProductClassificationRepositoryInterface;
 use App\Modules\Catalog\Domain\Repositories\ProductKitComponentRepositoryInterface;
 use App\Modules\Catalog\Domain\Repositories\ProductPresentationRepositoryInterface;
-use App\Modules\Catalog\Domain\Repositories\ProductRepositoryInterface;
 use App\Modules\Catalog\Domain\Repositories\ProductSanitaryRegistrationRepositoryInterface;
+use App\Modules\Catalog\Domain\Repositories\ProductVariantRepositoryInterface;
 use App\Modules\Catalog\Domain\Repositories\SupplierRepositoryInterface;
 use App\Modules\Catalog\Domain\Repositories\UnitOfMeasureRepositoryInterface;
 use App\Modules\Catalog\Infrastructure\Persistence\EloquentCategoryRepository;
+use App\Modules\Catalog\Infrastructure\Persistence\EloquentGenericProductRepository;
 use App\Modules\Catalog\Infrastructure\Persistence\EloquentProductClassificationRepository;
 use App\Modules\Catalog\Infrastructure\Persistence\EloquentProductKitComponentRepository;
 use App\Modules\Catalog\Infrastructure\Persistence\EloquentProductPresentationRepository;
-use App\Modules\Catalog\Infrastructure\Persistence\EloquentProductRepository;
 use App\Modules\Catalog\Infrastructure\Persistence\EloquentProductSanitaryRegistrationRepository;
+use App\Modules\Catalog\Infrastructure\Persistence\EloquentProductVariantRepository;
 use App\Modules\Catalog\Infrastructure\Persistence\EloquentSupplierRepository;
 use App\Modules\Catalog\Infrastructure\Persistence\EloquentUnitOfMeasureRepository;
 use App\Modules\CostCenter\Domain\Repositories\CostCenterRepositoryInterface;
@@ -88,7 +90,8 @@ class ModuleServiceProvider extends ServiceProvider
         // Catalog (Fase 3)
         CategoryRepositoryInterface::class => EloquentCategoryRepository::class,
         UnitOfMeasureRepositoryInterface::class => EloquentUnitOfMeasureRepository::class,
-        ProductRepositoryInterface::class => EloquentProductRepository::class,
+        GenericProductRepositoryInterface::class => EloquentGenericProductRepository::class,
+        ProductVariantRepositoryInterface::class => EloquentProductVariantRepository::class,
         ProductClassificationRepositoryInterface::class => EloquentProductClassificationRepository::class,
         ProductPresentationRepositoryInterface::class => EloquentProductPresentationRepository::class,
         ProductKitComponentRepositoryInterface::class => EloquentProductKitComponentRepository::class,

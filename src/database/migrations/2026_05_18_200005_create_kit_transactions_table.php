@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('kit_transactions', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('kit_product_id')->constrained('products');
+            $table->foreignId('kit_generic_id')->constrained('product_generics');
             $table->foreignId('warehouse_id')->constrained('warehouses');
             $table->unsignedInteger('quantity_kits');
             $table->foreignId('user_id')->constrained('users');
@@ -19,7 +19,7 @@ return new class extends Migration
             $table->unsignedBigInteger('reference_id')->nullable();
             $table->timestamp('created_at')->useCurrent();
 
-            $table->index(['kit_product_id', 'created_at'], 'idx_kit_tx_product_created');
+            $table->index(['kit_generic_id', 'created_at'], 'idx_kit_tx_generic_created');
         });
     }
 

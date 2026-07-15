@@ -2,7 +2,8 @@
 
 namespace Tests\Unit\Inventory;
 
-use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductModel;
+use App\Modules\Catalog\Infrastructure\Persistence\Models\GenericProductModel;
+use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductVariantModel;
 use App\Modules\Inventory\Domain\Services\BatchLocationService;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\BatchModel;
 use App\Modules\Warehouse\Infrastructure\Persistence\Models\LocationModel;
@@ -94,10 +95,11 @@ class BatchLocationServiceTest extends TestCase
 
     private function createBatch(LocationModel $locationA, int $qtyA, LocationModel $locationB, int $qtyB): BatchModel
     {
-        $product = ProductModel::where('code', 'AGU-21G')->firstOrFail();
+        $generic = GenericProductModel::where('barcode', '000001')->firstOrFail();
+        $variant = ProductVariantModel::where('generic_product_id', $generic->id)->firstOrFail();
 
         $batch = BatchModel::create([
-            'product_id'         => $product->id,
+            'product_variant_id' => $variant->id,
             'lot_number'         => 'LOT-BL-'.uniqid(),
             'expiration_date'    => now()->addDays(30)->format('Y-m-d'),
             'quantity_received'  => $qtyA + $qtyB,

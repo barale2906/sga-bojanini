@@ -5,7 +5,7 @@ namespace Tests\Feature\Audit;
 use App\Modules\Audit\Infrastructure\Persistence\Models\AuditLogModel;
 use App\Modules\Auth\Infrastructure\Persistence\Models\UserModel;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\CategoryModel;
-use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductModel;
+use App\Modules\Catalog\Infrastructure\Persistence\Models\GenericProductModel;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\UnitOfMeasureModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
@@ -33,15 +33,15 @@ class AuditableTraitTest extends TestCase
         $category = CategoryModel::first();
         $unit     = UnitOfMeasureModel::where('abbreviation', 'UND')->first();
 
-        $product = ProductModel::create([
+        $product = GenericProductModel::create([
             'category_id'  => $category->id,
             'base_unit_id' => $unit->id,
             'product_type' => 'simple',
             'name'         => 'Ácido Hialurónico',
-            'code'         => 'AH-001',
+            'barcode'      => '000099',
         ]);
 
-        $auditLog = AuditLogModel::where('auditable_type', 'product')
+        $auditLog = AuditLogModel::where('auditable_type', 'generic_product')
             ->where('auditable_id', $product->id)
             ->where('action', 'create')
             ->first();
@@ -57,17 +57,17 @@ class AuditableTraitTest extends TestCase
         $category = CategoryModel::first();
         $unit     = UnitOfMeasureModel::where('abbreviation', 'UND')->first();
 
-        $product = ProductModel::create([
+        $product = GenericProductModel::create([
             'category_id'  => $category->id,
             'base_unit_id' => $unit->id,
             'product_type' => 'simple',
             'name'         => 'Producto Original',
-            'code'         => 'PO-001',
+            'barcode'      => '000098',
         ]);
 
         $product->update(['name' => 'Producto Modificado']);
 
-        $auditLog = AuditLogModel::where('auditable_type', 'product')
+        $auditLog = AuditLogModel::where('auditable_type', 'generic_product')
             ->where('action', 'update')
             ->latest('id')
             ->first();

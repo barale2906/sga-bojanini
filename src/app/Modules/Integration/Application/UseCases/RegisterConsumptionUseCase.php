@@ -7,7 +7,7 @@ namespace App\Modules\Integration\Application\UseCases;
 use App\Modules\Integration\Infrastructure\Jobs\SyncConsumptionToHCJob;
 use App\Modules\Integration\Infrastructure\Persistence\Models\ConsumptionRecordModel;
 use App\Modules\Inventory\Application\UseCases\RegisterExitUseCase;
-use Illuminate\Support\Collection;
+use App\Modules\Inventory\Infrastructure\Persistence\Models\MovementDocumentModel;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -23,8 +23,7 @@ class RegisterConsumptionUseCase
      *     patient_identifier?: string,
      *     service_type?: string,
      *     warehouse_id: int,
-
-     *     items: array<array{product_id: int, quantity: int}>
+     *     items: array<array{generic_product_id: int, quantity: int}>
      * } $data
      *
      * @return array{records: array<int, ConsumptionRecordModel>, total_items: int}
@@ -38,27 +37,27 @@ class RegisterConsumptionUseCase
         try {
             foreach ($data['items'] as $item) {
                 $exitResult = $this->exitUseCase->execute([
-                    'product_id'          => $item['product_id'],
                     'warehouse_id'        => $data['warehouse_id'],
-                    'quantity'            => $item['quantity'],
                     'reason'              => 'Consumo en procedimiento',
                     'cost_center_id'      => $data['cost_center_id'],
                     'service_id'          => $data['service_id'] ?? null,
-                    // patient_identifier del registro de consumo mapea al documento en el movimiento
                     'patient_document'    => $data['patient_identifier'] ?? null,
-                    // appointment_id actúa como identificador del paciente en el sistema externo
                     'patient_external_id' => $data['appointment_id'] ?? null,
-
                     'user_id'             => Auth::id(),
+                    'items'               => [[
+                        'generic_product_id' => $item['generic_product_id'],
+                        'quantity'           => $item['quantity'],
+                    ]],
                 ]);
 
-                $batchId = $this->resolveBatchId($exitResult);
+                $batchId   = $this->resolveBatchId($exitResult);
+                $variantId = $this->resolveVariantId($exitResult);
 
                 $record = ConsumptionRecordModel::create([
                     'appointment_id'     => $data['appointment_id'] ?? null,
                     'patient_identifier' => $data['patient_identifier'] ?? null,
                     'service_type'       => $data['service_type'] ?? null,
-                    'product_id'         => $item['product_id'],
+                    'product_variant_id' => $variantId,
                     'batch_id'           => $batchId,
                     'quantity'           => $item['quantity'],
                     'user_id'            => Auth::id(),
@@ -89,15 +88,13 @@ class RegisterConsumptionUseCase
         }
     }
 
-    private function resolveBatchId(Collection|array $exitResult): ?int
+    private function resolveBatchId(MovementDocumentModel $document): ?int
     {
-        if ($exitResult instanceof Collection) {
-            return $exitResult->first()?->batch_id;
-        }
+        return $document->movements->first()?->batch_id;
+    }
 
-        /** @var Collection $movements */
-        $movements = $exitResult['movements'] ?? collect();
-
-        return $movements->first()?->batch_id;
+    private function resolveVariantId(MovementDocumentModel $document): ?int
+    {
+        return $document->movements->first()?->product_variant_id;
     }
 }

@@ -2,7 +2,8 @@
 
 namespace Tests\Unit\Inventory;
 
-use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductModel;
+use App\Modules\Catalog\Infrastructure\Persistence\Models\GenericProductModel;
+use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductVariantModel;
 use App\Modules\Inventory\Domain\Services\StockCalculator;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\BatchModel;
 use App\Modules\Warehouse\Infrastructure\Persistence\Models\LocationModel;
@@ -33,10 +34,12 @@ class StockCalculatorTest extends TestCase
             'is_active' => true,
         ]);
         $location = LocationModel::create(['zone_id' => $zone->id, 'name' => 'U1', 'code' => 'U1', 'is_active' => true]);
-        $product = ProductModel::where('code', 'AGU-21G')->firstOrFail();
+
+        $generic = GenericProductModel::where('barcode', '000001')->firstOrFail();
+        $variant = ProductVariantModel::where('generic_product_id', $generic->id)->firstOrFail();
 
         $batch = BatchModel::create([
-            'product_id'         => $product->id,
+            'product_variant_id' => $variant->id,
             'lot_number'         => 'LOT-CALC',
             'expiration_date'    => now()->addMonths(6)->format('Y-m-d'),
             'quantity_received'  => 75,
@@ -46,14 +49,14 @@ class StockCalculatorTest extends TestCase
         ]);
         $batch->locations()->attach($location->id, ['quantity' => 75]);
 
-        app(StockCalculator::class)->recalculateSummary($product->id, $warehouse->id);
+        app(StockCalculator::class)->recalculateSummary($variant->id, $warehouse->id);
 
         $this->assertDatabaseHas('stock_summaries', [
-            'product_id'         => $product->id,
+            'product_variant_id' => $variant->id,
             'warehouse_id'       => $warehouse->id,
             'available_quantity' => 75,
         ]);
 
-        $this->assertSame(75, app(StockCalculator::class)->getCurrentStock($product->id, $warehouse->id));
+        $this->assertSame(75, app(StockCalculator::class)->getCurrentStock($variant->id, $warehouse->id));
     }
 }

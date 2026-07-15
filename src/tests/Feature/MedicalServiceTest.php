@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Modules\Auth\Infrastructure\Persistence\Models\UserModel;
 use App\Modules\CostCenter\Infrastructure\Persistence\Models\CostCenterModel;
 use App\Modules\CostCenter\Infrastructure\Persistence\Models\MedicalServiceModel;
+use App\Modules\Inventory\Infrastructure\Persistence\Models\MovementDocumentModel;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\StockMovementModel;
 use App\Modules\Warehouse\Infrastructure\Persistence\Models\WarehouseModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -161,18 +162,27 @@ class MedicalServiceTest extends TestCase
     {
         $service  = MedicalServiceModel::first();
         $center   = CostCenterModel::where('type', 'external')->first();
-        $product  = \App\Modules\Catalog\Infrastructure\Persistence\Models\ProductModel::first();
+        $variant  = \App\Modules\Catalog\Infrastructure\Persistence\Models\ProductVariantModel::first();
         $user     = UserModel::first();
         $wh       = WarehouseModel::create(['name' => 'WH-SVC', 'code' => 'WH-SV', 'is_active' => true]);
 
+        $doc = MovementDocumentModel::create([
+            'document_number' => 'SAL-SVC-TEST-001',
+            'document_type'   => 'exit',
+            'warehouse_id'    => $wh->id,
+            'user_id'         => $user->id,
+            'status'          => 'confirmed',
+        ]);
+
         StockMovementModel::create([
-            'warehouse_id'   => $wh->id,
-            'product_id'     => $product->id,
-            'movement_type'  => 'exit',
-            'quantity'       => -1,
-            'cost_center_id' => $center->id,
-            'service_id'     => $service->id,
-            'user_id'        => $user->id,
+            'movement_document_id' => $doc->id,
+            'warehouse_id'         => $wh->id,
+            'product_variant_id'   => $variant->id,
+            'movement_type'        => 'exit',
+            'quantity'             => -1,
+            'cost_center_id'       => $center->id,
+            'service_id'           => $service->id,
+            'user_id'              => $user->id,
         ]);
 
         $this->withHeaders($this->auth())

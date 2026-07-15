@@ -3,7 +3,8 @@
 namespace Tests\Feature;
 
 use App\Modules\Auth\Infrastructure\Persistence\Models\UserModel;
-use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductModel;
+use App\Modules\Catalog\Infrastructure\Persistence\Models\GenericProductModel;
+use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductVariantModel;
 use App\Modules\Warehouse\Infrastructure\Persistence\Models\LocationModel;
 use App\Modules\Warehouse\Infrastructure\Persistence\Models\WarehouseModel;
 use App\Modules\Warehouse\Infrastructure\Persistence\Models\ZoneModel;
@@ -209,9 +210,10 @@ class WarehouseAccessTest extends TestCase
 
     public function test_usuario_no_puede_registrar_entrada_en_almacen_no_asignado(): void
     {
-        $allowed = $this->createWarehouseSetup('-ALLOWED');
+        $allowed   = $this->createWarehouseSetup('-ALLOWED');
         $forbidden = $this->createWarehouseSetup('-FORBIDDEN');
-        $product = ProductModel::where('code', 'AGU-21G')->first();
+        $generic   = GenericProductModel::where('barcode', '000001')->firstOrFail();
+        $variant   = ProductVariantModel::where('generic_product_id', $generic->id)->firstOrFail();
 
         $manager = $this->createUserWithRole('jefe_almacen', 'jefe4@sga.bojanini.com');
         $this->withHeaders($this->asAdmin())
@@ -219,54 +221,63 @@ class WarehouseAccessTest extends TestCase
 
         $this->withHeaders($this->asUser($manager))
             ->postJson('/api/v1/movements/entry', [
-                'product_id'      => $product->id,
-                'warehouse_id'    => $forbidden['warehouse']->id,
-                'location_id'     => $forbidden['location']->id,
-                'lot_number'      => 'LOT-FORBIDDEN',
-                'expiration_date' => now()->addMonths(6)->format('Y-m-d'),
-                'quantity_base'   => 10,
+                'warehouse_id' => $forbidden['warehouse']->id,
+                'items'        => [[
+                    'product_variant_id' => $variant->id,
+                    'location_id'        => $forbidden['location']->id,
+                    'lot_number'         => 'LOT-FORBIDDEN',
+                    'expiration_date'    => now()->addMonths(6)->format('Y-m-d'),
+                    'quantity_base'      => 10,
+                ]],
             ])
             ->assertStatus(403);
 
         $this->withHeaders($this->asUser($manager))
             ->postJson('/api/v1/movements/entry', [
-                'product_id'      => $product->id,
-                'warehouse_id'    => $allowed['warehouse']->id,
-                'location_id'     => $allowed['location']->id,
-                'lot_number'      => 'LOT-ALLOWED',
-                'expiration_date' => now()->addMonths(6)->format('Y-m-d'),
-                'quantity_base'   => 10,
+                'warehouse_id' => $allowed['warehouse']->id,
+                'items'        => [[
+                    'product_variant_id' => $variant->id,
+                    'location_id'        => $allowed['location']->id,
+                    'lot_number'         => 'LOT-ALLOWED',
+                    'expiration_date'    => now()->addMonths(6)->format('Y-m-d'),
+                    'quantity_base'      => 10,
+                ]],
             ])
             ->assertStatus(201);
     }
 
     public function test_listado_de_movimientos_se_filtra_por_almacenes_asignados(): void
     {
-        $allowed = $this->createWarehouseSetup('-MOVLIST-A');
+        $allowed   = $this->createWarehouseSetup('-MOVLIST-A');
         $forbidden = $this->createWarehouseSetup('-MOVLIST-B');
-        $product = ProductModel::where('code', 'AGU-21G')->first();
+        $generic   = GenericProductModel::where('barcode', '000001')->firstOrFail();
+        $variant   = ProductVariantModel::where('generic_product_id', $generic->id)->firstOrFail();
 
         // Movimiento en el almacén permitido.
         $this->withHeaders($this->asAdmin())
             ->postJson('/api/v1/movements/entry', [
-                'product_id'      => $product->id,
-                'warehouse_id'    => $allowed['warehouse']->id,
-                'location_id'     => $allowed['location']->id,
-                'lot_number'      => 'LOT-MOVLIST-A',
-                'expiration_date' => now()->addMonths(6)->format('Y-m-d'),
-                'quantity_base'   => 10,
+                'warehouse_id' => $allowed['warehouse']->id,
+                'items'        => [[
+                    'product_variant_id' => $variant->id,
+                    'location_id'        => $allowed['location']->id,
+                    'lot_number'         => 'LOT-MOVLIST-A',
+                    'expiration_date'    => now()->addMonths(6)->format('Y-m-d'),
+                    'quantity_base'      => 10,
+                ]],
             ])
             ->assertStatus(201);
 
         // Movimiento en el almacén no permitido.
         $this->withHeaders($this->asAdmin())
             ->postJson('/api/v1/movements/entry', [
-                'product_id'      => $product->id,
-                'warehouse_id'    => $forbidden['warehouse']->id,
-                'location_id'     => $forbidden['location']->id,
-                'lot_number'      => 'LOT-MOVLIST-B',
-                'expiration_date' => now()->addMonths(6)->format('Y-m-d'),
-                'quantity_base'   => 10,
+                'warehouse_id' => $forbidden['warehouse']->id,
+                'items'        => [[
+                    'product_variant_id' => $variant->id,
+                    'location_id'        => $forbidden['location']->id,
+                    'lot_number'         => 'LOT-MOVLIST-B',
+                    'expiration_date'    => now()->addMonths(6)->format('Y-m-d'),
+                    'quantity_base'      => 10,
+                ]],
             ])
             ->assertStatus(201);
 
@@ -290,8 +301,10 @@ class WarehouseAccessTest extends TestCase
      */
     public function test_operador_sin_permiso_ajuste_obtiene_403(): void
     {
-        $setup = $this->createWarehouseSetup('-PERM-ADJ');
-        $product = ProductModel::where('code', 'AGU-21G')->first();
+        $setup   = $this->createWarehouseSetup('-PERM-ADJ');
+        $variant = ProductVariantModel::where('generic_product_id',
+            GenericProductModel::where('barcode', '000001')->firstOrFail()->id
+        )->firstOrFail();
 
         $operator = $this->createUserWithRole('operador_almacen', 'op-adj@sga.bojanini.com');
         $this->withHeaders($this->asAdmin())
@@ -299,11 +312,11 @@ class WarehouseAccessTest extends TestCase
 
         $this->withHeaders($this->asUser($operator))
             ->postJson('/api/v1/movements/adjustment', [
-                'product_id'   => $product->id,
-                'warehouse_id' => $setup['warehouse']->id,
-                'location_id'  => $setup['location']->id,
-                'quantity'     => 5,
-                'reason'       => 'Prueba sin permiso',
+                'product_variant_id' => $variant->id,
+                'warehouse_id'       => $setup['warehouse']->id,
+                'location_id'        => $setup['location']->id,
+                'quantity'           => 5,
+                'reason'             => 'Prueba sin permiso',
             ])
             ->assertStatus(403);
     }
@@ -313,8 +326,10 @@ class WarehouseAccessTest extends TestCase
      */
     public function test_operador_sin_permiso_devolucion_obtiene_403(): void
     {
-        $setup = $this->createWarehouseSetup('-PERM-RET');
-        $product = ProductModel::where('code', 'AGU-21G')->first();
+        $setup   = $this->createWarehouseSetup('-PERM-RET');
+        $variant = ProductVariantModel::where('generic_product_id',
+            GenericProductModel::where('barcode', '000001')->firstOrFail()->id
+        )->firstOrFail();
 
         $operator = $this->createUserWithRole('operador_almacen', 'op-ret@sga.bojanini.com');
         $this->withHeaders($this->asAdmin())
@@ -322,9 +337,9 @@ class WarehouseAccessTest extends TestCase
 
         $this->withHeaders($this->asUser($operator))
             ->postJson('/api/v1/movements/return', [
-                'product_id'   => $product->id,
-                'warehouse_id' => $setup['warehouse']->id,
-                'quantity'     => 1,
+                'product_variant_id' => $variant->id,
+                'warehouse_id'       => $setup['warehouse']->id,
+                'quantity'           => 1,
             ])
             ->assertStatus(403);
     }
@@ -352,12 +367,12 @@ class WarehouseAccessTest extends TestCase
 
         $this->withHeaders($this->asUser($operator))
             ->postJson('/api/v1/movements/loss', [
-                'product_id'   => 1,
-                'warehouse_id' => $setup['warehouse']->id,
-                'location_id'  => $setup['location']->id,
-                'batch_id'     => 1,
-                'quantity'     => 1,
-                'reason'       => 'test',
+                'product_variant_id' => 1,
+                'warehouse_id'       => $setup['warehouse']->id,
+                'location_id'        => $setup['location']->id,
+                'batch_id'           => 1,
+                'quantity'           => 1,
+                'reason'             => 'test',
             ])
             ->assertStatus(403);
     }
@@ -368,19 +383,21 @@ class WarehouseAccessTest extends TestCase
      */
     public function test_usuario_con_permiso_ajuste_sin_acceso_al_almacen_obtiene_403(): void
     {
-        $setup = $this->createWarehouseSetup('-NOACC-ADJ');
-        $product = ProductModel::where('code', 'AGU-21G')->first();
+        $setup   = $this->createWarehouseSetup('-NOACC-ADJ');
+        $variant = ProductVariantModel::where('generic_product_id',
+            GenericProductModel::where('barcode', '000001')->firstOrFail()->id
+        )->firstOrFail();
 
         $manager = $this->createUserWithRole('jefe_almacen', 'jefe-noacc@sga.bojanini.com');
         // No se asigna ningún almacén al manager
 
         $this->withHeaders($this->asUser($manager))
             ->postJson('/api/v1/movements/adjustment', [
-                'product_id'   => $product->id,
-                'warehouse_id' => $setup['warehouse']->id,
-                'location_id'  => $setup['location']->id,
-                'quantity'     => 5,
-                'reason'       => 'Prueba sin acceso al almacén',
+                'product_variant_id' => $variant->id,
+                'warehouse_id'       => $setup['warehouse']->id,
+                'location_id'        => $setup['location']->id,
+                'quantity'           => 5,
+                'reason'             => 'Prueba sin acceso al almacén',
             ])
             ->assertStatus(403);
     }

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
-use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductModel;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\SupplierModel;
 use App\Modules\Purchasing\Domain\Services\ApprovalEngine;
 use App\Modules\Purchasing\Infrastructure\Persistence\Models\ApprovalFlowModel;
@@ -26,18 +25,6 @@ class PurchasingSeeder extends Seeder
                 'is_active'    => true,
             ],
         );
-
-        $aguja = ProductModel::where('code', 'AGU-21G')->first();
-
-        if ($aguja !== null) {
-            $aguja->suppliers()->syncWithoutDetaching([
-                $supplier->id => [
-                    'lead_time_days' => 7,
-                    'is_preferred'   => true,
-                    'unit_price'     => 150000,
-                ],
-            ]);
-        }
 
         $superAdminRole = Role::where('name', 'super_administrador')->first();
 

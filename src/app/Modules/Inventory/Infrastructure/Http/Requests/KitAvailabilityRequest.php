@@ -18,10 +18,10 @@ class KitAvailabilityRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'kit_product_id' => [
+            'kit_generic_id' => [
                 'required',
                 'integer',
-                Rule::exists('products', 'id')->where('product_type', ProductType::Kit->value),
+                Rule::exists('product_generics', 'id')->where('product_type', ProductType::Kit->value),
             ],
             'warehouse_id' => ['required', 'integer', 'exists:warehouses,id'],
         ];
@@ -30,7 +30,7 @@ class KitAvailabilityRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'kit_product_id.exists' => 'El producto indicado no existe o no es de tipo kit.',
+            'kit_generic_id.exists' => 'El producto indicado no existe o no es de tipo kit.',
         ];
     }
 }

@@ -42,6 +42,6 @@ class CategoryModel extends Model
 
     public function products(): HasMany
     {
-        return $this->hasMany(ProductModel::class, 'category_id');
+        return $this->hasMany(GenericProductModel::class, 'category_id');
     }
 }

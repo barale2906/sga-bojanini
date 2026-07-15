@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('batches', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('product_id')->constrained('products');
+            $table->foreignId('product_variant_id')->constrained('product_variants');
             $table->string('lot_number', 100);
             $table->date('expiration_date');
             $table->date('manufacturing_date')->nullable();
@@ -21,7 +21,7 @@ return new class extends Migration
             $table->timestamp('received_at');
             $table->timestamps();
 
-            $table->unique(['product_id', 'lot_number'], 'uq_batches_product_lot');
+            $table->unique(['product_variant_id', 'lot_number'], 'uq_batches_variant_lot');
             $table->index(['expiration_date', 'status'], 'idx_batches_expiration');
         });
     }

@@ -10,14 +10,14 @@ return new class extends Migration
     {
         Schema::create('product_sanitary_registrations', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('product_id')->constrained('products')->cascadeOnDelete();
+            $table->foreignId('product_variant_id')->constrained('product_variants')->cascadeOnDelete();
             $table->string('registration_number', 100);
             $table->date('expiry_date');
             $table->boolean('is_active')->default(true);
             $table->timestamps();
             $table->softDeletes();
 
-            $table->unique(['product_id', 'registration_number'], 'uq_product_registration');
+            $table->unique(['product_variant_id', 'registration_number'], 'uq_variant_registration');
         });
     }
 

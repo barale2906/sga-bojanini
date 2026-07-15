@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Inventory\Infrastructure\Persistence\Models;
 
 use App\Modules\Audit\Infrastructure\Traits\Auditable;
-use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductModel;
+use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductVariantModel;
 use App\Modules\Warehouse\Infrastructure\Persistence\Models\LocationModel;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
@@ -21,7 +21,7 @@ class BatchModel extends Model
     protected $table = 'batches';
 
     protected $fillable = [
-        'product_id',
+        'product_variant_id',
         'lot_number',
         'expiration_date',
         'manufacturing_date',
@@ -41,9 +41,9 @@ class BatchModel extends Model
         ];
     }
 
-    public function product(): BelongsTo
+    public function variant(): BelongsTo
     {
-        return $this->belongsTo(ProductModel::class, 'product_id');
+        return $this->belongsTo(ProductVariantModel::class, 'product_variant_id');
     }
 
     public function locations(): BelongsToMany

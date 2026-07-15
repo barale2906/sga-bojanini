@@ -11,9 +11,9 @@ interface ProductSanitaryRegistrationRepositoryInterface
     public function findById(int $id): ?ProductSanitaryRegistration;
 
     /** @return ProductSanitaryRegistration[] */
-    public function findByProductId(int $productId, bool $onlyActive = false): array;
+    public function findByProductVariantId(int $productVariantId, bool $onlyActive = false): array;
 
-    public function findByProductAndNumber(int $productId, string $registrationNumber): ?ProductSanitaryRegistration;
+    public function findByVariantAndNumber(int $productVariantId, string $registrationNumber): ?ProductSanitaryRegistration;
 
     public function save(ProductSanitaryRegistration $registration): ProductSanitaryRegistration;
 

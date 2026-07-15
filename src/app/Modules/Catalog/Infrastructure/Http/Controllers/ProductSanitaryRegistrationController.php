@@ -22,22 +22,22 @@ class ProductSanitaryRegistrationController extends Controller
 {
     use ApiResponse;
 
-    public function index(int $productId, Request $request, ListProductSanitaryRegistrationsUseCase $useCase): JsonResponse
+    public function index(int $variantId, Request $request, ListProductSanitaryRegistrationsUseCase $useCase): JsonResponse
     {
         $onlyActive    = filter_var($request->query('only_active', false), FILTER_VALIDATE_BOOLEAN);
-        $registrations = $useCase->execute($productId, $onlyActive);
+        $registrations = $useCase->execute($variantId, $onlyActive);
 
         return $this->success(
             ProductSanitaryRegistrationResource::collection($registrations),
-            'Registros sanitarios del producto'
+            'Registros sanitarios de la variante'
         );
     }
 
-    public function store(int $productId, StoreProductSanitaryRegistrationRequest $request, CreateProductSanitaryRegistrationUseCase $useCase): JsonResponse
+    public function store(int $variantId, StoreProductSanitaryRegistrationRequest $request, CreateProductSanitaryRegistrationUseCase $useCase): JsonResponse
     {
         $validated    = $request->validated();
         $registration = $useCase->execute(new ProductSanitaryRegistrationData(
-            productId:          $productId,
+            productVariantId:   $variantId,
             registrationNumber: $validated['registration_number'],
             expiryDate:         new DateTimeImmutable($validated['expiry_date']),
             isActive:           (bool) ($validated['is_active'] ?? true),
@@ -49,11 +49,11 @@ class ProductSanitaryRegistrationController extends Controller
         );
     }
 
-    public function update(int $productId, int $registration, UpdateProductSanitaryRegistrationRequest $request, UpdateProductSanitaryRegistrationUseCase $useCase): JsonResponse
+    public function update(int $variantId, int $registration, UpdateProductSanitaryRegistrationRequest $request, UpdateProductSanitaryRegistrationUseCase $useCase): JsonResponse
     {
         $validated = $request->validated();
         $entity    = $useCase->execute($registration, new ProductSanitaryRegistrationData(
-            productId:          $productId,
+            productVariantId:   $variantId,
             registrationNumber: $validated['registration_number'],
             expiryDate:         new DateTimeImmutable($validated['expiry_date']),
             isActive:           (bool) ($validated['is_active'] ?? true),
@@ -65,7 +65,7 @@ class ProductSanitaryRegistrationController extends Controller
         );
     }
 
-    public function destroy(int $productId, int $registration, DeleteProductSanitaryRegistrationUseCase $useCase): JsonResponse
+    public function destroy(int $variantId, int $registration, DeleteProductSanitaryRegistrationUseCase $useCase): JsonResponse
     {
         $useCase->execute($registration);
 

@@ -16,8 +16,8 @@ class ListProductSanitaryRegistrationsUseCase
      * @param bool $onlyActive Si true, retorna solo los registros activos y no vencidos.
      * @return \App\Modules\Catalog\Domain\Entities\ProductSanitaryRegistration[]
      */
-    public function execute(int $productId, bool $onlyActive = false): array
+    public function execute(int $productVariantId, bool $onlyActive = false): array
     {
-        return $this->repository->findByProductId($productId, $onlyActive);
+        return $this->repository->findByProductVariantId($productVariantId, $onlyActive);
     }
 }

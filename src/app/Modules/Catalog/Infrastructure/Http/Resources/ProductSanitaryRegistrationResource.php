@@ -17,7 +17,7 @@ class ProductSanitaryRegistrationResource extends JsonResource
         if ($r instanceof ProductSanitaryRegistration) {
             return [
                 'id'                  => $r->getId(),
-                'product_id'          => $r->getProductId(),
+                'product_variant_id'  => $r->getProductVariantId(),
                 'registration_number' => $r->getRegistrationNumber(),
                 'expiry_date'         => $r->getExpiryDate()->format('Y-m-d'),
                 'is_active'           => $r->isActive(),
@@ -28,7 +28,7 @@ class ProductSanitaryRegistrationResource extends JsonResource
         // Eloquent model fallback
         return [
             'id'                  => $r->id,
-            'product_id'          => $r->product_id,
+            'product_variant_id'  => $r->product_variant_id,
             'registration_number' => $r->registration_number,
             'expiry_date'         => $r->expiry_date?->format('Y-m-d'),
             'is_active'           => (bool) $r->is_active,

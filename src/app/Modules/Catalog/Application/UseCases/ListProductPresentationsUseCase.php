@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Modules\Catalog\Application\UseCases;
 
+use App\Modules\Catalog\Domain\Repositories\GenericProductRepositoryInterface;
 use App\Modules\Catalog\Domain\Repositories\ProductPresentationRepositoryInterface;
-use App\Modules\Catalog\Domain\Repositories\ProductRepositoryInterface;
 
 class ListProductPresentationsUseCase
 {
     public function __construct(
-        private readonly ProductRepositoryInterface $productRepository,
+        private readonly GenericProductRepositoryInterface $genericProductRepository,
         private readonly ProductPresentationRepositoryInterface $presentationRepository,
     ) {}
 
@@ -25,16 +25,16 @@ class ListProductPresentationsUseCase
     }
 
     /**
-     * Lista las presentaciones asignadas a un producto específico.
+     * Lista las presentaciones asignadas a un genérico específico.
      *
      * @return \App\Modules\Catalog\Domain\Entities\ProductPresentation[]
      */
-    public function executeForProduct(int $productId): array
+    public function executeForProduct(int $genericProductId): array
     {
-        if ($this->productRepository->findById($productId) === null) {
-            throw new \DomainException('Producto no encontrado.');
+        if ($this->genericProductRepository->findById($genericProductId) === null) {
+            throw new \DomainException('Producto genérico no encontrado.');
         }
 
-        return $this->presentationRepository->findByProductId($productId);
+        return $this->presentationRepository->findByProductId($genericProductId);
     }
 }

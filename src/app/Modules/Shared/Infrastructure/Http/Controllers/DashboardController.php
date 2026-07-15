@@ -19,14 +19,15 @@ class DashboardController extends Controller
     {
         $data = Cache::remember('dashboard:inventory', 300, function () {
             $productStock = DB::table('stock_summaries as ss')
-                ->join('products as p', 'ss.product_id', '=', 'p.id')
+                ->join('product_variants as pv', 'ss.product_variant_id', '=', 'pv.id')
+                ->join('product_generics as p', 'pv.generic_product_id', '=', 'p.id')
                 ->selectRaw('
-                    ss.product_id,
+                    ss.product_variant_id,
                     SUM(ss.available_quantity) as available_quantity,
                     COALESCE(p.reorder_point, 0) as reorder_point,
                     COALESCE(p.min_stock, 0) as min_stock
                 ')
-                ->groupBy('ss.product_id', 'p.reorder_point', 'p.min_stock')
+                ->groupBy('ss.product_variant_id', 'p.reorder_point', 'p.min_stock')
                 ->get();
 
             $stockSummary = (object) [
@@ -63,11 +64,12 @@ class DashboardController extends Controller
                 ->count();
 
             $topConsumed = DB::table('stock_movements')
-                ->join('products', 'stock_movements.product_id', '=', 'products.id')
+                ->join('product_variants as pv', 'stock_movements.product_variant_id', '=', 'pv.id')
+                ->join('product_generics as p', 'pv.generic_product_id', '=', 'p.id')
                 ->where('stock_movements.movement_type', 'exit')
                 ->where('stock_movements.created_at', '>=', now()->subMonth())
-                ->selectRaw('products.id, products.name, products.code, SUM(ABS(stock_movements.quantity)) as total_consumed')
-                ->groupBy('products.id', 'products.name', 'products.code')
+                ->selectRaw('p.id, p.name, p.barcode, SUM(ABS(stock_movements.quantity)) as total_consumed')
+                ->groupBy('p.id', 'p.name', 'p.barcode')
                 ->orderByDesc('total_consumed')
                 ->limit(10)
                 ->get()

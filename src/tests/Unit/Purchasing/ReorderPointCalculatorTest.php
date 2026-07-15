@@ -2,9 +2,11 @@
 
 namespace Tests\Unit\Purchasing;
 
-use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductModel;
-use App\Modules\Catalog\Infrastructure\Persistence\Models\SupplierModel;
 use App\Modules\Auth\Infrastructure\Persistence\Models\UserModel;
+use App\Modules\Catalog\Infrastructure\Persistence\Models\GenericProductModel;
+use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductVariantModel;
+use App\Modules\Catalog\Infrastructure\Persistence\Models\SupplierModel;
+use App\Modules\Inventory\Infrastructure\Persistence\Models\MovementDocumentModel;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\StockMovementModel;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\StockSummaryModel;
 use App\Modules\Purchasing\Domain\Services\ReorderPointCalculator;
@@ -26,35 +28,47 @@ class ReorderPointCalculatorTest extends TestCase
 
     public function test_calculates_suggested_quantity(): void
     {
-        $product = ProductModel::where('code', 'AGU-21G')->firstOrFail();
-        $product->update(['reorder_point' => 50, 'min_stock' => 20]);
+        $generic = GenericProductModel::where('barcode', '000001')->firstOrFail();
+        $generic->update(['reorder_point' => 50, 'min_stock' => 20]);
+
+        $variant  = ProductVariantModel::where('generic_product_id', $generic->id)->firstOrFail();
         $supplier = SupplierModel::firstOrFail();
-        $product->suppliers()->syncWithoutDetaching([
+
+        $variant->suppliers()->syncWithoutDetaching([
             $supplier->id => ['lead_time_days' => 10, 'is_preferred' => true, 'unit_price' => 1000],
         ]);
 
         $warehouse = WarehouseModel::create(['name' => 'Alm Reorder', 'code' => 'ALM-RO', 'is_active' => true]);
-        $userId = UserModel::where('email', 'alexanderbarajas@gmail.com')->value('id');
+        $userId = UserModel::firstOrFail()->id;
 
         StockSummaryModel::create([
-            'product_id'         => $product->id,
+            'product_variant_id' => $variant->id,
             'warehouse_id'       => $warehouse->id,
             'total_quantity'     => 5,
             'available_quantity' => 5,
         ]);
 
+        $doc = MovementDocumentModel::create([
+            'document_number' => 'SAL-CALC-TEST-001',
+            'document_type'   => 'exit',
+            'warehouse_id'    => $warehouse->id,
+            'user_id'         => $userId,
+            'status'          => 'confirmed',
+        ]);
+
         for ($i = 0; $i < 30; $i++) {
             StockMovementModel::create([
-                'warehouse_id'  => $warehouse->id,
-                'product_id'    => $product->id,
-                'movement_type' => 'exit',
-                'quantity'      => -10,
-                'user_id'       => $userId,
+                'movement_document_id' => $doc->id,
+                'warehouse_id'         => $warehouse->id,
+                'product_variant_id'   => $variant->id,
+                'movement_type'        => 'exit',
+                'quantity'             => -10,
+                'user_id'              => $userId,
             ]);
         }
 
         $suggestions = app(ReorderPointCalculator::class)->generateSuggestions();
-        $aguja = collect($suggestions)->firstWhere('product_code', 'AGU-21G');
+        $aguja = collect($suggestions)->firstWhere('generic_product_id', $generic->id);
 
         $this->assertNotNull($aguja);
         $this->assertGreaterThan(0, $aguja['suggested_quantity']);

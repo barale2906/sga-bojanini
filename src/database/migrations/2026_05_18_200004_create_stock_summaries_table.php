@@ -11,14 +11,14 @@ return new class extends Migration
         Schema::create('stock_summaries', function (Blueprint $table) {
             $table->id();
             $table->foreignId('warehouse_id')->constrained('warehouses');
-            $table->foreignId('product_id')->constrained('products');
+            $table->foreignId('product_variant_id')->constrained('product_variants');
             $table->integer('total_quantity')->default(0);
             $table->integer('reserved_quantity')->default(0);
             $table->integer('available_quantity')->default(0);
             $table->timestamp('last_movement_at')->nullable();
             $table->timestamp('updated_at')->useCurrent();
 
-            $table->unique(['warehouse_id', 'product_id'], 'uq_stock_sum_wh_product');
+            $table->unique(['warehouse_id', 'product_variant_id'], 'uq_stock_sum_wh_variant');
         });
     }
 

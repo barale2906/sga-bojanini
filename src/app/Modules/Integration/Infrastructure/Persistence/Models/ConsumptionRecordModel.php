@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Integration\Infrastructure\Persistence\Models;
 
 use App\Modules\Auth\Infrastructure\Persistence\Models\UserModel;
-use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductModel;
+use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductVariantModel;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\BatchModel;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -18,7 +18,7 @@ class ConsumptionRecordModel extends Model
         'appointment_id',
         'patient_identifier',
         'service_type',
-        'product_id',
+        'product_variant_id',
         'batch_id',
         'quantity',
         'user_id',
@@ -35,9 +35,9 @@ class ConsumptionRecordModel extends Model
         ];
     }
 
-    public function product(): BelongsTo
+    public function variant(): BelongsTo
     {
-        return $this->belongsTo(ProductModel::class, 'product_id');
+        return $this->belongsTo(ProductVariantModel::class, 'product_variant_id');
     }
 
     public function batch(): BelongsTo

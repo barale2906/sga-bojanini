@@ -2,11 +2,11 @@
 
 namespace Tests\Unit\Catalog;
 
-use App\Modules\Catalog\Domain\Entities\Product;
+use App\Modules\Catalog\Domain\Entities\GenericProduct;
 use App\Modules\Catalog\Domain\Entities\ProductKitComponent;
 use App\Modules\Catalog\Domain\Enums\ProductType;
+use App\Modules\Catalog\Domain\Repositories\GenericProductRepositoryInterface;
 use App\Modules\Catalog\Domain\Repositories\ProductKitComponentRepositoryInterface;
-use App\Modules\Catalog\Domain\Repositories\ProductRepositoryInterface;
 use App\Modules\Catalog\Domain\Services\KitExplosionService;
 use App\Modules\Catalog\Domain\Services\KitRecipeValidator;
 use Mockery;
@@ -22,39 +22,41 @@ class KitExplosionServiceTest extends TestCase
 
     public function test_explode_calcula_cantidades_base(): void
     {
-        $kit = new Product(
+        $kit = new GenericProduct(
             id: 10,
             categoryId: 1,
             baseUnitId: 1,
             productType: ProductType::Kit,
             name: 'Kit',
-            code: 'KIT-1',
+            barcode: '000010',
         );
 
-        $component = new Product(
+        $component = new GenericProduct(
             id: 20,
             categoryId: 1,
             baseUnitId: 1,
             productType: ProductType::Simple,
             name: 'Gasa',
-            code: 'GAS-1',
+            barcode: '000020',
         );
 
-        $productRepo = Mockery::mock(ProductRepositoryInterface::class);
-        $productRepo->shouldReceive('findById')->with(10)->andReturn($kit);
-        $productRepo->shouldReceive('findById')->with(20)->andReturn($component);
+        $genericRepo = Mockery::mock(GenericProductRepositoryInterface::class);
+        $genericRepo->shouldReceive('findById')->with(10)->andReturn($kit);
+        $genericRepo->shouldReceive('findById')->with(20)->andReturn($component);
 
         $kitRepo = Mockery::mock(ProductKitComponentRepositoryInterface::class);
-        $kitRepo->shouldReceive('findByKitProductId')->with(10)->andReturn([
+        $kitRepo->shouldReceive('findByKitGenericId')->with(10)->andReturn([
             new ProductKitComponent(null, 10, 20, 5, 0),
         ]);
 
         $validator = Mockery::mock(KitRecipeValidator::class);
-        $service = new KitExplosionService($productRepo, $kitRepo, $validator);
+        $service = new KitExplosionService($genericRepo, $kitRepo, $validator);
 
         $lines = $service->explode(10, 2);
 
         $this->assertCount(1, $lines);
         $this->assertSame(10, $lines[0]['quantity_base']);
+        $this->assertSame(20, $lines[0]['component_generic_id']);
+        $this->assertSame('000020', $lines[0]['component_barcode']);
     }
 }

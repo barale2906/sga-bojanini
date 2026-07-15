@@ -12,12 +12,12 @@ class EloquentConsumptionRecordRepository implements ConsumptionRecordRepository
 {
     public function findById(int $id): ?ConsumptionRecordModel
     {
-        return ConsumptionRecordModel::with(['product', 'batch', 'user'])->find($id);
+        return ConsumptionRecordModel::with(['variant.genericProduct', 'batch', 'user'])->find($id);
     }
 
     public function findAll(array $filters = []): array
     {
-        $query = ConsumptionRecordModel::with(['product', 'batch', 'user'])
+        $query = ConsumptionRecordModel::with(['variant.genericProduct', 'batch', 'user'])
             ->orderByDesc('consumed_at');
 
         if (!empty($filters['sync_status'])) {
