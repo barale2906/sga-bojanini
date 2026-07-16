@@ -16,9 +16,11 @@ use App\Modules\Auth\Infrastructure\Http\Resources\UserResource;
 use App\Modules\Auth\Infrastructure\Persistence\Models\UserModel;
 use App\Modules\Monitoring\Domain\Repositories\UserSensorRepositoryInterface;
 use App\Modules\Monitoring\Infrastructure\Http\Resources\SensorResource;
+use App\Modules\Monitoring\Infrastructure\Persistence\Models\SensorModel;
 use App\Modules\Shared\Infrastructure\Http\Traits\ApiResponse;
 use App\Modules\Warehouse\Domain\Repositories\UserWarehouseRepositoryInterface;
 use App\Modules\Warehouse\Infrastructure\Http\Resources\WarehouseResource;
+use App\Modules\Warehouse\Infrastructure\Persistence\Models\WarehouseModel;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -115,11 +117,21 @@ class UserController extends Controller
         return $this->noContent('Usuario eliminado');
     }
 
-    public function assignRoles(int $id, AssignRolesRequest $request): JsonResponse
-    {
+    public function assignRoles(
+        int $id,
+        AssignRolesRequest $request,
+        UserWarehouseRepositoryInterface $warehouseRepository,
+        UserSensorRepositoryInterface $sensorRepository,
+    ): JsonResponse {
         $user = UserModel::findOrFail($id);
         $roleNames = Role::whereIn('id', $request->validated('role_ids'))->pluck('name')->toArray();
         $user->syncRoles($roleNames);
+
+        if (in_array('super_administrador', $roleNames, true)) {
+            $warehouseRepository->syncForUser($id, WarehouseModel::pluck('id')->all());
+            $sensorRepository->syncForUser($id, SensorModel::pluck('id')->all());
+        }
+
         $user->load('roles.permissions');
 
         return $this->success(new UserResource($user), 'Roles asignados exitosamente');

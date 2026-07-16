@@ -22,10 +22,14 @@ class BatchController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $query = BatchModel::with('variant.genericProduct');
+        $query = BatchModel::with(['variant.genericProduct', 'locations.zone.warehouse']);
 
         if ($request->filled('product_variant_id')) {
             $query->where('product_variant_id', $request->integer('product_variant_id'));
+        }
+
+        if ($request->filled('generic_product_id')) {
+            $query->whereHas('variant', fn ($q) => $q->where('generic_product_id', $request->integer('generic_product_id')));
         }
 
         if ($request->filled('status')) {
@@ -35,7 +39,7 @@ class BatchController extends Controller
         if ($request->filled('warehouse_id')) {
             $warehouseId = $request->integer('warehouse_id');
             $this->assertWarehouseAccess($request->user(), $warehouseId);
-            $query->whereHas('locations.zone', fn ($q) => $q->where('warehouse_id', $warehouseId));
+            $this->filterBatchesByWarehouse($query, [$warehouseId]);
         } else {
             $this->scopeBatchesToAllowedWarehouses($query, $request);
         }
@@ -53,7 +57,7 @@ class BatchController extends Controller
 
     public function show(int $id, Request $request): JsonResponse
     {
-        $batch = BatchModel::with(['variant.genericProduct', 'locations.zone'])->find($id);
+        $batch = BatchModel::with(['variant.genericProduct', 'locations.zone.warehouse'])->find($id);
 
         if ($batch === null) {
             return $this->error('Lote no encontrado', 404);
@@ -78,7 +82,7 @@ class BatchController extends Controller
      */
     public function byProduct(int $id, Request $request): JsonResponse
     {
-        $query = BatchModel::with(['variant.genericProduct', 'locations.zone'])
+        $query = BatchModel::with(['variant.genericProduct', 'locations.zone.warehouse'])
             ->where('product_variant_id', $id);
 
         if ($request->boolean('available_for_exit')) {
@@ -88,7 +92,7 @@ class BatchController extends Controller
         if ($request->filled('warehouse_id')) {
             $warehouseId = $request->integer('warehouse_id');
             $this->assertWarehouseAccess($request->user(), $warehouseId);
-            $query->whereHas('locations.zone', fn ($q) => $q->where('warehouse_id', $warehouseId));
+            $this->filterBatchesByWarehouse($query, [$warehouseId]);
         } else {
             $this->scopeBatchesToAllowedWarehouses($query, $request);
         }
@@ -104,7 +108,7 @@ class BatchController extends Controller
      */
     public function byGenericProduct(int $genericId, Request $request): JsonResponse
     {
-        $query = BatchModel::with(['variant.genericProduct', 'locations.zone'])
+        $query = BatchModel::with(['variant.genericProduct', 'locations.zone.warehouse'])
             ->whereHas('variant', fn ($q) => $q->where('generic_product_id', $genericId));
 
         if ($request->boolean('available_for_exit')) {
@@ -114,7 +118,7 @@ class BatchController extends Controller
         if ($request->filled('warehouse_id')) {
             $warehouseId = $request->integer('warehouse_id');
             $this->assertWarehouseAccess($request->user(), $warehouseId);
-            $query->whereHas('locations.zone', fn ($q) => $q->where('warehouse_id', $warehouseId));
+            $this->filterBatchesByWarehouse($query, [$warehouseId]);
         } else {
             $this->scopeBatchesToAllowedWarehouses($query, $request);
         }
@@ -153,13 +157,22 @@ class BatchController extends Controller
         return $this->success(BatchResource::collection($batches), 'Lotes vencidos');
     }
 
+    /** Filtra lotes que tienen cantidad > 0 en ubicaciones de los almacenes indicados. */
+    private function filterBatchesByWarehouse(Builder $query, array $warehouseIds): void
+    {
+        $query->whereHas('locations', function ($q) use ($warehouseIds) {
+            $q->where('batch_location.quantity', '>', 0)
+              ->whereHas('zone', fn ($zq) => $zq->whereIn('warehouse_id', $warehouseIds));
+        });
+    }
+
     /** Restringe el listado a lotes con stock en alguno de los almacenes permitidos. */
     private function scopeBatchesToAllowedWarehouses(Builder $query, Request $request): void
     {
         $allowedIds = $this->allowedWarehouseIds($request->user());
 
         if ($allowedIds !== null) {
-            $query->whereHas('locations.zone', fn ($q) => $q->whereIn('warehouse_id', $allowedIds));
+            $this->filterBatchesByWarehouse($query, $allowedIds);
         }
     }
 
