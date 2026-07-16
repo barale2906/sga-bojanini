@@ -23,6 +23,13 @@ class EloquentGenericProductRepository implements GenericProductRepositoryInterf
     {
         $model = GenericProductModel::where('barcode', $barcode)->first();
 
+        if ($model === null) {
+            $model = GenericProductModel::whereHas(
+                'variants',
+                fn ($q) => $q->where('brand_sku', $barcode)
+            )->first();
+        }
+
         return $model ? $this->toDomain($model) : null;
     }
 
@@ -45,7 +52,8 @@ class EloquentGenericProductRepository implements GenericProductRepositoryInterf
         if (isset($filters['search'])) {
             $query->where(function ($q) use ($filters) {
                 $q->where('name', 'like', "%{$filters['search']}%")
-                    ->orWhere('barcode', 'like', "%{$filters['search']}%");
+                    ->orWhere('barcode', 'like', "%{$filters['search']}%")
+                    ->orWhereHas('variants', fn ($v) => $v->where('brand_sku', 'like', "%{$filters['search']}%"));
             });
         }
 
