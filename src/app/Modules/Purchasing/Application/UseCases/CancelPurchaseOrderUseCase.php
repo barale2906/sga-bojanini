@@ -23,6 +23,6 @@ class CancelPurchaseOrderUseCase
 
         $order->update(['status' => PurchaseOrderStatus::Cancelled->value]);
 
-        return $order->fresh(['items.variant', 'items.presentation', 'supplier', 'warehouse']);
+        return $order->fresh(['items.variant.genericProduct', 'items.presentation', 'supplier', 'warehouse']);
     }
 }

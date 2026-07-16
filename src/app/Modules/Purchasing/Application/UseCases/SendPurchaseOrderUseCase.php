@@ -22,6 +22,6 @@ class SendPurchaseOrderUseCase
             'sent_at' => now(),
         ]);
 
-        return $order->fresh(['items.variant', 'items.presentation', 'supplier', 'warehouse']);
+        return $order->fresh(['items.variant.genericProduct', 'items.presentation', 'supplier', 'warehouse']);
     }
 }

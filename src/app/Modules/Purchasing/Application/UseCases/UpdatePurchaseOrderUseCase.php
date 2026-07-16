@@ -41,7 +41,7 @@ class UpdatePurchaseOrderUseCase
 
             $this->syncOrderItems($order, $built['items']);
 
-            return $order->fresh(['items.variant', 'items.presentation', 'supplier', 'warehouse']);
+            return $order->fresh(['items.variant.genericProduct', 'items.presentation', 'supplier', 'warehouse']);
         });
     }
 }

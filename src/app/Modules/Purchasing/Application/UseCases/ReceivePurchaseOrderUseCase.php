@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Modules\Purchasing\Application\UseCases;
 
 use App\Modules\Catalog\Domain\Services\PresentationConverter;
-use App\Modules\Inventory\Application\UseCases\RegisterEntryUseCase;
 use App\Modules\Purchasing\Domain\Enums\PurchaseOrderStatus;
 use App\Modules\Purchasing\Infrastructure\Persistence\Models\PurchaseOrderModel;
 use Illuminate\Support\Facades\DB;
@@ -13,13 +12,12 @@ use Illuminate\Support\Facades\DB;
 class ReceivePurchaseOrderUseCase
 {
     public function __construct(
-        private readonly RegisterEntryUseCase $registerEntry,
         private readonly PresentationConverter $presentationConverter,
     ) {}
 
     public function execute(int $orderId, array $items, int $userId): PurchaseOrderModel
     {
-        return DB::transaction(function () use ($orderId, $items, $userId) {
+        return DB::transaction(function () use ($orderId, $items) {
             $order = PurchaseOrderModel::with('items')->findOrFail($orderId);
 
             if (! in_array($order->status, [
@@ -54,19 +52,8 @@ class ReceivePurchaseOrderUseCase
                     $qtyPresentation,
                 );
 
-                $this->registerEntry->execute([
-                    'warehouse_id' => $order->warehouse_id,
-                    'user_id'      => $userId,
-                    'items'        => [[
-                        'product_variant_id' => $orderItem->product_variant_id,
-                        'location_id'        => $receivedItem['location_id'],
-                        'lot_number'         => $receivedItem['lot_number'],
-                        'expiration_date'    => $receivedItem['expiration_date'],
-                        'quantity_base'      => $qtyBase,
-                        'notes'              => "Recepción de OC {$order->code}",
-                    ]],
-                ]);
-
+                // La entrada al inventario ya fue registrada por /inventory/entry.
+                // Aquí solo actualizamos el seguimiento de recepción de la OC.
                 $orderItem->quantity_received += $qtyPresentation;
                 $orderItem->quantity_received_base += $qtyBase;
                 $orderItem->save();
@@ -88,7 +75,7 @@ class ReceivePurchaseOrderUseCase
 
             $order->save();
 
-            return $order->fresh(['items.variant', 'items.presentation', 'supplier', 'warehouse']);
+            return $order->fresh(['items.variant.genericProduct', 'items.presentation', 'supplier', 'warehouse']);
         });
     }
 }
