@@ -55,9 +55,12 @@ class BatchResource extends JsonResource
                 'id'        => $batch->variant->id,
                 'lab_brand' => $batch->variant->lab_brand,
                 'generic'   => $batch->variant->relationLoaded('genericProduct') ? [
-                    'id'      => $batch->variant->genericProduct->id,
-                    'barcode' => $batch->variant->genericProduct->barcode,
-                    'name'    => $batch->variant->genericProduct->name,
+                    'id'       => $batch->variant->genericProduct->id,
+                    'barcode'  => $batch->variant->genericProduct->barcode,
+                    'name'     => $batch->variant->genericProduct->name,
+                    'category' => $batch->variant->genericProduct->relationLoaded('category') && $batch->variant->genericProduct->category
+                        ? ['id' => $batch->variant->genericProduct->category->id, 'name' => $batch->variant->genericProduct->category->name]
+                        : null,
                 ] : null,
             ] : null,
             'locations'           => $batch->relationLoaded('locations')

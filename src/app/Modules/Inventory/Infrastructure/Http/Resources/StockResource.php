@@ -18,9 +18,12 @@ class StockResource extends JsonResource
                 'id'        => $summary->variant->id,
                 'lab_brand' => $summary->variant->lab_brand,
                 'generic'   => $summary->variant->relationLoaded('genericProduct') ? [
-                    'id'      => $summary->variant->genericProduct->id,
-                    'barcode' => $summary->variant->genericProduct->barcode,
-                    'name'    => $summary->variant->genericProduct->name,
+                    'id'       => $summary->variant->genericProduct->id,
+                    'barcode'  => $summary->variant->genericProduct->barcode,
+                    'name'     => $summary->variant->genericProduct->name,
+                    'category' => $summary->variant->genericProduct->relationLoaded('category') && $summary->variant->genericProduct->category
+                        ? ['id' => $summary->variant->genericProduct->category->id, 'name' => $summary->variant->genericProduct->category->name]
+                        : null,
                 ] : null,
             ] : [
                 'product_variant_id' => $summary->product_variant_id,

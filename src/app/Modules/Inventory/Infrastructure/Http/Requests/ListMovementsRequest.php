@@ -16,15 +16,17 @@ class ListMovementsRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'date_from'        => ['nullable', 'date_format:Y-m-d'],
-            'date_to'          => ['nullable', 'date_format:Y-m-d', 'after_or_equal:date_from'],
-            'warehouse_id'     => ['nullable', 'integer'],
-            'product_variant_id' => ['nullable', 'integer'],
-            'movement_type'    => ['nullable', 'string'],
-            'cost_center_id'   => ['nullable', 'integer'],
-            'cost_center_type' => ['nullable', 'string', 'in:internal,external'],
-            'warehouse_to_id'  => ['nullable', 'integer'],
-            'per_page'         => ['nullable', 'integer', 'min:1'],
+            'date_from'           => ['nullable', 'date_format:Y-m-d'],
+            'date_to'             => ['nullable', 'date_format:Y-m-d', 'after_or_equal:date_from'],
+            'warehouse_id'        => ['nullable', 'integer'],
+            'generic_product_id'  => ['nullable', 'integer'],
+            'product_variant_id'  => ['nullable', 'integer'],
+            'category_id'         => ['nullable', 'integer'],
+            'movement_type'       => ['nullable', 'string'],
+            'cost_center_id'      => ['nullable', 'integer'],
+            'cost_center_type'    => ['nullable', 'string', 'in:internal,external'],
+            'warehouse_to_id'     => ['nullable', 'integer'],
+            'per_page'            => ['nullable', 'integer', 'min:1'],
         ];
     }
 }

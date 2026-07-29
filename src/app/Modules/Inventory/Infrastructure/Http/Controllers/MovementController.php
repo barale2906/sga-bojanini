@@ -188,7 +188,7 @@ class MovementController extends Controller
     /** Lista movimientos individuales con filtros (para reportes detallados). */
     public function index(ListMovementsRequest $request): JsonResponse
     {
-        $query = StockMovementModel::with(['variant.genericProduct', 'batch', 'user', 'document.costCenter', 'document.medicalService']);
+        $query = StockMovementModel::with(['variant.genericProduct.category', 'batch', 'user', 'document.costCenter', 'document.medicalService']);
 
         if ($request->filled('date_from')) {
             $query->whereDate('created_at', '>=', Carbon::parse($request->date_from)->startOfDay());
@@ -207,6 +207,10 @@ class MovementController extends Controller
             $query->whereHas('variant', fn ($q) => $q->where('generic_product_id', $request->integer('generic_product_id')));
         } elseif ($request->filled('product_variant_id')) {
             $query->where('product_variant_id', $request->integer('product_variant_id'));
+        }
+
+        if ($request->filled('category_id')) {
+            $query->whereHas('variant.genericProduct', fn ($q) => $q->where('category_id', $request->integer('category_id')));
         }
 
         if ($request->filled('movement_type')) {

@@ -65,6 +65,16 @@ class MovementResource extends JsonResource
                 && $movement->variant->relationLoaded('genericProduct') && $movement->variant->genericProduct
                 ? $movement->variant->genericProduct->name
                 : null,
+            'category_id'         => $movement->relationLoaded('variant') && $movement->variant
+                && $movement->variant->relationLoaded('genericProduct') && $movement->variant->genericProduct
+                && $movement->variant->genericProduct->relationLoaded('category') && $movement->variant->genericProduct->category
+                ? $movement->variant->genericProduct->category->id
+                : null,
+            'category_name'       => $movement->relationLoaded('variant') && $movement->variant
+                && $movement->variant->relationLoaded('genericProduct') && $movement->variant->genericProduct
+                && $movement->variant->genericProduct->relationLoaded('category') && $movement->variant->genericProduct->category
+                ? $movement->variant->genericProduct->category->name
+                : null,
             'batch_lot_number'      => $movement->relationLoaded('batch') && $movement->batch
                 ? $movement->batch->lot_number
                 : null,

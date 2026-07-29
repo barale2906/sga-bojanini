@@ -22,7 +22,7 @@ class BatchController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $query = BatchModel::with(['variant.genericProduct', 'locations.zone.warehouse']);
+        $query = BatchModel::with(['variant.genericProduct.category', 'locations.zone.warehouse']);
 
         if ($request->filled('product_variant_id')) {
             $query->where('product_variant_id', $request->integer('product_variant_id'));
@@ -34,6 +34,10 @@ class BatchController extends Controller
 
         if ($request->filled('status')) {
             $query->where('status', $request->string('status'));
+        }
+
+        if ($request->filled('category_id')) {
+            $query->whereHas('variant.genericProduct', fn ($q) => $q->where('category_id', $request->integer('category_id')));
         }
 
         if ($request->filled('warehouse_id')) {

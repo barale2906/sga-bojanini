@@ -23,7 +23,7 @@ class StockController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $query = StockSummaryModel::with(['variant.genericProduct', 'warehouse'])
+        $query = StockSummaryModel::with(['variant.genericProduct.category', 'warehouse'])
             ->where('available_quantity', '>', 0);
 
         if ($request->filled('warehouse_id')) {
@@ -39,6 +39,10 @@ class StockController extends Controller
                   ->select('stock_summaries.*');
         } elseif ($request->filled('product_variant_id')) {
             $query->where('product_variant_id', $request->integer('product_variant_id'));
+        }
+
+        if ($request->filled('category_id')) {
+            $query->whereHas('variant.genericProduct', fn ($q) => $q->where('category_id', $request->integer('category_id')));
         }
 
         $perPage = min(
