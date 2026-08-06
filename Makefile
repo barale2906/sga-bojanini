@@ -1,4 +1,4 @@
-.PHONY: up down start stop restart ps logs app db artisan composer migrate migrate-fresh seed migrate-seed migrate-fresh-seed key env init show-urls permissions
+.PHONY: up down start stop restart ps logs app db artisan composer migrate migrate-fresh seed migrate-seed migrate-fresh-seed key env init show-urls permissions reset-inventory
 
 up:
 	@echo "=> Levantando contenedores (build incluido)..."
@@ -86,6 +86,9 @@ env:
 	else \
 		echo "=> src/.env ya existe"; \
 	fi
+
+reset-inventory:
+	docker compose exec app php artisan sga:reset-inventory --force
 
 permissions:
 	@echo "=> Ajustando permisos de storage y bootstrap/cache..."
