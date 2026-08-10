@@ -21,7 +21,7 @@ return new class extends Migration
                 'entry', 'exit', 'transfer', 'adjustment',
                 'return', 'expiration_write_off', 'loss',
             ]);
-            $table->integer('quantity');
+            $table->decimal('quantity', 12, 3);
             $table->text('reason')->nullable();
             $table->string('reference_type', 100)->nullable();
             $table->unsignedBigInteger('reference_id')->nullable();

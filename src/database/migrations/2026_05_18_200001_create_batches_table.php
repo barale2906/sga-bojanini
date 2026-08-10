@@ -14,8 +14,8 @@ return new class extends Migration
             $table->string('lot_number', 100);
             $table->date('expiration_date');
             $table->date('manufacturing_date')->nullable();
-            $table->unsignedInteger('quantity_received');
-            $table->unsignedInteger('quantity_available');
+            $table->decimal('quantity_received', 12, 3);
+            $table->decimal('quantity_available', 12, 3);
             $table->enum('status', ['active', 'expired', 'depleted'])->default('active');
             $table->text('notes')->nullable();
             $table->timestamp('received_at');

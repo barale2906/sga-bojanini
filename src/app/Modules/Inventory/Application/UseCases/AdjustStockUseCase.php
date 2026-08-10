@@ -35,9 +35,9 @@ class AdjustStockUseCase
     public function createPending(array $data): StockMovementModel
     {
         return DB::transaction(function () use ($data) {
-            $quantity = (int) $data['quantity'];
+            $quantity = (float) $data['quantity'];
 
-            if ($quantity === 0) {
+            if ($quantity == 0) {
                 throw new \DomainException('La cantidad de ajuste no puede ser cero.');
             }
 

@@ -12,7 +12,7 @@ class PresentationConverter
         private readonly ProductPresentationRepositoryInterface $presentationRepository,
     ) {}
 
-    public function toBase(int $presentationId, int $quantity): int
+    public function toBase(int $presentationId, float $quantity): float
     {
         $presentation = $this->presentationRepository->findById($presentationId);
 
@@ -20,7 +20,7 @@ class PresentationConverter
             throw new \DomainException("Presentación {$presentationId} no encontrada.");
         }
 
-        if ($quantity < 1) {
+        if ($quantity <= 0) {
             throw new \DomainException('La cantidad debe ser mayor a cero.');
         }
 

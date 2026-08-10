@@ -52,6 +52,7 @@ class StockMovementModel extends Model
         return [
             'status'     => MovementStatus::class,
             'created_at' => 'datetime',
+            'quantity'   => 'float',
         ];
     }
 

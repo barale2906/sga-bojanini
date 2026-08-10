@@ -14,7 +14,7 @@ class StockMovement
         private ?int $locationFromId,
         private ?int $locationToId,
         private string $movementType,
-        private int $quantity,
+        private float $quantity,
         private ?string $reason = null,
         private ?string $referenceType = null,
         private ?int $referenceId = null,
@@ -61,7 +61,7 @@ class StockMovement
         return $this->movementType;
     }
 
-    public function getQuantity(): int
+    public function getQuantity(): float
     {
         return $this->quantity;
     }

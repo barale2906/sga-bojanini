@@ -38,6 +38,8 @@ class BatchModel extends Model
             'expiration_date'    => 'date',
             'manufacturing_date' => 'date',
             'received_at'        => 'datetime',
+            'quantity_received'  => 'float',
+            'quantity_available' => 'float',
         ];
     }
 

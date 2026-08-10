@@ -15,8 +15,8 @@ class Batch
         private string $lotNumber,
         private string $expirationDate,
         private ?string $manufacturingDate,
-        private int $quantityReceived,
-        private int $quantityAvailable,
+        private float $quantityReceived,
+        private float $quantityAvailable,
         private string $status = 'active',
         private ?string $notes = null,
         private ?string $receivedAt = null,
@@ -47,12 +47,12 @@ class Batch
         return $this->manufacturingDate;
     }
 
-    public function getQuantityReceived(): int
+    public function getQuantityReceived(): float
     {
         return $this->quantityReceived;
     }
 
-    public function getQuantityAvailable(): int
+    public function getQuantityAvailable(): float
     {
         return $this->quantityAvailable;
     }
@@ -90,7 +90,7 @@ class Batch
         return (int) now()->diffInDays(Carbon::parse($this->expirationDate), false);
     }
 
-    public function deductQuantity(int $qty): void
+    public function deductQuantity(float $qty): void
     {
         if ($qty > $this->quantityAvailable) {
             throw new InsufficientStockException(
@@ -100,7 +100,8 @@ class Batch
 
         $this->quantityAvailable -= $qty;
 
-        if ($this->quantityAvailable === 0) {
+        if ($this->quantityAvailable <= 0) {
+            $this->quantityAvailable = 0;
             $this->status = 'depleted';
         }
     }

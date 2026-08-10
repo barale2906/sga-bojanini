@@ -25,7 +25,7 @@ class StoreExitRequest extends FormRequest
 
             'items'                   => ['required', 'array', 'min:1'],
             'items.*.generic_product_id' => ['required', 'integer', 'exists:product_generics,id'],
-            'items.*.quantity'           => ['required', 'integer', 'min:1'],
+            'items.*.quantity'           => ['required', 'numeric', 'min:0.001'],
             'items.*.location_id'        => ['nullable', 'integer', 'exists:locations,id'],
         ];
     }

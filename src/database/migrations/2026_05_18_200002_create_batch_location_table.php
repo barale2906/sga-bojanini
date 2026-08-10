@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('batch_id')->constrained('batches')->cascadeOnDelete();
             $table->foreignId('location_id')->constrained('locations')->cascadeOnDelete();
-            $table->unsignedInteger('quantity');
+            $table->decimal('quantity', 12, 3);
             $table->timestamps();
 
             $table->unique(['batch_id', 'location_id'], 'uq_batch_loc_batch_loc');

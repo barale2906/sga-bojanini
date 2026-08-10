@@ -26,7 +26,7 @@ class StoreTransferRequest extends FormRequest
             'items.*.product_variant_id'   => ['required', 'integer', 'exists:product_variants,id'],
             'items.*.location_from_id'     => ['required', 'integer', 'exists:locations,id'],
             'items.*.location_to_id'       => ['required', 'integer', 'exists:locations,id'],
-            'items.*.quantity'             => ['required', 'integer', 'min:1'],
+            'items.*.quantity'             => ['required', 'numeric', 'min:0.001'],
         ];
     }
 

@@ -58,7 +58,7 @@ class RegisterReturnUseCase
                 'batch_id'             => $selectedBatches[0]['batch_id'],
                 'location_from_id'     => $data['location_id'] ?? null,
                 'movement_type'        => 'return',
-                'quantity'             => -(int) $data['quantity'],
+                'quantity'             => -(float) $data['quantity'],
                 'reason'               => $data['reason'] ?? 'Devolución a proveedor',
                 'user_id'              => $data['user_id'],
                 'status'               => MovementStatus::PENDING_SIGNATURE->value,

@@ -19,7 +19,7 @@ class StoreReturnRequest extends FormRequest
             'product_variant_id' => ['required', 'integer', 'exists:product_variants,id'],
             'warehouse_id' => ['required', 'integer', 'exists:warehouses,id'],
             'location_id'  => ['nullable', 'integer', 'exists:locations,id'],
-            'quantity'     => ['required', 'integer', 'min:1'],
+            'quantity'     => ['required', 'numeric', 'min:0.001'],
             'reason'       => ['nullable', 'string'],
         ];
     }

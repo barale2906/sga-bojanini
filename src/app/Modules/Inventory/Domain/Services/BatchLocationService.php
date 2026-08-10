@@ -30,7 +30,7 @@ class BatchLocationService
      * Si `$preferredLocationId` es `null`, el descuento se reparte
      * directamente entre todas las ubicaciones del lote.
      */
-    public function decrement(int $batchId, int $quantity, ?int $preferredLocationId = null): void
+    public function decrement(int $batchId, float $quantity, ?int $preferredLocationId = null): void
     {
         $remaining = $quantity;
 
@@ -58,7 +58,7 @@ class BatchLocationService
         }
     }
 
-    private function decrementFromLocation(int $batchId, int $locationId, int $remaining): int
+    private function decrementFromLocation(int $batchId, int $locationId, float $remaining): float
     {
         $pivot = DB::table('batch_location')
             ->where('batch_id', $batchId)

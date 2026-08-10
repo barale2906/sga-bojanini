@@ -132,12 +132,12 @@ class RegisterEntryUseCase
         ));
     }
 
-    private function resolveQuantity(array $item): int
+    private function resolveQuantity(array $item): float
     {
         if (isset($item['quantity_base'])) {
-            $quantity = (int) $item['quantity_base'];
+            $quantity = (float) $item['quantity_base'];
 
-            if ($quantity < 1) {
+            if ($quantity <= 0) {
                 throw new \DomainException('La cantidad debe ser mayor a cero.');
             }
 
@@ -147,7 +147,7 @@ class RegisterEntryUseCase
         if (isset($item['product_presentation_id'], $item['quantity_in_presentation'])) {
             return $this->presentationConverter->toBase(
                 (int) $item['product_presentation_id'],
-                (int) $item['quantity_in_presentation'],
+                (float) $item['quantity_in_presentation'],
             );
         }
 

@@ -12,9 +12,9 @@ return new class extends Migration
             $table->id();
             $table->foreignId('warehouse_id')->constrained('warehouses');
             $table->foreignId('product_variant_id')->constrained('product_variants');
-            $table->integer('total_quantity')->default(0);
-            $table->integer('reserved_quantity')->default(0);
-            $table->integer('available_quantity')->default(0);
+            $table->decimal('total_quantity', 12, 3)->default(0);
+            $table->decimal('reserved_quantity', 12, 3)->default(0);
+            $table->decimal('available_quantity', 12, 3)->default(0);
             $table->timestamp('last_movement_at')->nullable();
             $table->timestamp('updated_at')->useCurrent();
 

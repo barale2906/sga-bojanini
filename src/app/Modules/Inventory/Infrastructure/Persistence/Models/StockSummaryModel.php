@@ -27,8 +27,11 @@ class StockSummaryModel extends Model
     protected function casts(): array
     {
         return [
-            'last_movement_at' => 'datetime',
-            'updated_at'       => 'datetime',
+            'last_movement_at'   => 'datetime',
+            'updated_at'         => 'datetime',
+            'total_quantity'     => 'float',
+            'reserved_quantity'  => 'float',
+            'available_quantity' => 'float',
         ];
     }
 

@@ -15,7 +15,7 @@ return new class extends Migration
             $table->string('service_type', 255)->nullable();
             $table->foreignId('product_variant_id')->constrained('product_variants');
             $table->foreignId('batch_id')->nullable()->constrained('batches');
-            $table->unsignedInteger('quantity');
+            $table->decimal('quantity', 12, 3);
             $table->foreignId('user_id')->constrained('users');
             $table->timestamp('consumed_at');
             $table->timestamp('synced_to_hc_at')->nullable();

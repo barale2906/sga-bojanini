@@ -28,9 +28,9 @@ class StoreEntryRequest extends FormRequest
             'items.*.lot_number'                  => ['required', 'string', 'max:100'],
             'items.*.expiration_date'             => ['required', 'date'],
             'items.*.manufacturing_date'          => ['nullable', 'date'],
-            'items.*.quantity_base'               => ['nullable', 'integer', 'min:1'],
+            'items.*.quantity_base'               => ['nullable', 'numeric', 'min:0.001'],
             'items.*.product_presentation_id'     => ['nullable', 'integer', 'exists:product_presentations,id'],
-            'items.*.quantity_in_presentation'    => ['nullable', 'integer', 'min:1'],
+            'items.*.quantity_in_presentation'    => ['nullable', 'numeric', 'min:0.001'],
             'items.*.notes'                       => ['nullable', 'string'],
         ];
     }

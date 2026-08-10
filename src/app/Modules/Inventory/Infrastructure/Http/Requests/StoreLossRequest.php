@@ -22,7 +22,7 @@ class StoreLossRequest extends FormRequest
             'warehouse_id' => ['required', 'integer', 'exists:warehouses,id'],
             'location_id'  => ['required', 'integer', 'exists:locations,id'],
             'batch_id'     => ['required', 'integer', 'exists:batches,id'],
-            'quantity'     => ['required', 'integer', 'min:1'],
+            'quantity'     => ['required', 'numeric', 'min:0.001'],
             'reason'       => ['required', 'string'],
         ];
     }

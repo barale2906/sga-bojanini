@@ -22,7 +22,7 @@ class FEFOService
      * @throws ExpiredStockException
      * @throws InsufficientStockException
      */
-    public function selectBatchesForExit(int $productVariantId, int $warehouseId, int $quantity, bool $includeExpired = false): array
+    public function selectBatchesForExit(int $productVariantId, int $warehouseId, float $quantity, bool $includeExpired = false): array
     {
         $batches = $this->baseQuery($productVariantId, $warehouseId)
             ->when(
@@ -63,7 +63,7 @@ class FEFOService
      * @throws ExpiredStockException
      * @throws InsufficientStockException
      */
-    public function selectBatchesForGenericExit(int $genericProductId, int $warehouseId, int $quantity, bool $includeExpired = false): array
+    public function selectBatchesForGenericExit(int $genericProductId, int $warehouseId, float $quantity, bool $includeExpired = false): array
     {
         $variantIds = DB::table('product_variants')
             ->where('generic_product_id', $genericProductId)
@@ -124,9 +124,9 @@ class FEFOService
     /**
      * Suma la cantidad disponible de lotes vencidos de una variante en un almacén.
      */
-    public function getExpiredQuantity(int $productVariantId, int $warehouseId): int
+    public function getExpiredQuantity(int $productVariantId, int $warehouseId): float
     {
-        return (int) $this->baseQuery($productVariantId, $warehouseId)
+        return (float) $this->baseQuery($productVariantId, $warehouseId)
             ->where(function ($query) {
                 $query->where('status', 'expired')
                     ->orWhere(function ($q) {
@@ -156,7 +156,7 @@ class FEFOService
     /**
      * @return array<int, array{batch_id: int, product_variant_id: int, lot_number: string, quantity: int, expiration_date: string}>
      */
-    private function pickFromBatches(\Illuminate\Database\Eloquent\Collection $batches, int $quantity): array
+    private function pickFromBatches(\Illuminate\Database\Eloquent\Collection $batches, float $quantity): array
     {
         $selected  = [];
         $remaining = $quantity;

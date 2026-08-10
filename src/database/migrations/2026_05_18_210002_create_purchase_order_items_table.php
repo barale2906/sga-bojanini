@@ -13,10 +13,10 @@ return new class extends Migration
             $table->foreignId('purchase_order_id')->constrained('purchase_orders')->cascadeOnDelete();
             $table->foreignId('product_variant_id')->constrained('product_variants');
             $table->foreignId('product_presentation_id')->constrained('product_presentations');
-            $table->unsignedInteger('quantity_requested');
-            $table->unsignedInteger('quantity_requested_base');
-            $table->unsignedInteger('quantity_received')->default(0);
-            $table->unsignedInteger('quantity_received_base')->default(0);
+            $table->decimal('quantity_requested', 12, 3);
+            $table->decimal('quantity_requested_base', 12, 3);
+            $table->decimal('quantity_received', 12, 3)->default(0);
+            $table->decimal('quantity_received_base', 12, 3)->default(0);
             $table->decimal('unit_price', 12, 2);
             $table->decimal('tax_rate', 5, 2)->default(0);
             $table->decimal('tax_amount', 14, 2)->default(0);

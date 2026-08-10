@@ -40,7 +40,7 @@ class RegisterLossUseCase
         return DB::transaction(function () use ($data) {
             $batch = BatchModel::findOrFail($data['batch_id']);
 
-            $pivotQuantity = (int) (DB::table('batch_location')
+            $pivotQuantity = (float) (DB::table('batch_location')
                 ->where('batch_id', $batch->id)
                 ->where('location_id', $data['location_id'])
                 ->value('quantity') ?? 0);
@@ -67,7 +67,7 @@ class RegisterLossUseCase
                 'batch_id'             => $batch->id,
                 'location_from_id'     => $data['location_id'],
                 'movement_type'        => 'loss',
-                'quantity'             => -(int) $data['quantity'],
+                'quantity'             => -(float) $data['quantity'],
                 'reason'               => $data['reason'],
                 'user_id'              => $data['user_id'],
                 'status'               => MovementStatus::PENDING_SIGNATURE->value,
@@ -81,7 +81,7 @@ class RegisterLossUseCase
             $quantity = abs($movement->quantity);
             $batch    = BatchModel::findOrFail($movement->batch_id);
 
-            $pivotQuantity = (int) (DB::table('batch_location')
+            $pivotQuantity = (float) (DB::table('batch_location')
                 ->where('batch_id', $batch->id)
                 ->where('location_id', $movement->location_from_id)
                 ->value('quantity') ?? 0);
