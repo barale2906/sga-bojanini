@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Purchasing\Infrastructure\Http\Controllers\ApprovalFlowController;
+use App\Modules\Purchasing\Infrastructure\Http\Controllers\ConsolidatedPurchaseOrderController;
 use App\Modules\Purchasing\Infrastructure\Http\Controllers\PurchaseOrderController;
 use Illuminate\Support\Facades\Route;
 
@@ -10,6 +11,12 @@ Route::middleware(['auth:sanctum', 'user.is_active'])->prefix('v1')->group(funct
     Route::post('purchase-orders', [PurchaseOrderController::class, 'store'])
         ->middleware('permission:ordenes_compra.crear');
     Route::get('purchase-orders/suggestions', [PurchaseOrderController::class, 'suggestions'])
+        ->middleware('permission:ordenes_compra.ver');
+    Route::get('purchase-orders/consolidable-suppliers', [ConsolidatedPurchaseOrderController::class, 'consolidableSuppliers'])
+        ->middleware('permission:ordenes_compra.ver');
+    Route::get('purchase-orders/consolidable', [ConsolidatedPurchaseOrderController::class, 'consolidable'])
+        ->middleware('permission:ordenes_compra.ver');
+    Route::post('purchase-orders/consolidation-preview', [ConsolidatedPurchaseOrderController::class, 'preview'])
         ->middleware('permission:ordenes_compra.ver');
     Route::get('purchase-orders/{id}', [PurchaseOrderController::class, 'show'])
         ->middleware('permission:ordenes_compra.ver');
@@ -29,6 +36,13 @@ Route::middleware(['auth:sanctum', 'user.is_active'])->prefix('v1')->group(funct
         ->middleware('permission:ordenes_compra.recibir');
     Route::post('purchase-orders/{id}/cancel', [PurchaseOrderController::class, 'cancel'])
         ->middleware('permission:ordenes_compra.crear');
+
+    Route::get('consolidated-orders', [ConsolidatedPurchaseOrderController::class, 'index'])
+        ->middleware('permission:ordenes_compra.ver');
+    Route::post('consolidated-orders', [ConsolidatedPurchaseOrderController::class, 'store'])
+        ->middleware('permission:ordenes_compra.consolidar');
+    Route::get('consolidated-orders/{id}', [ConsolidatedPurchaseOrderController::class, 'show'])
+        ->middleware('permission:ordenes_compra.ver');
 
     Route::get('approval-flows', [ApprovalFlowController::class, 'index'])
         ->middleware('permission:ordenes_compra.ver');

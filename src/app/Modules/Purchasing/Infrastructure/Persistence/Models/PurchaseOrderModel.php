@@ -31,6 +31,7 @@ class PurchaseOrderModel extends Model
         'created_by',
         'sent_at',
         'received_at',
+        'consolidated_order_id',
     ];
 
     protected function casts(): array
@@ -63,5 +64,10 @@ class PurchaseOrderModel extends Model
     public function items(): HasMany
     {
         return $this->hasMany(PurchaseOrderItemModel::class, 'purchase_order_id');
+    }
+
+    public function consolidatedOrder(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(ConsolidatedPurchaseOrderModel::class, 'consolidated_order_id');
     }
 }

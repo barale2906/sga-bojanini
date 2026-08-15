@@ -53,7 +53,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'movimientos.confirmar', 'movimientos.cancelar',
             // Órdenes de compra
             'ordenes_compra.ver', 'ordenes_compra.crear', 'ordenes_compra.aprobar',
-            'ordenes_compra.enviar', 'ordenes_compra.recibir',
+            'ordenes_compra.enviar', 'ordenes_compra.recibir', 'ordenes_compra.consolidar',
             // Sensores
             'sensores.ver', 'sensores.crear', 'sensores.editar', 'sensores.eliminar', 'sensores.asignar',
             // Lecturas
@@ -118,7 +118,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'movimientos.ajuste', 'movimientos.devolucion', 'movimientos.baja', 'movimientos.importar',
             'movimientos.confirmar', 'movimientos.cancelar',
             'ordenes_compra.ver', 'ordenes_compra.crear', 'ordenes_compra.aprobar',
-            'ordenes_compra.enviar', 'ordenes_compra.recibir',
+            'ordenes_compra.enviar', 'ordenes_compra.recibir', 'ordenes_compra.consolidar',
             'sensores.ver', 'sensores.crear', 'sensores.editar', 'sensores.eliminar', 'sensores.asignar',
             'lecturas.ver', 'lecturas.crear',
             'reglas_alerta.ver', 'reglas_alerta.crear', 'reglas_alerta.editar', 'reglas_alerta.eliminar',
@@ -167,7 +167,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'generic-products.ver', 'product-variants.ver',
             'proveedores.ver', 'proveedores.crear', 'proveedores.editar',
             'stock.ver',
-            'ordenes_compra.ver', 'ordenes_compra.crear', 'ordenes_compra.enviar',
+            'ordenes_compra.ver', 'ordenes_compra.crear', 'ordenes_compra.enviar', 'ordenes_compra.consolidar',
             'tablero.ver',
             'notificaciones.ver',
             'reportes.ver',
@@ -200,7 +200,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'movimientos.entrada', 'movimientos.salida', 'movimientos.transferir',
             'movimientos.ajuste', 'movimientos.devolucion', 'movimientos.baja', 'movimientos.importar',
             'movimientos.confirmar', 'movimientos.cancelar',
-            'ordenes_compra.ver', 'ordenes_compra.aprobar', 'ordenes_compra.recibir',
+            'ordenes_compra.ver', 'ordenes_compra.aprobar', 'ordenes_compra.recibir', 'ordenes_compra.consolidar',
             'sensores.ver', 'sensores.crear', 'sensores.editar',
             'lecturas.ver', 'lecturas.crear',
             'reglas_alerta.ver', 'reglas_alerta.crear', 'reglas_alerta.editar',
