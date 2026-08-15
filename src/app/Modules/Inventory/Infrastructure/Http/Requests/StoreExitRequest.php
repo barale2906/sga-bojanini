@@ -17,6 +17,7 @@ class StoreExitRequest extends FormRequest
     {
         return [
             'warehouse_id'            => ['required', 'integer', 'exists:warehouses,id'],
+            'movement_date'           => ['nullable', 'date', 'before_or_equal:today'],
             'cost_center_id'          => ['required', 'integer', 'exists:cost_centers,id'],
             'service_id'              => ['nullable', 'integer', 'exists:medical_services,id'],
             'patient_document'        => ['nullable', 'string', 'max:50'],

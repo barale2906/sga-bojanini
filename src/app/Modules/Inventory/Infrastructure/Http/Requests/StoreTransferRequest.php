@@ -20,6 +20,7 @@ class StoreTransferRequest extends FormRequest
         return [
             'warehouse_from_id'            => ['required', 'integer', 'exists:warehouses,id'],
             'warehouse_to_id'              => ['required', 'integer', 'exists:warehouses,id'],
+            'movement_date'                => ['nullable', 'date', 'before_or_equal:today'],
             'reason'                       => ['nullable', 'string'],
 
             'items'                        => ['required', 'array', 'min:1'],

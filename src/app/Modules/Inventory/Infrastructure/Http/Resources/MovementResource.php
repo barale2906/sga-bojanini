@@ -47,6 +47,7 @@ class MovementResource extends JsonResource
             'movement_type'       => $movement->movement_type,
             'quantity'            => $movement->quantity,
             'reason'              => $movement->reason,
+            'movement_date'       => $movement->movement_date?->toIso8601String(),
             'reference_type'      => $movement->reference_type,
             'reference_id'        => $movement->reference_id,
             'cost_center_id'      => $movement->cost_center_id,

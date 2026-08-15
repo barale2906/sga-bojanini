@@ -23,6 +23,7 @@ return new class extends Migration
             ]);
             $table->decimal('quantity', 12, 3);
             $table->text('reason')->nullable();
+            $table->timestamp('movement_date')->nullable()->comment('Fecha real del movimiento; si es null se usa created_at');
             $table->string('reference_type', 100)->nullable();
             $table->unsignedBigInteger('reference_id')->nullable();
 

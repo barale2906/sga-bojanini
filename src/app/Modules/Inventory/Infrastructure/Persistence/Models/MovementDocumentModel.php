@@ -31,6 +31,7 @@ class MovementDocumentModel extends Model
         'invoice_number',
         'entry_temperature',
         'reason',
+        'movement_date',
         'user_id',
         'status',
     ];
@@ -38,8 +39,9 @@ class MovementDocumentModel extends Model
     protected function casts(): array
     {
         return [
-            'status'     => MovementStatus::class,
-            'created_at' => 'datetime',
+            'status'        => MovementStatus::class,
+            'movement_date' => 'datetime',
+            'created_at'    => 'datetime',
         ];
     }
 

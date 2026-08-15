@@ -24,6 +24,7 @@ class MovementDocumentResource extends JsonResource
             'invoice_number'      => $this->invoice_number,
             'entry_temperature'   => $this->entry_temperature,
             'reason'              => $this->reason,
+            'movement_date'       => $this->movement_date?->toIso8601String(),
             'user_id'             => $this->user_id,
             'status'              => $this->status instanceof \App\Modules\Inventory\Domain\ValueObjects\MovementStatus
                 ? $this->status->value

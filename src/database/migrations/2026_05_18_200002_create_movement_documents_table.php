@@ -29,6 +29,7 @@ return new class extends Migration
             $table->decimal('entry_temperature', 5, 2)->nullable();
 
             $table->text('reason')->nullable();
+            $table->timestamp('movement_date')->nullable()->comment('Fecha real del movimiento; si es null se usa created_at');
             $table->foreignId('user_id')->constrained('users');
             $table->enum('status', ['pending_signature', 'confirmed'])->default('confirmed');
             $table->timestamp('created_at')->useCurrent();

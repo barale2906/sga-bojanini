@@ -30,6 +30,7 @@ class RegisterEntryUseCase
                 'document_number'    => $this->numberGenerator->next('entry'),
                 'document_type'      => 'entry',
                 'warehouse_id'       => $data['warehouse_id'],
+                'movement_date'      => $data['movement_date'] ?? now(),
                 'invoice_number'     => $data['invoice_number'] ?? null,
                 'entry_temperature'  => isset($data['entry_temperature']) ? (float) $data['entry_temperature'] : null,
                 'reason'             => $data['reason'] ?? null,
@@ -37,15 +38,17 @@ class RegisterEntryUseCase
                 'status'             => 'confirmed',
             ]);
 
+            $movementDate = $data['movement_date'] ?? now();
+
             foreach ($data['items'] as $item) {
-                $this->processItem($item, $data['warehouse_id'], $data['user_id'], $document);
+                $this->processItem($item, $data['warehouse_id'], $data['user_id'], $document, $movementDate);
             }
 
             return $document->load(['movements.variant.genericProduct', 'movements.batch', 'warehouse', 'user']);
         });
     }
 
-    private function processItem(array $item, int $warehouseId, int $userId, MovementDocumentModel $document): void
+    private function processItem(array $item, int $warehouseId, int $userId, MovementDocumentModel $document, mixed $movementDate): void
     {
         $variant = ProductVariantModel::find($item['product_variant_id']);
 
@@ -118,6 +121,7 @@ class RegisterEntryUseCase
             'movement_type'        => 'entry',
             'quantity'             => $quantity,
             'reason'               => $item['notes'] ?? null,
+            'movement_date'        => $movementDate,
             'invoice_number'       => $document->invoice_number,
             'entry_temperature'    => $document->entry_temperature,
             'user_id'              => $userId,

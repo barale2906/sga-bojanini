@@ -191,11 +191,11 @@ class MovementController extends Controller
         $query = StockMovementModel::with(['variant.genericProduct.category', 'batch', 'user', 'document.costCenter', 'document.medicalService']);
 
         if ($request->filled('date_from')) {
-            $query->whereDate('created_at', '>=', Carbon::parse($request->date_from)->startOfDay());
+            $query->whereDate('movement_date', '>=', Carbon::parse($request->date_from)->startOfDay());
         }
 
         if ($request->filled('date_to')) {
-            $query->whereDate('created_at', '<=', Carbon::parse($request->date_to)->endOfDay());
+            $query->whereDate('movement_date', '<=', Carbon::parse($request->date_to)->endOfDay());
         }
 
         if ($request->filled('warehouse_id')) {
@@ -260,11 +260,11 @@ class MovementController extends Controller
         $query = MovementDocumentModel::with(['warehouse', 'warehouseTo', 'user', 'costCenter', 'medicalService', 'signatures']);
 
         if ($request->filled('date_from')) {
-            $query->whereDate('created_at', '>=', Carbon::parse($request->input('date_from'))->startOfDay());
+            $query->whereDate('movement_date', '>=', Carbon::parse($request->input('date_from'))->startOfDay());
         }
 
         if ($request->filled('date_to')) {
-            $query->whereDate('created_at', '<=', Carbon::parse($request->input('date_to'))->endOfDay());
+            $query->whereDate('movement_date', '<=', Carbon::parse($request->input('date_to'))->endOfDay());
         }
 
         if ($request->filled('warehouse_id')) {

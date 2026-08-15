@@ -33,6 +33,7 @@ class TransferStockUseCase
                 'document_type'   => 'transfer',
                 'warehouse_id'    => $data['warehouse_from_id'],
                 'warehouse_to_id' => $data['warehouse_to_id'],
+                'movement_date'   => $data['movement_date'] ?? now(),
                 'reason'          => $data['reason'] ?? null,
                 'user_id'         => $data['user_id'],
                 'status'          => MovementStatus::PENDING_SIGNATURE->value,
@@ -57,6 +58,7 @@ class TransferStockUseCase
                         'movement_type'        => 'transfer',
                         'quantity'             => $selection['quantity'],
                         'reason'               => $data['reason'] ?? null,
+                        'movement_date'        => $document->movement_date,
                         'user_id'              => $data['user_id'],
                         'status'               => MovementStatus::PENDING_SIGNATURE->value,
                     ]);

@@ -35,6 +35,7 @@ class StockMovementModel extends Model
         'movement_type',
         'quantity',
         'reason',
+        'movement_date',
         'reference_type',
         'reference_id',
         'cost_center_id',
@@ -50,9 +51,10 @@ class StockMovementModel extends Model
     protected function casts(): array
     {
         return [
-            'status'     => MovementStatus::class,
-            'created_at' => 'datetime',
-            'quantity'   => 'float',
+            'status'        => MovementStatus::class,
+            'movement_date' => 'datetime',
+            'created_at'    => 'datetime',
+            'quantity'      => 'float',
         ];
     }
 
