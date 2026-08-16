@@ -12,6 +12,7 @@ use App\Modules\Catalog\Domain\Repositories\ProductVariantRepositoryInterface;
 use App\Modules\Catalog\Infrastructure\Http\Requests\StoreProductVariantRequest;
 use App\Modules\Catalog\Infrastructure\Http\Requests\UpdateProductVariantRequest;
 use App\Modules\Catalog\Infrastructure\Http\Resources\ProductVariantResource;
+use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductVariantModel;
 use App\Modules\Shared\Infrastructure\Http\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
@@ -20,9 +21,12 @@ class ProductVariantController extends Controller
 {
     use ApiResponse;
 
-    public function index(int $genericId, ProductVariantRepositoryInterface $repository): JsonResponse
+    public function index(int $genericId): JsonResponse
     {
-        $variants = $repository->findByGenericProduct($genericId);
+        $variants = ProductVariantModel::where('generic_product_id', $genericId)
+            ->with('sanitaryRegistrations')
+            ->orderBy('lab_brand')
+            ->get();
 
         return $this->success(
             ProductVariantResource::collection($variants),
