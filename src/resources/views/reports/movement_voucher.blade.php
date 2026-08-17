@@ -4,8 +4,9 @@
     <meta charset="UTF-8">
     <title>Comprobante {{ $document->document_number }}</title>
     <style>
+        @page { margin: 15mm 15mm 15mm 15mm; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: Arial, sans-serif; font-size: 10px; color: #222; }
+        body { font-family: Arial, sans-serif; font-size: 10px; color: #222; margin: 15mm 15mm 15mm 15mm; }
 
         .header { text-align: center; border-bottom: 2px solid #1a56db; padding-bottom: 8px; margin-bottom: 12px; }
         .header .company { font-size: 13px; font-weight: bold; color: #1a56db; }

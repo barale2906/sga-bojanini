@@ -35,6 +35,28 @@ services:
     networks:
       - sga
 
+  queue:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    command: php artisan queue:work --tries=3 --timeout=90 --sleep=3
+    volumes:
+      - ./src:/var/www
+    working_dir: /var/www
+    depends_on:
+      - db
+    restart: unless-stopped
+    networks:
+      - sga
+
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+    networks:
+      - sga
+
 volumes:
   mysql_data:
 

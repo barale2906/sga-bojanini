@@ -7,6 +7,7 @@ namespace App\Modules\Inventory\Infrastructure\Http\Controllers;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\ImportLogModel;
 use App\Modules\Inventory\Application\Services\StorageAllocationService;
 use App\Modules\Inventory\Application\UseCases\AdjustStockUseCase;
+use App\Modules\Inventory\Application\UseCases\SendDocumentEmailUseCase;
 use App\Modules\Inventory\Application\UseCases\ConfirmMovementUseCase;
 use App\Modules\Inventory\Application\UseCases\ImportInitialEntriesUseCase;
 use App\Modules\Inventory\Application\UseCases\RegisterEntryUseCase;
@@ -17,6 +18,7 @@ use App\Modules\Inventory\Application\UseCases\TransferStockUseCase;
 use App\Modules\Inventory\Application\UseCases\WriteOffExpiredUseCase;
 use App\Modules\Inventory\Infrastructure\Export\InitialEntryTemplateBuilder;
 use App\Modules\Inventory\Infrastructure\Http\Requests\ConfirmMovementRequest;
+use App\Modules\Inventory\Infrastructure\Http\Requests\SendDocumentEmailRequest;
 use App\Modules\Inventory\Infrastructure\Http\Requests\ImportInitialEntriesRequest;
 use App\Modules\Inventory\Infrastructure\Http\Requests\ListMovementsRequest;
 use App\Modules\Inventory\Infrastructure\Http\Requests\StoreAdjustmentRequest;
@@ -417,6 +419,16 @@ class MovementController extends Controller
         $this->assertMovementAccess($request, $movement);
 
         return $this->success(new MovementResource($movement), 'Detalle del movimiento');
+    }
+
+    public function sendEmail(int $id, SendDocumentEmailRequest $request, SendDocumentEmailUseCase $useCase): JsonResponse
+    {
+        $document = MovementDocumentModel::findOrFail($id);
+        $this->assertDocumentAccess($request, $document);
+
+        $useCase->execute($id, $request->validated('recipients'));
+
+        return $this->success(null, 'Comprobante en cola para envío por correo electrónico.');
     }
 
     private function assertDocumentAccess(Request $request, MovementDocumentModel $document): void

@@ -16,6 +16,7 @@ class MovementSignatureResource extends JsonResource
             'role'            => $this->role,
             'signer_name'     => $this->signer_name,
             'signer_document' => $this->signer_document,
+            'signature_data'  => $this->signature_data,
             'signed_at'       => $this->signed_at?->toIso8601String(),
         ];
     }

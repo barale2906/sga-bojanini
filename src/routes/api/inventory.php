@@ -35,6 +35,7 @@ Route::middleware(['auth:sanctum', 'user.is_active'])->prefix('v1')->group(funct
     Route::get('movement-documents/{id}/pdf', [MovementController::class, 'downloadDocumentPdf'])->middleware('permission:stock.ver');
     Route::delete('movement-documents/{id}/pending', [MovementController::class, 'cancelPendingDocument'])->middleware('permission:movimientos.cancelar');
     Route::post('movement-documents/{id}/confirm', [MovementController::class, 'confirm'])->middleware('permission:movimientos.confirmar');
+    Route::post('movement-documents/{id}/send-email', [MovementController::class, 'sendEmail'])->middleware('permission:movimientos.enviar_correo');
     Route::get('movement-documents/{id}/signature/{role}', [MovementController::class, 'showSignature'])->middleware('permission:stock.ver');
 
     // Listado y detalle de líneas individuales (para reportes)
