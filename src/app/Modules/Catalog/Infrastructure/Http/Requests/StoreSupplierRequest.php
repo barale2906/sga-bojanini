@@ -23,6 +23,7 @@ class StoreSupplierRequest extends FormRequest
             'email'         => ['nullable', 'email', 'max:255'],
             'address'       => ['nullable', 'string'],
             'notes'         => ['nullable', 'string'],
+            'supplier_type' => ['nullable', 'string', 'in:inventory,expense,both'],
         ];
     }
 

@@ -24,6 +24,7 @@ class SupplierModel extends Model
         'address',
         'notes',
         'is_active',
+        'supplier_type',
     ];
 
     protected function casts(): array

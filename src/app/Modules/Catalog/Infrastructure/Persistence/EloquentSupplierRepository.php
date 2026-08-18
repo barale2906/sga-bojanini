@@ -33,6 +33,14 @@ class EloquentSupplierRepository implements SupplierRepositoryInterface
             });
         }
 
+        if (isset($filters['type'])) {
+            $type = $filters['type'];
+            $query->where(function ($q) use ($type) {
+                $q->where('supplier_type', $type)
+                    ->orWhere('supplier_type', 'both');
+            });
+        }
+
         return $query->orderBy('name')->get()->map(fn ($model) => $this->toDomain($model))->toArray();
     }
 
@@ -42,14 +50,15 @@ class EloquentSupplierRepository implements SupplierRepositoryInterface
             ? SupplierModel::findOrFail($supplier->getId())
             : new SupplierModel();
 
-        $model->name = $supplier->getName();
-        $model->tax_id = $supplier->getTaxId();
-        $model->contact_name = $supplier->getContactName();
-        $model->phone = $supplier->getPhone();
-        $model->email = $supplier->getEmail();
-        $model->address = $supplier->getAddress();
-        $model->notes = $supplier->getNotes();
-        $model->is_active = $supplier->isActive();
+        $model->name          = $supplier->getName();
+        $model->tax_id        = $supplier->getTaxId();
+        $model->contact_name  = $supplier->getContactName();
+        $model->phone         = $supplier->getPhone();
+        $model->email         = $supplier->getEmail();
+        $model->address       = $supplier->getAddress();
+        $model->notes         = $supplier->getNotes();
+        $model->is_active     = $supplier->isActive();
+        $model->supplier_type = $supplier->getSupplierType();
         $model->save();
 
         return $this->toDomain($model);
@@ -72,6 +81,7 @@ class EloquentSupplierRepository implements SupplierRepositoryInterface
             address: $model->address,
             notes: $model->notes,
             isActive: (bool) $model->is_active,
+            supplierType: $model->supplier_type ?? 'both',
         );
     }
 }

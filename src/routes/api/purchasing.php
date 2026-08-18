@@ -2,7 +2,9 @@
 
 use App\Modules\Purchasing\Infrastructure\Http\Controllers\ApprovalFlowController;
 use App\Modules\Purchasing\Infrastructure\Http\Controllers\ConsolidatedPurchaseOrderController;
+use App\Modules\Purchasing\Infrastructure\Http\Controllers\ExpenseOrderController;
 use App\Modules\Purchasing\Infrastructure\Http\Controllers\PurchaseOrderController;
+use App\Modules\Purchasing\Infrastructure\Http\Controllers\PurchaseOrderPaymentController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth:sanctum', 'user.is_active'])->prefix('v1')->group(function () {
@@ -43,6 +45,44 @@ Route::middleware(['auth:sanctum', 'user.is_active'])->prefix('v1')->group(funct
         ->middleware('permission:ordenes_compra.consolidar');
     Route::get('consolidated-orders/{id}', [ConsolidatedPurchaseOrderController::class, 'show'])
         ->middleware('permission:ordenes_compra.ver');
+
+    // Expense orders (órdenes de compra de gastos)
+    Route::post('expense-orders/supplier', [ExpenseOrderController::class, 'storeSupplier'])
+        ->middleware('permission:ordenes_gasto.crear');
+    Route::get('expense-orders', [ExpenseOrderController::class, 'index'])
+        ->middleware('permission:ordenes_gasto.ver');
+    Route::post('expense-orders', [ExpenseOrderController::class, 'store'])
+        ->middleware('permission:ordenes_gasto.crear');
+    Route::get('expense-orders/{id}', [ExpenseOrderController::class, 'show'])
+        ->middleware('permission:ordenes_gasto.ver');
+    Route::put('expense-orders/{id}', [ExpenseOrderController::class, 'update'])
+        ->middleware('permission:ordenes_gasto.crear');
+    Route::delete('expense-orders/{id}', [ExpenseOrderController::class, 'destroy'])
+        ->middleware('permission:ordenes_gasto.crear');
+    Route::post('expense-orders/{id}/submit', [ExpenseOrderController::class, 'submit'])
+        ->middleware('permission:ordenes_gasto.crear');
+    Route::post('expense-orders/{id}/approve', [ExpenseOrderController::class, 'approve'])
+        ->middleware('permission:ordenes_gasto.aprobar');
+    Route::post('expense-orders/{id}/reject', [ExpenseOrderController::class, 'reject'])
+        ->middleware('permission:ordenes_gasto.aprobar');
+    Route::post('expense-orders/{id}/send', [ExpenseOrderController::class, 'send'])
+        ->middleware('permission:ordenes_gasto.enviar');
+    Route::post('expense-orders/{id}/receive', [ExpenseOrderController::class, 'receive'])
+        ->middleware('permission:ordenes_gasto.recibir');
+    Route::post('expense-orders/{id}/cancel', [ExpenseOrderController::class, 'cancel'])
+        ->middleware('permission:ordenes_gasto.crear');
+    Route::post('expense-orders/{id}/invoice', [ExpenseOrderController::class, 'invoice'])
+        ->middleware('permission:ordenes_gasto.factura');
+    Route::post('expense-orders/{id}/send-accounting', [ExpenseOrderController::class, 'sendAccounting'])
+        ->middleware('permission:ordenes_gasto.factura');
+
+    // Payments for expense orders
+    Route::get('expense-orders/{orderId}/payments', [PurchaseOrderPaymentController::class, 'index'])
+        ->middleware('permission:ordenes_gasto.ver');
+    Route::post('expense-orders/{orderId}/payments', [PurchaseOrderPaymentController::class, 'store'])
+        ->middleware('permission:ordenes_gasto.pagos');
+    Route::delete('expense-orders/{orderId}/payments/{paymentId}', [PurchaseOrderPaymentController::class, 'destroy'])
+        ->middleware('permission:ordenes_gasto.pagos');
 
     Route::get('approval-flows', [ApprovalFlowController::class, 'index'])
         ->middleware('permission:ordenes_compra.ver');

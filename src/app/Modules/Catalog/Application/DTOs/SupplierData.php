@@ -14,5 +14,6 @@ class SupplierData
         public readonly ?string $email = null,
         public readonly ?string $address = null,
         public readonly ?string $notes = null,
+        public readonly string $supplierType = 'both',
     ) {}
 }

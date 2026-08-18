@@ -50,7 +50,11 @@ class ApproveOrRejectUseCase
                 $order->update(['status' => PurchaseOrderStatus::Approved->value]);
             }
 
-            $order = $order->fresh(['items.variant.genericProduct', 'items.presentation', 'supplier', 'warehouse']);
+            $relations = $order->order_type === 'expense'
+                ? ['expenseItems', 'payments', 'supplier']
+                : ['items.variant.genericProduct', 'items.presentation', 'supplier', 'warehouse'];
+
+            $order = $order->fresh($relations);
 
             if ($order->status === PurchaseOrderStatus::Rejected->value) {
                 $this->notificationService->notifyByType(

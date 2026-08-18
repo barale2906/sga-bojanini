@@ -21,13 +21,17 @@ class SubmitForApprovalUseCase
     public function execute(int $orderId): PurchaseOrderModel
     {
         return DB::transaction(function () use ($orderId) {
-            $order = PurchaseOrderModel::with('items')->findOrFail($orderId);
+            $order = PurchaseOrderModel::with(['items', 'expenseItems'])->findOrFail($orderId);
 
             if ($order->status !== PurchaseOrderStatus::Draft->value) {
                 throw new \DomainException('Solo se pueden enviar a aprobación órdenes en estado borrador.');
             }
 
-            if ($order->items->isEmpty()) {
+            $hasItems = $order->order_type === 'expense'
+                ? $order->expenseItems->isNotEmpty()
+                : $order->items->isNotEmpty();
+
+            if (! $hasItems) {
                 throw new \DomainException('La orden debe tener al menos un ítem.');
             }
 

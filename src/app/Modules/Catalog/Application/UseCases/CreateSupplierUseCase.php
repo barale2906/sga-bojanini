@@ -30,6 +30,7 @@ class CreateSupplierUseCase
             email: $data->email,
             address: $data->address,
             notes: $data->notes,
+            supplierType: $data->supplierType,
         );
 
         return $this->repository->save($supplier);

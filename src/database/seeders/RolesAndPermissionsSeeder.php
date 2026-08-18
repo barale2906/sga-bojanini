@@ -51,9 +51,13 @@ class RolesAndPermissionsSeeder extends Seeder
             'movimientos.entrada', 'movimientos.salida', 'movimientos.transferir',
             'movimientos.ajuste', 'movimientos.devolucion', 'movimientos.baja', 'movimientos.importar',
             'movimientos.confirmar', 'movimientos.cancelar', 'movimientos.enviar_correo',
-            // Órdenes de compra
+            // Órdenes de compra (inventario)
             'ordenes_compra.ver', 'ordenes_compra.crear', 'ordenes_compra.aprobar',
             'ordenes_compra.enviar', 'ordenes_compra.recibir', 'ordenes_compra.consolidar',
+            // Órdenes de compra de gastos (sin inventario)
+            'ordenes_gasto.ver', 'ordenes_gasto.crear', 'ordenes_gasto.aprobar',
+            'ordenes_gasto.enviar', 'ordenes_gasto.recibir',
+            'ordenes_gasto.pagos', 'ordenes_gasto.factura',
             // Sensores
             'sensores.ver', 'sensores.crear', 'sensores.editar', 'sensores.eliminar', 'sensores.asignar',
             // Lecturas
@@ -119,6 +123,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'movimientos.confirmar', 'movimientos.cancelar', 'movimientos.enviar_correo',
             'ordenes_compra.ver', 'ordenes_compra.crear', 'ordenes_compra.aprobar',
             'ordenes_compra.enviar', 'ordenes_compra.recibir', 'ordenes_compra.consolidar',
+            'ordenes_gasto.ver', 'ordenes_gasto.crear', 'ordenes_gasto.aprobar',
+            'ordenes_gasto.enviar', 'ordenes_gasto.recibir', 'ordenes_gasto.pagos', 'ordenes_gasto.factura',
             'sensores.ver', 'sensores.crear', 'sensores.editar', 'sensores.eliminar', 'sensores.asignar',
             'lecturas.ver', 'lecturas.crear',
             'reglas_alerta.ver', 'reglas_alerta.crear', 'reglas_alerta.editar', 'reglas_alerta.eliminar',
@@ -168,6 +174,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'proveedores.ver', 'proveedores.crear', 'proveedores.editar',
             'stock.ver',
             'ordenes_compra.ver', 'ordenes_compra.crear', 'ordenes_compra.enviar', 'ordenes_compra.consolidar',
+            'ordenes_gasto.ver', 'ordenes_gasto.crear', 'ordenes_gasto.enviar', 'ordenes_gasto.pagos', 'ordenes_gasto.factura',
             'tablero.ver',
             'notificaciones.ver',
             'reportes.ver',
@@ -180,6 +187,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'generic-products.ver', 'product-variants.ver', 'proveedores.ver',
             'lotes.ver', 'stock.ver',
             'sensores.ver', 'lecturas.ver',
+            'ordenes_compra.ver',
+            'ordenes_gasto.ver',
             'auditoria.ver', 'auditoria.exportar',
             'reportes.ver', 'reportes.exportar',
             'tablero.ver',
@@ -201,6 +210,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'movimientos.ajuste', 'movimientos.devolucion', 'movimientos.baja', 'movimientos.importar',
             'movimientos.confirmar', 'movimientos.cancelar', 'movimientos.enviar_correo',
             'ordenes_compra.ver', 'ordenes_compra.aprobar', 'ordenes_compra.recibir', 'ordenes_compra.consolidar',
+            'ordenes_gasto.ver', 'ordenes_gasto.aprobar', 'ordenes_gasto.recibir',
             'sensores.ver', 'sensores.crear', 'sensores.editar',
             'lecturas.ver', 'lecturas.crear',
             'reglas_alerta.ver', 'reglas_alerta.crear', 'reglas_alerta.editar',

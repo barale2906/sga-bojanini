@@ -16,6 +16,7 @@ class Supplier
         private ?string $address = null,
         private ?string $notes = null,
         private bool $isActive = true,
+        private string $supplierType = 'both',
     ) {}
 
     public function getId(): ?int
@@ -71,5 +72,10 @@ class Supplier
     public function deactivate(): void
     {
         $this->isActive = false;
+    }
+
+    public function getSupplierType(): string
+    {
+        return $this->supplierType;
     }
 }

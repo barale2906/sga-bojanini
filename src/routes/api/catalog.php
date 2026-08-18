@@ -143,6 +143,8 @@ Route::middleware(['auth:sanctum', 'user.is_active'])->prefix('v1')->group(funct
     Route::post('generic-products/{genericId}/kit-components/explode', [ProductKitComponentController::class, 'explode'])
         ->middleware('permission:generic-products.ver');
 
+    Route::get('suppliers/search', [SupplierController::class, 'search'])
+        ->middleware('permission:proveedores.ver');
     Route::apiResource('suppliers', SupplierController::class)
         ->middleware('permission:proveedores.ver')->only(['index', 'show']);
     Route::apiResource('suppliers', SupplierController::class)

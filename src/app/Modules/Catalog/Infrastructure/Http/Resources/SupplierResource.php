@@ -15,29 +15,31 @@ class SupplierResource extends JsonResource
 
         if (method_exists($supplier, 'getId')) {
             return [
-                'id'           => $supplier->getId(),
-                'name'         => $supplier->getName(),
-                'tax_id'       => $supplier->getTaxId(),
-                'contact_name' => $supplier->getContactName(),
-                'phone'        => $supplier->getPhone(),
-                'email'        => $supplier->getEmail(),
-                'address'      => $supplier->getAddress(),
-                'notes'        => $supplier->getNotes(),
-                'is_active'    => $supplier->isActive(),
+                'id'            => $supplier->getId(),
+                'name'          => $supplier->getName(),
+                'tax_id'        => $supplier->getTaxId(),
+                'contact_name'  => $supplier->getContactName(),
+                'phone'         => $supplier->getPhone(),
+                'email'         => $supplier->getEmail(),
+                'address'       => $supplier->getAddress(),
+                'notes'         => $supplier->getNotes(),
+                'is_active'     => $supplier->isActive(),
+                'supplier_type' => $supplier->getSupplierType(),
             ];
         }
 
         return [
-            'id'           => $supplier->id,
-            'name'         => $supplier->name,
-            'tax_id'       => $supplier->tax_id,
-            'contact_name' => $supplier->contact_name,
-            'phone'        => $supplier->phone,
-            'email'        => $supplier->email,
-            'address'      => $supplier->address,
-            'notes'        => $supplier->notes,
-            'is_active'    => (bool) $supplier->is_active,
-            'created_at'   => $supplier->created_at?->toIso8601String(),
+            'id'            => $supplier->id,
+            'name'          => $supplier->name,
+            'tax_id'        => $supplier->tax_id,
+            'contact_name'  => $supplier->contact_name,
+            'phone'         => $supplier->phone,
+            'email'         => $supplier->email,
+            'address'       => $supplier->address,
+            'notes'         => $supplier->notes,
+            'is_active'     => (bool) $supplier->is_active,
+            'supplier_type' => $supplier->supplier_type ?? 'inventory',
+            'created_at'    => $supplier->created_at?->toIso8601String(),
         ];
     }
 }

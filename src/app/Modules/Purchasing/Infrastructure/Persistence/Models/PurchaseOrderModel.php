@@ -19,6 +19,7 @@ class PurchaseOrderModel extends Model
     protected $table = 'purchase_orders';
 
     protected $fillable = [
+        'order_type',
         'supplier_id',
         'warehouse_id',
         'code',
@@ -26,11 +27,16 @@ class PurchaseOrderModel extends Model
         'subtotal',
         'tax_amount',
         'total_amount',
+        'payment_status',
+        'amount_paid',
+        'invoice_number',
+        'invoice_date',
         'notes',
         'expected_delivery_date',
         'created_by',
         'sent_at',
         'received_at',
+        'accounting_sent_at',
         'consolidated_order_id',
     ];
 
@@ -40,9 +46,12 @@ class PurchaseOrderModel extends Model
             'subtotal'               => 'decimal:2',
             'tax_amount'             => 'decimal:2',
             'total_amount'           => 'decimal:2',
+            'amount_paid'            => 'decimal:2',
             'expected_delivery_date' => 'date',
+            'invoice_date'           => 'date',
             'sent_at'                => 'datetime',
             'received_at'            => 'datetime',
+            'accounting_sent_at'     => 'datetime',
         ];
     }
 
@@ -64,6 +73,16 @@ class PurchaseOrderModel extends Model
     public function items(): HasMany
     {
         return $this->hasMany(PurchaseOrderItemModel::class, 'purchase_order_id');
+    }
+
+    public function expenseItems(): HasMany
+    {
+        return $this->hasMany(ExpenseOrderItemModel::class, 'purchase_order_id');
+    }
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(PurchaseOrderPaymentModel::class, 'purchase_order_id');
     }
 
     public function consolidatedOrder(): \Illuminate\Database\Eloquent\Relations\BelongsTo

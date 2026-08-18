@@ -26,12 +26,41 @@ class SupplierController extends Controller
         $suppliers = $repository->findAll([
             'is_active' => $request->query('is_active'),
             'search'    => $request->query('search'),
+            'type'      => $request->query('type'),
         ]);
 
         return $this->success(
             SupplierResource::collection($suppliers),
             'Listado de proveedores'
         );
+    }
+
+    public function search(Request $request, SupplierRepositoryInterface $repository): JsonResponse
+    {
+        $q    = (string) $request->query('q', '');
+        $type = $request->query('type');
+
+        $filters = ['is_active' => true];
+
+        if (strlen($q) >= 2) {
+            $filters['search'] = $q;
+        }
+
+        if ($type !== null) {
+            $filters['type'] = $type;
+        }
+
+        $suppliers = $repository->findAll($filters);
+
+        $results = array_map(fn ($s) => [
+            'id'            => $s->getId(),
+            'name'          => $s->getName(),
+            'tax_id'        => $s->getTaxId(),
+            'email'         => $s->getEmail(),
+            'supplier_type' => $s->getSupplierType(),
+        ], array_slice($suppliers, 0, 20));
+
+        return $this->success($results, 'Búsqueda de proveedores');
     }
 
     public function store(StoreSupplierRequest $request, CreateSupplierUseCase $useCase): JsonResponse
@@ -44,6 +73,7 @@ class SupplierController extends Controller
             email: $request->validated('email'),
             address: $request->validated('address'),
             notes: $request->validated('notes'),
+            supplierType: $request->validated('supplier_type') ?? 'both',
         );
 
         $supplier = $useCase->execute($data);
@@ -78,6 +108,7 @@ class SupplierController extends Controller
             email: $request->validated('email'),
             address: $request->validated('address'),
             notes: $request->validated('notes'),
+            supplierType: $request->validated('supplier_type') ?? 'both',
         );
 
         $entity = $useCase->execute($supplier, $data);

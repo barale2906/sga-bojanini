@@ -41,6 +41,7 @@ class UpdateSupplierUseCase
             address: $data->address,
             notes: $data->notes,
             isActive: $existing->isActive(),
+            supplierType: $data->supplierType,
         );
 
         return $this->repository->save($supplier);
