@@ -32,6 +32,9 @@ require __DIR__ . '/api/audit.php';
 // Fase 8: Integraciones
 require __DIR__ . '/api/integration.php';
 
+// Fase 8b: Integración MedSys (pacientes, citas, mapeo, proyección)
+require __DIR__ . '/api/medsys.php';
+
 // Fase 9: Reportes y Dashboard
 require __DIR__ . '/api/reports.php';
 require __DIR__ . '/api/dashboard.php';

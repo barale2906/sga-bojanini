@@ -25,5 +25,6 @@ readonly class MedicalServiceData
         public MedicalServiceType $type = MedicalServiceType::SERVICE,
         public ?int $parentId = null,
         public bool $isActive = true,
+        public ?string $externalCode = null,
     ) {}
 }

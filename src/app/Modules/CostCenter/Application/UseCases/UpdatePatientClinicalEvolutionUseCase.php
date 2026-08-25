@@ -6,6 +6,7 @@ namespace App\Modules\CostCenter\Application\UseCases;
 
 use App\Modules\CostCenter\Domain\Entities\PatientClinicalEvolution;
 use App\Modules\CostCenter\Domain\Repositories\PatientClinicalEvolutionRepositoryInterface;
+use App\Modules\Integration\Infrastructure\Jobs\SyncEvolutionToMedsysJob;
 
 class UpdatePatientClinicalEvolutionUseCase
 {
@@ -23,6 +24,10 @@ class UpdatePatientClinicalEvolutionUseCase
 
         $evolution->updateContent($content);
 
-        return $this->repository->save($evolution);
+        $saved = $this->repository->save($evolution);
+
+        SyncEvolutionToMedsysJob::dispatch($saved->getId());
+
+        return $saved;
     }
 }

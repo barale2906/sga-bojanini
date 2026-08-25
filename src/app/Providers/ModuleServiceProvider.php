@@ -39,10 +39,12 @@ use App\Modules\CostCenter\Infrastructure\Persistence\EloquentPatientClinicalEvo
 use App\Modules\CostCenter\Infrastructure\Persistence\EloquentPatientProcedureRecordRepository;
 use App\Modules\CostCenter\Infrastructure\Persistence\EloquentProcedurePriceRepository;
 use App\Modules\Integration\Domain\Ports\ClinicalRecordsServiceInterface;
+use App\Modules\Integration\Domain\Ports\MedsysEvolutionServiceInterface;
 use App\Modules\Integration\Domain\Ports\SchedulingServiceInterface;
 use App\Modules\Integration\Domain\Repositories\ConsumptionRecordRepositoryInterface;
 use App\Modules\Integration\Domain\Repositories\ExternalIntegrationRepositoryInterface;
 use App\Modules\Integration\Infrastructure\ExternalServices\ClinicalRecordsApiAdapter;
+use App\Modules\Integration\Infrastructure\ExternalServices\MedsysEvolutionAdapter;
 use App\Modules\Integration\Infrastructure\ExternalServices\MockClinicalRecordsAdapter;
 use App\Modules\Integration\Infrastructure\ExternalServices\MockSchedulingAdapter;
 use App\Modules\Integration\Infrastructure\ExternalServices\SchedulingApiAdapter;
@@ -144,6 +146,8 @@ class ModuleServiceProvider extends ServiceProvider
         $this->app->bind(ClinicalRecordsServiceInterface::class, $useMock
             ? MockClinicalRecordsAdapter::class
             : ClinicalRecordsApiAdapter::class);
+
+        $this->app->bind(MedsysEvolutionServiceInterface::class, MedsysEvolutionAdapter::class);
     }
 
     public function boot(): void

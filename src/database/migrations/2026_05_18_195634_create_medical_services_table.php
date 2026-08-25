@@ -13,6 +13,7 @@ return new class extends Migration
             $table->foreignId('parent_id')->nullable()->constrained('medical_services')->nullOnDelete();
             $table->enum('type', ['service', 'procedure'])->default('service');
             $table->string('code', 20)->unique();
+            $table->string('external_code', 20)->nullable()->unique();
             $table->string('name', 100);
             $table->text('description')->nullable();
             $table->boolean('is_active')->default(true);

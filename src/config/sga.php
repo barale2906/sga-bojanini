@@ -28,6 +28,10 @@ return [
 
     'integrations' => [
         'use_mock' => env('SGA_INTEGRATIONS_USE_MOCK', true),
+        'medsys'   => [
+            'enabled'          => env('MEDSYS_EVOLUTION_ENABLED', false),
+            'evolution_table'  => env('MEDSYS_EVOLUTION_TABLE', 'sga_evoluciones'),
+        ],
     ],
 
     'service_product_map' => [

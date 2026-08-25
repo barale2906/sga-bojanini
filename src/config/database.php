@@ -44,6 +44,22 @@ return [
             'transaction_mode' => 'DEFERRED',
         ],
 
+        'medsys' => [
+            'driver'    => 'mysql',
+            'host'      => env('MEDSYS_DB_HOST', '127.0.0.1'),
+            'port'      => env('MEDSYS_DB_PORT', '3306'),
+            'database'  => env('MEDSYS_DB_DATABASE', 'medsys'),
+            'username'  => env('MEDSYS_DB_USERNAME'),
+            'password'  => env('MEDSYS_DB_PASSWORD'),
+            'charset'   => 'utf8',
+            'collation' => 'utf8_unicode_ci',
+            'prefix'    => '',
+            'strict'    => false,
+            'options'   => extension_loaded('pdo_mysql') ? array_filter([
+                PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8',
+            ]) : [],
+        ],
+
         'mysql' => [
             'driver' => 'mysql',
             'url' => env('DB_URL'),

@@ -19,7 +19,8 @@ class StoreMedicalServiceRequest extends FormRequest
         return [
             'type'        => ['sometimes', 'string', Rule::in(['service', 'procedure'])],
             'parent_id'   => ['nullable', 'integer', 'exists:medical_services,id'],
-            'code'        => ['required', 'string', 'max:20', 'unique:medical_services,code'],
+            'code'          => ['required', 'string', 'max:20', 'unique:medical_services,code'],
+            'external_code' => ['nullable', 'string', 'max:20', 'unique:medical_services,external_code'],
             'name'        => ['required', 'string', 'max:100'],
             'description' => ['nullable', 'string'],
             'is_active'   => ['sometimes', 'boolean'],

@@ -89,12 +89,13 @@ class EloquentMedicalServiceRepository implements MedicalServiceRepositoryInterf
             ? MedicalServiceModel::findOrFail($service->getId())
             : new MedicalServiceModel();
 
-        $model->parent_id   = $service->getParentId();
-        $model->type        = $service->getType()->value;
-        $model->code        = $service->getCode();
-        $model->name        = $service->getName();
-        $model->description = $service->getDescription();
-        $model->is_active   = $service->isActive();
+        $model->parent_id     = $service->getParentId();
+        $model->type          = $service->getType()->value;
+        $model->code          = $service->getCode();
+        $model->external_code = $service->getExternalCode();
+        $model->name          = $service->getName();
+        $model->description   = $service->getDescription();
+        $model->is_active     = $service->isActive();
         $model->save();
 
         return $this->toDomain($model);
@@ -108,13 +109,14 @@ class EloquentMedicalServiceRepository implements MedicalServiceRepositoryInterf
     private function toDomain(MedicalServiceModel $model): MedicalService
     {
         return new MedicalService(
-            id:          $model->id,
-            code:        $model->code,
-            name:        $model->name,
-            description: $model->description,
-            type:        MedicalServiceType::from($model->type),
-            parentId:    $model->parent_id,
-            isActive:    (bool) $model->is_active,
+            id:           $model->id,
+            code:         $model->code,
+            name:         $model->name,
+            description:  $model->description,
+            type:         MedicalServiceType::from($model->type),
+            parentId:     $model->parent_id,
+            isActive:     (bool) $model->is_active,
+            externalCode: $model->external_code,
         );
     }
 }

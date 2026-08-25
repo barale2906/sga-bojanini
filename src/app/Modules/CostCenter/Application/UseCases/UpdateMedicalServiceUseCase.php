@@ -41,13 +41,14 @@ class UpdateMedicalServiceUseCase
         }
 
         $updated = new MedicalService(
-            id:          $id,
-            code:        strtoupper(trim($data->code)),
-            name:        $data->name,
-            description: $data->description,
-            type:        $data->type,
-            parentId:    $data->parentId,
-            isActive:    $data->isActive,
+            id:           $id,
+            code:         strtoupper(trim($data->code)),
+            name:         $data->name,
+            description:  $data->description,
+            type:         $data->type,
+            parentId:     $data->parentId,
+            isActive:     $data->isActive,
+            externalCode: $data->externalCode,
         );
 
         return $this->repository->save($updated);

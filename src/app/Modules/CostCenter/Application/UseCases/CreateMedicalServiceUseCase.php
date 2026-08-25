@@ -30,13 +30,14 @@ class CreateMedicalServiceUseCase
         }
 
         $service = new MedicalService(
-            id:          null,
-            code:        strtoupper(trim($data->code)),
-            name:        $data->name,
-            description: $data->description,
-            type:        $data->type,
-            parentId:    $data->parentId,
-            isActive:    $data->isActive,
+            id:           null,
+            code:         strtoupper(trim($data->code)),
+            name:         $data->name,
+            description:  $data->description,
+            type:         $data->type,
+            parentId:     $data->parentId,
+            isActive:     $data->isActive,
+            externalCode: $data->externalCode,
         );
 
         return $this->repository->save($service);

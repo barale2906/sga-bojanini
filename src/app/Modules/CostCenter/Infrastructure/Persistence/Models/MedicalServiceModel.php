@@ -22,6 +22,7 @@ class MedicalServiceModel extends Model
         'parent_id',
         'type',
         'code',
+        'external_code',
         'name',
         'description',
         'is_active',

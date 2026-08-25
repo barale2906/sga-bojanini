@@ -31,3 +31,8 @@ Schedule::command('sga:cleanup-report-exports')
 Schedule::command('sga:cleanup-pending-movements')
     ->dailyAt('03:00')
     ->name('sga:cleanup-pending-movements');
+
+Schedule::command('medsys:sync-procedure-types')
+    ->weeklyOn(1, '04:00')   // Lunes a las 4 AM
+    ->name('medsys:sync-procedure-types')
+    ->withoutOverlapping();

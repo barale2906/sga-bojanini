@@ -22,6 +22,7 @@ class MedicalService
         private MedicalServiceType $type = MedicalServiceType::SERVICE,
         private ?int $parentId = null,
         private bool $isActive = true,
+        private ?string $externalCode = null,
     ) {}
 
     public function getId(): ?int
@@ -57,6 +58,11 @@ class MedicalService
     public function isActive(): bool
     {
         return $this->isActive;
+    }
+
+    public function getExternalCode(): ?string
+    {
+        return $this->externalCode;
     }
 
     public function isService(): bool

@@ -127,12 +127,13 @@ class MedicalServiceController extends Controller
         $validated = $request->validated();
 
         $service = $useCase->execute(new MedicalServiceData(
-            code:        $validated['code'],
-            name:        $validated['name'],
-            description: $validated['description'] ?? null,
-            type:        MedicalServiceType::from($validated['type'] ?? 'service'),
-            parentId:    isset($validated['parent_id']) ? (int) $validated['parent_id'] : null,
-            isActive:    (bool) ($validated['is_active'] ?? true),
+            code:         $validated['code'],
+            name:         $validated['name'],
+            description:  $validated['description'] ?? null,
+            type:         MedicalServiceType::from($validated['type'] ?? 'service'),
+            parentId:     isset($validated['parent_id']) ? (int) $validated['parent_id'] : null,
+            isActive:     (bool) ($validated['is_active'] ?? true),
+            externalCode: $validated['external_code'] ?? null,
         ));
 
         return $this->created(new MedicalServiceResource($service), 'Servicio médico creado exitosamente');
@@ -151,12 +152,13 @@ class MedicalServiceController extends Controller
         $validated = $request->validated();
 
         $service = $useCase->execute($medical_service, new MedicalServiceData(
-            code:        $validated['code'],
-            name:        $validated['name'],
-            description: $validated['description'] ?? null,
-            type:        MedicalServiceType::from($validated['type'] ?? 'service'),
-            parentId:    isset($validated['parent_id']) ? (int) $validated['parent_id'] : null,
-            isActive:    (bool) ($validated['is_active'] ?? true),
+            code:         $validated['code'],
+            name:         $validated['name'],
+            description:  $validated['description'] ?? null,
+            type:         MedicalServiceType::from($validated['type'] ?? 'service'),
+            parentId:     isset($validated['parent_id']) ? (int) $validated['parent_id'] : null,
+            isActive:     (bool) ($validated['is_active'] ?? true),
+            externalCode: $validated['external_code'] ?? null,
         ));
 
         return $this->success(new MedicalServiceResource($service), 'Servicio médico actualizado exitosamente');

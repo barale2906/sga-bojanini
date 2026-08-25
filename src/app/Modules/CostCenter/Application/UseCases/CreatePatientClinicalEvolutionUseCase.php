@@ -8,6 +8,7 @@ use App\Modules\CostCenter\Application\DTOs\PatientClinicalEvolutionData;
 use App\Modules\CostCenter\Domain\Entities\PatientClinicalEvolution;
 use App\Modules\CostCenter\Domain\Repositories\PatientClinicalEvolutionRepositoryInterface;
 use App\Modules\CostCenter\Domain\Repositories\PatientProcedureRecordRepositoryInterface;
+use App\Modules\Integration\Infrastructure\Jobs\SyncEvolutionToMedsysJob;
 
 class CreatePatientClinicalEvolutionUseCase
 {
@@ -31,6 +32,10 @@ class CreatePatientClinicalEvolutionUseCase
             recordedAt:               $data->recordedAt,
         );
 
-        return $this->repository->save($evolution);
+        $saved = $this->repository->save($evolution);
+
+        SyncEvolutionToMedsysJob::dispatch($saved->getId());
+
+        return $saved;
     }
 }

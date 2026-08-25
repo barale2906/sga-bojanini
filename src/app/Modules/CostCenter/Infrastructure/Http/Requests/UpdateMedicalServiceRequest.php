@@ -21,7 +21,8 @@ class UpdateMedicalServiceRequest extends FormRequest
         return [
             'type'        => ['sometimes', 'string', Rule::in(['service', 'procedure'])],
             'parent_id'   => ['nullable', 'integer', Rule::exists('medical_services', 'id')->whereNot('id', $id)],
-            'code'        => ['required', 'string', 'max:20', Rule::unique('medical_services', 'code')->ignore($id)],
+            'code'          => ['required', 'string', 'max:20', Rule::unique('medical_services', 'code')->ignore($id)],
+            'external_code' => ['nullable', 'string', 'max:20', Rule::unique('medical_services', 'external_code')->ignore($id)],
             'name'        => ['required', 'string', 'max:100'],
             'description' => ['nullable', 'string'],
             'is_active'   => ['sometimes', 'boolean'],
