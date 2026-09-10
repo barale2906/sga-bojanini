@@ -19,4 +19,9 @@ interface ProcedurePriceRepositoryInterface
     public function save(ProcedurePrice $price): ProcedurePrice;
 
     public function delete(int $id): void;
+
+    public function deactivateAllActive(): void;
+
+    /** @param array<int, array{medical_service_id: int, unit_price: float, loaded_by_user_id: ?int}> $prices */
+    public function createBatch(array $prices): void;
 }

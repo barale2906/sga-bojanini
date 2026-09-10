@@ -41,3 +41,6 @@ require __DIR__ . '/api/dashboard.php';
 
 // Fase 10: Centros de Costo y Servicios Médicos
 require __DIR__ . '/api/cost-center.php';
+
+// Fase 11: Órdenes de Servicio y Listas de Precios
+require __DIR__ . '/api/service-orders.php';

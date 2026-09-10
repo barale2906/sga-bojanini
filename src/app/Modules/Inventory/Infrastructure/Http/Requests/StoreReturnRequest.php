@@ -17,10 +17,18 @@ class StoreReturnRequest extends FormRequest
     {
         return [
             'product_variant_id' => ['required', 'integer', 'exists:product_variants,id'],
-            'warehouse_id' => ['required', 'integer', 'exists:warehouses,id'],
-            'location_id'  => ['nullable', 'integer', 'exists:locations,id'],
-            'quantity'     => ['required', 'numeric', 'min:0.001'],
-            'reason'       => ['nullable', 'string'],
+            'warehouse_id'       => ['required', 'integer', 'exists:warehouses,id'],
+            'location_id'        => ['nullable', 'integer', 'exists:locations,id'],
+            'batch_id'           => ['nullable', 'integer', 'exists:batches,id'],
+            'quantity'           => ['required', 'numeric', 'min:0.001'],
+            'reason'             => ['nullable', 'string'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'batch_id.exists' => 'El lote indicado no existe.',
         ];
     }
 }

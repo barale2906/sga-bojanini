@@ -16,6 +16,7 @@ use App\Modules\CostCenter\Infrastructure\Http\Requests\StoreMedicalServiceReque
 use App\Modules\CostCenter\Infrastructure\Http\Requests\UpdateMedicalServiceRequest;
 use App\Modules\CostCenter\Infrastructure\Http\Resources\MedicalServiceResource;
 use App\Modules\CostCenter\Infrastructure\Persistence\Models\MedicalServiceModel;
+use App\Modules\CostCenter\Infrastructure\Persistence\Models\ProcedurePriceModel;
 use App\Modules\Shared\Infrastructure\Http\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -106,6 +107,59 @@ class MedicalServiceController extends Controller
         }
 
         return $this->success(new MedicalServiceResource($model), 'Detalle del servicio médico');
+    }
+
+    /**
+     * Buscar procedimientos por nombre o código, incluyendo la tarifa vigente.
+     *
+     * Devuelve solo registros de tipo `procedure`. Diseñado para el formulario
+     * de órdenes de servicio: con un único término se obtienen el ID, nombre y
+     * precio unitario listo para prellenar la línea de la orden.
+     *
+     * @queryParam q string required Mínimo 2 caracteres. Example: cirug
+     *
+     * @response 200 {"success":true,"data":[{"id":5,"code":"CUR-001","name":"Curaciones","current_price":{"unit_price":25000,...}}]}
+     * @response 422 {"success":false,"errors":{"q":["El campo q es obligatorio."]}}
+     */
+    public function search(Request $request): JsonResponse
+    {
+        $request->validate(['q' => ['required', 'string', 'min:2']]);
+
+        $term = '%'.trim($request->string('q')->value()).'%';
+        $today = now()->toDateString();
+
+        $procedures = MedicalServiceModel::where('type', 'procedure')
+            ->where('is_active', true)
+            ->where(fn ($q) => $q->where('name', 'LIKE', $term)->orWhere('code', 'LIKE', $term))
+            ->with(['procedurePrices' => fn ($q) => $q
+                ->where('is_active', true)
+                ->whereDate('effective_from', '<=', $today)
+                ->where(fn ($q2) => $q2->whereNull('effective_to')->orWhereDate('effective_to', '>=', $today))
+                ->orderByDesc('effective_from')
+                ->limit(1),
+            ])
+            ->orderBy('name')
+            ->limit(20)
+            ->get();
+
+        $data = $procedures->map(function (MedicalServiceModel $proc): array {
+            $price = $proc->procedurePrices->first();
+
+            return [
+                'id'            => $proc->id,
+                'code'          => $proc->code,
+                'name'          => $proc->name,
+                'parent_id'     => $proc->parent_id,
+                'current_price' => $price ? [
+                    'id'             => $price->id,
+                    'unit_price'     => $price->unit_price,
+                    'effective_from' => $price->effective_from->format('Y-m-d'),
+                    'effective_to'   => $price->effective_to?->format('Y-m-d'),
+                ] : null,
+            ];
+        });
+
+        return $this->success($data, 'Resultados de búsqueda de procedimientos');
     }
 
     /**

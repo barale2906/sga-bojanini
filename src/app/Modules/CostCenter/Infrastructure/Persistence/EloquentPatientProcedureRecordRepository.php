@@ -54,6 +54,14 @@ class EloquentPatientProcedureRecordRepository implements PatientProcedureRecord
             $query->forReferrer($filters['referrer']);
         }
 
+        if (isset($filters['order_number'])) {
+            $query->where('order_number', $filters['order_number']);
+        }
+
+        if (isset($filters['discount_status'])) {
+            $query->where('discount_status', $filters['discount_status']);
+        }
+
         return $query->with('medicalService')
             ->orderByDesc('service_date')
             ->get()
@@ -114,17 +122,29 @@ class EloquentPatientProcedureRecordRepository implements PatientProcedureRecord
         $model->medical_service_id   = $record->getMedicalServiceId();
         $model->movement_document_id = $record->getMovementDocumentId();
         $model->patient_external_id  = $record->getPatientExternalId();
-        $model->patient_document    = $record->getPatientDocument();
-        $model->patient_first_name  = $record->getPatientFirstName();
-        $model->patient_last_name   = $record->getPatientLastName();
-        $model->quantity            = $record->getQuantity();
-        $model->unit_price          = $record->getUnitPrice();
-        $model->total               = $record->getTotal();
-        $model->service_date        = $record->getServiceDate()->format('Y-m-d');
-        $model->notes               = $record->getNotes();
-        $model->seller              = $record->getSeller();
-        $model->referrer            = $record->getReferrer();
-        $model->is_active           = $record->isActive();
+        $model->patient_document     = $record->getPatientDocument();
+        $model->patient_first_name   = $record->getPatientFirstName();
+        $model->patient_last_name    = $record->getPatientLastName();
+        $model->patient_email        = $record->getPatientEmail();
+        $model->patient_address      = $record->getPatientAddress();
+        $model->patient_phone        = $record->getPatientPhone();
+        $model->quantity             = $record->getQuantity();
+        $model->unit_price           = $record->getUnitPrice();
+        $model->total                = $record->getTotal();
+        $model->service_date         = $record->getServiceDate()->format('Y-m-d');
+        $model->notes                = $record->getNotes();
+        $model->seller               = $record->getSeller();
+        $model->referrer             = $record->getReferrer();
+        $model->is_active            = $record->isActive();
+        $model->order_number         = $record->getOrderNumber();
+        $model->discount_type        = $record->getDiscountType();
+        $model->discount_value       = $record->getDiscountValue();
+        $model->discount_amount      = $record->getDiscountAmount();
+        $model->net_total            = $record->getNetTotal();
+        $model->discount_status      = $record->getDiscountStatus();
+        $model->created_by_user_id   = $record->getCreatedByUserId();
+        $model->approved_by_user_id  = $record->getApprovedByUserId();
+        $model->approved_at          = $record->getApprovedAt()?->format('Y-m-d H:i:s');
         $model->save();
 
         return $this->toDomain($model);
@@ -133,6 +153,70 @@ class EloquentPatientProcedureRecordRepository implements PatientProcedureRecord
     public function delete(int $id): void
     {
         PatientProcedureRecordModel::findOrFail($id)->delete();
+    }
+
+    public function createBatch(array $records): array
+    {
+        $saved = [];
+        foreach ($records as $record) {
+            $saved[] = $this->save($record);
+        }
+        return $saved;
+    }
+
+    public function findByOrderNumber(string $orderNumber): array
+    {
+        return PatientProcedureRecordModel::with('medicalService')
+            ->where('order_number', $orderNumber)
+            ->orderBy('id')
+            ->get()
+            ->map(fn ($m) => $this->toDomain($m))
+            ->toArray();
+    }
+
+    public function findPendingDiscountOrders(array $filters = []): array
+    {
+        $orderNumbers = PatientProcedureRecordModel::where('discount_status', 'pending')
+            ->pluck('order_number')
+            ->unique()
+            ->values();
+
+        $result = [];
+        foreach ($orderNumbers as $orderNumber) {
+            $records = PatientProcedureRecordModel::with('medicalService')
+                ->where('order_number', $orderNumber)
+                ->orderBy('id')
+                ->get();
+
+            $first = $records->first();
+            $result[] = [
+                'order_number'        => $orderNumber,
+                'patient_external_id' => $first->patient_external_id,
+                'patient_document'    => $first->patient_document,
+                'patient_first_name'  => $first->patient_first_name,
+                'patient_last_name'   => $first->patient_last_name,
+                'patient_email'       => $first->patient_email,
+                'patient_address'     => $first->patient_address,
+                'patient_phone'       => $first->patient_phone,
+                'service_date'        => $first->service_date->format('Y-m-d'),
+                'created_by_user_id'  => $first->created_by_user_id,
+                'records'             => $records->map(fn ($m) => $this->toDomain($m))->toArray(),
+            ];
+        }
+
+        return $result;
+    }
+
+    public function approveDiscountsForOrder(string $orderNumber, int $userId, \DateTimeImmutable $at): void
+    {
+        PatientProcedureRecordModel::where('order_number', $orderNumber)
+            ->where('discount_status', 'pending')
+            ->lockForUpdate()
+            ->update([
+                'discount_status'     => 'approved',
+                'approved_by_user_id' => $userId,
+                'approved_at'         => $at->format('Y-m-d H:i:s'),
+            ]);
     }
 
     private function toDomain(PatientProcedureRecordModel $model): PatientProcedureRecord
@@ -154,6 +238,18 @@ class EloquentPatientProcedureRecordRepository implements PatientProcedureRecord
             seller:             $model->seller,
             referrer:           $model->referrer,
             movementDocumentId: $model->movement_document_id,
+            orderNumber:        $model->order_number,
+            discountType:       $model->discount_type,
+            discountValue:      $model->discount_value !== null ? (float) $model->discount_value : null,
+            discountAmount:     $model->discount_amount !== null ? (float) $model->discount_amount : null,
+            netTotal:           $model->net_total !== null ? (float) $model->net_total : null,
+            discountStatus:     $model->discount_status,
+            createdByUserId:    $model->created_by_user_id,
+            approvedByUserId:   $model->approved_by_user_id,
+            approvedAt:         $model->approved_at ? new DateTimeImmutable($model->approved_at->format('Y-m-d H:i:s')) : null,
+            patientEmail:       $model->patient_email,
+            patientAddress:     $model->patient_address,
+            patientPhone:       $model->patient_phone,
         );
     }
 }

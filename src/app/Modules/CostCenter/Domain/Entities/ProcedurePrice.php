@@ -22,6 +22,7 @@ class ProcedurePrice
         private ?DateTimeImmutable $effectiveTo,
         private bool $isActive = true,
         private ?string $notes = null,
+        private ?int $loadedByUserId = null,
     ) {}
 
     public function getId(): ?int
@@ -57,6 +58,11 @@ class ProcedurePrice
     public function getNotes(): ?string
     {
         return $this->notes;
+    }
+
+    public function getLoadedByUserId(): ?int
+    {
+        return $this->loadedByUserId;
     }
 
     public function isCurrentlyActive(): bool

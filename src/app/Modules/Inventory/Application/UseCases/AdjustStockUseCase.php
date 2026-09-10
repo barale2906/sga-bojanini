@@ -41,7 +41,23 @@ class AdjustStockUseCase
                 throw new \DomainException('La cantidad de ajuste no puede ser cero.');
             }
 
-            if ($quantity < 0) {
+            if (! empty($data['batch_id'])) {
+                $batch = BatchModel::findOrFail((int) $data['batch_id']);
+
+                if ((int) $batch->product_variant_id !== (int) $data['product_variant_id']) {
+                    throw new \DomainException(
+                        "El lote '{$batch->lot_number}' no corresponde a la variante indicada."
+                    );
+                }
+
+                if ($quantity < 0 && $batch->quantity_available < abs($quantity)) {
+                    throw new \App\Modules\Inventory\Domain\Exceptions\InsufficientStockException(
+                        "El lote {$batch->lot_number} solo tiene {$batch->quantity_available} unidades disponibles, se solicitaron " . abs($quantity) . '.'
+                    );
+                }
+
+                $firstBatchId = $batch->id;
+            } elseif ($quantity < 0) {
                 // Los ajustes negativos también gestionan stock vencido (p. ej.
                 // descartes por conteo físico), por lo que se incluyen lotes con
                 // expiration_date pasada.
@@ -148,30 +164,24 @@ class AdjustStockUseCase
     private function applyNegativeAdjustment(StockMovementModel $movement): void
     {
         $quantity = abs($movement->quantity);
+        $batch    = BatchModel::findOrFail($movement->batch_id);
 
-        // Los ajustes negativos también gestionan stock vencido (p. ej.
-        // descartes por conteo físico), por lo que se incluyen lotes con
-        // expiration_date pasada.
-        $selectedBatches = $this->fefoService->selectBatchesForExit(
-            $movement->product_variant_id,
-            $movement->warehouse_id,
-            $quantity,
-            includeExpired: true,
-        );
-
-        foreach ($selectedBatches as $selection) {
-            $batch = BatchModel::findOrFail($selection['batch_id']);
-            $batch->quantity_available -= $selection['quantity'];
-
-            if ($batch->quantity_available <= 0) {
-                $batch->quantity_available = 0;
-                $batch->status = 'depleted';
-            }
-
-            $batch->save();
-
-            $this->batchLocationService->decrement($batch->id, $selection['quantity'], $movement->location_from_id);
+        if ($batch->quantity_available < $quantity) {
+            throw new \App\Modules\Inventory\Domain\Exceptions\InsufficientStockException(
+                "El lote {$batch->lot_number} solo tiene {$batch->quantity_available} unidades disponibles al confirmar el ajuste."
+            );
         }
+
+        $batch->quantity_available -= $quantity;
+
+        if ($batch->quantity_available <= 0) {
+            $batch->quantity_available = 0;
+            $batch->status = 'depleted';
+        }
+
+        $batch->save();
+
+        $this->batchLocationService->decrement($batch->id, $quantity, $movement->location_from_id);
 
         event(new StockMovementCreated(
             movementId: $movement->id,

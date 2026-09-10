@@ -25,7 +25,8 @@ class StoreTransferRequest extends FormRequest
 
             'items'                        => ['required', 'array', 'min:1'],
             'items.*.product_variant_id'   => ['required', 'integer', 'exists:product_variants,id'],
-            'items.*.location_from_id'     => ['required', 'integer', 'exists:locations,id'],
+            'items.*.batch_id'             => ['nullable', 'integer', 'exists:batches,id'],
+            'items.*.location_from_id'     => ['nullable', 'integer', 'exists:locations,id'],
             'items.*.location_to_id'       => ['required', 'integer', 'exists:locations,id'],
             'items.*.quantity'             => ['required', 'numeric', 'min:0.001'],
         ];
@@ -38,21 +39,23 @@ class StoreTransferRequest extends FormRequest
             $warehouseToId   = (int) $this->input('warehouse_to_id');
 
             foreach ((array) $this->input('items', []) as $i => $item) {
-                $locationFromId = (int) ($item['location_from_id'] ?? 0);
+                $locationFromId = isset($item['location_from_id']) ? (int) $item['location_from_id'] : null;
                 $locationToId   = (int) ($item['location_to_id'] ?? 0);
 
-                if ($warehouseFromId === $warehouseToId && $locationFromId === $locationToId) {
+                if ($locationFromId !== null && $warehouseFromId === $warehouseToId && $locationFromId === $locationToId) {
                     $v->errors()->add("items.{$i}.location_to_id", 'La ubicación de destino debe ser diferente a la de origen.');
                     continue;
                 }
 
-                $fromWarehouse = DB::table('locations')
-                    ->join('zones', 'locations.zone_id', '=', 'zones.id')
-                    ->where('locations.id', $locationFromId)
-                    ->value('zones.warehouse_id');
+                if ($locationFromId !== null) {
+                    $fromWarehouse = DB::table('locations')
+                        ->join('zones', 'locations.zone_id', '=', 'zones.id')
+                        ->where('locations.id', $locationFromId)
+                        ->value('zones.warehouse_id');
 
-                if ((int) $fromWarehouse !== $warehouseFromId) {
-                    $v->errors()->add("items.{$i}.location_from_id", 'La ubicación de origen no pertenece al almacén de origen.');
+                    if ((int) $fromWarehouse !== $warehouseFromId) {
+                        $v->errors()->add("items.{$i}.location_from_id", 'La ubicación de origen no pertenece al almacén de origen.');
+                    }
                 }
 
                 $toWarehouse = DB::table('locations')
@@ -74,7 +77,8 @@ class StoreTransferRequest extends FormRequest
             'items.min'                            => 'Debe incluir al menos un ítem.',
             'items.*.product_variant_id.required'  => 'La variante de producto es obligatoria en cada ítem.',
             'items.*.product_variant_id.exists'    => 'Una de las variantes no existe.',
-            'items.*.location_from_id.required'    => 'La ubicación de origen es obligatoria en cada ítem.',
+            'items.*.batch_id.exists'              => 'El lote indicado no existe.',
+            'items.*.location_from_id.exists'      => 'La ubicación de origen indicada no existe.',
             'items.*.location_to_id.required'      => 'La ubicación de destino es obligatoria en cada ítem.',
             'items.*.quantity.required'            => 'La cantidad es obligatoria en cada ítem.',
             'items.*.quantity.min'                 => 'La cantidad debe ser mayor a cero.',

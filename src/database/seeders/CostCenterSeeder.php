@@ -42,7 +42,7 @@ class CostCenterSeeder extends Seeder
         }
 
         // ─── Centro de costo externo (paciente) ───────────────────────────────────
-        CostCenterModel::firstOrCreate(
+        /*CostCenterModel::firstOrCreate(
             ['code' => 'PAC'],
             [
                 'name'        => 'Paciente',
@@ -52,7 +52,7 @@ class CostCenterSeeder extends Seeder
             ],
         );
 
-        /*
+
         // ─── Servicios médicos (nodos raíz, type = service) ───────────────────────
         $services = [
             ['code' => 'CONS',  'name' => 'Consulta Médica',  'description' => 'Consultas médicas generales y de especialidad'],

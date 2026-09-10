@@ -39,9 +39,9 @@ class EloquentProcedurePriceRepository implements ProcedurePriceRepositoryInterf
 
         $model = ProcedurePriceModel::where('medical_service_id', $medicalServiceId)
             ->where('is_active', true)
-            ->where('effective_from', '<=', $today)
+            ->whereDate('effective_from', '<=', $today)
             ->where(function ($q) use ($today) {
-                $q->whereNull('effective_to')->orWhere('effective_to', '>=', $today);
+                $q->whereNull('effective_to')->orWhereDate('effective_to', '>=', $today);
             })
             ->orderByDesc('effective_from')
             ->first();
@@ -55,12 +55,13 @@ class EloquentProcedurePriceRepository implements ProcedurePriceRepositoryInterf
             ? ProcedurePriceModel::findOrFail($price->getId())
             : new ProcedurePriceModel();
 
-        $model->medical_service_id = $price->getMedicalServiceId();
-        $model->unit_price         = $price->getUnitPrice();
-        $model->effective_from     = $price->getEffectiveFrom()->format('Y-m-d');
-        $model->effective_to       = $price->getEffectiveTo()?->format('Y-m-d');
-        $model->is_active          = $price->isActive();
-        $model->notes              = $price->getNotes();
+        $model->medical_service_id  = $price->getMedicalServiceId();
+        $model->unit_price          = $price->getUnitPrice();
+        $model->effective_from      = $price->getEffectiveFrom()->format('Y-m-d');
+        $model->effective_to        = $price->getEffectiveTo()?->format('Y-m-d');
+        $model->is_active           = $price->isActive();
+        $model->notes               = $price->getNotes();
+        $model->loaded_by_user_id   = $price->getLoadedByUserId();
         $model->save();
 
         return $this->toDomain($model);
@@ -69,6 +70,29 @@ class EloquentProcedurePriceRepository implements ProcedurePriceRepositoryInterf
     public function delete(int $id): void
     {
         ProcedurePriceModel::findOrFail($id)->delete();
+    }
+
+    public function deactivateAllActive(): void
+    {
+        ProcedurePriceModel::where('is_active', true)
+            ->update([
+                'is_active'    => false,
+                'effective_to' => now()->subDay()->format('Y-m-d'),
+            ]);
+    }
+
+    public function createBatch(array $prices): void
+    {
+        $today = now()->format('Y-m-d');
+        foreach ($prices as $price) {
+            ProcedurePriceModel::create([
+                'medical_service_id' => $price['medical_service_id'],
+                'unit_price'         => $price['unit_price'],
+                'effective_from'     => $today,
+                'is_active'          => true,
+                'loaded_by_user_id'  => $price['loaded_by_user_id'] ?? null,
+            ]);
+        }
     }
 
     private function toDomain(ProcedurePriceModel $model): ProcedurePrice
@@ -83,6 +107,7 @@ class EloquentProcedurePriceRepository implements ProcedurePriceRepositoryInterf
                                 : null,
             isActive:         (bool) $model->is_active,
             notes:            $model->notes,
+            loadedByUserId:   $model->loaded_by_user_id,
         );
     }
 }

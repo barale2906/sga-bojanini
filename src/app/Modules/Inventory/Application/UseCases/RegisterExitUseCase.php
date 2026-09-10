@@ -9,6 +9,7 @@ use App\Modules\Catalog\Infrastructure\Persistence\Models\GenericProductModel;
 use App\Modules\CostCenter\Infrastructure\Persistence\Models\CostCenterModel;
 use App\Modules\Inventory\Domain\Events\StockBelowReorderPoint;
 use App\Modules\Inventory\Domain\Events\StockMovementCreated;
+use App\Modules\Inventory\Domain\Exceptions\InsufficientStockException;
 use App\Modules\Inventory\Domain\Exceptions\ProductNotFoundException;
 use App\Modules\Inventory\Domain\Services\BatchLocationService;
 use App\Modules\Inventory\Domain\Services\DocumentNumberGenerator;
@@ -84,11 +85,7 @@ class RegisterExitUseCase
     /** Crea líneas pendientes de firma (sin modificar stock). */
     private function createPendingLines(array $item, array $data, MovementDocumentModel $document): void
     {
-        $selectedBatches = $this->fefoService->selectBatchesForGenericExit(
-            $item['generic_product_id'],
-            $data['warehouse_id'],
-            $item['quantity'],
-        );
+        $selectedBatches = $this->resolveSelectionsForItem($item, $data['warehouse_id']);
 
         foreach ($selectedBatches as $selection) {
             StockMovementModel::create([
@@ -114,11 +111,7 @@ class RegisterExitUseCase
     /** Aplica stock y crea líneas de forma directa (entrega a centro de costo interno). */
     private function applyStockAndCreateLines(array $item, array $data, MovementDocumentModel $document, GenericProductModel $generic): void
     {
-        $selectedBatches = $this->fefoService->selectBatchesForGenericExit(
-            $item['generic_product_id'],
-            $data['warehouse_id'],
-            $item['quantity'],
-        );
+        $selectedBatches = $this->resolveSelectionsForItem($item, $data['warehouse_id']);
 
         foreach ($selectedBatches as $selection) {
             $batch = BatchModel::findOrFail($selection['batch_id']);
@@ -172,6 +165,62 @@ class RegisterExitUseCase
         }
     }
 
+    /**
+     * Si el ítem trae `batch_id` explícito lo usa directamente (validando pertenencia
+     * al genérico y stock suficiente). Si no, delega al FEFO automático.
+     *
+     * @return array<int, array{batch_id:int, product_variant_id:int, lot_number:string, quantity:float, expiration_date:string}>
+     */
+    private function resolveSelectionsForItem(array $item, int $warehouseId): array
+    {
+        if (! empty($item['batch_id'])) {
+            return $this->selectSpecificBatch($item, $warehouseId);
+        }
+
+        return $this->fefoService->selectBatchesForGenericExit(
+            $item['generic_product_id'],
+            $warehouseId,
+            (float) $item['quantity'],
+        );
+    }
+
+    /**
+     * Valida y devuelve la selección para un lote explícito enviado por el frontend.
+     * El lote debe pertenecer al genérico indicado y tener stock suficiente en el almacén.
+     *
+     * @return array<int, array{batch_id:int, product_variant_id:int, lot_number:string, quantity:float, expiration_date:string}>
+     */
+    private function selectSpecificBatch(array $item, int $warehouseId): array
+    {
+        $batch = BatchModel::findOrFail((int) $item['batch_id']);
+
+        $genericId = DB::table('product_variants')
+            ->where('id', $batch->product_variant_id)
+            ->value('generic_product_id');
+
+        if ((int) $genericId !== (int) $item['generic_product_id']) {
+            throw new \DomainException(
+                "El lote '{$batch->lot_number}' no corresponde al producto indicado."
+            );
+        }
+
+        $quantity = (float) $item['quantity'];
+
+        if ($batch->quantity_available < $quantity) {
+            throw new InsufficientStockException(
+                "El lote {$batch->lot_number} solo tiene {$batch->quantity_available} unidades disponibles, se solicitaron {$quantity}."
+            );
+        }
+
+        return [[
+            'batch_id'           => $batch->id,
+            'product_variant_id' => $batch->product_variant_id,
+            'lot_number'         => $batch->lot_number,
+            'quantity'           => $quantity,
+            'expiration_date'    => $batch->expiration_date->format('Y-m-d'),
+        ]];
+    }
+
     /** Aplica el stock de todas las líneas de un documento confirmado. Llamado desde ConfirmMovementUseCase. */
     public function applyStock(StockMovementModel $movement): void
     {
@@ -219,6 +268,11 @@ class RegisterExitUseCase
 
     private function validateCostCenter(array $data): void
     {
+        // Las salidas vinculadas a una orden de servicio de paciente no requieren centro de costo
+        if (! empty($data['patient_external_id'])) {
+            return;
+        }
+
         $costCenterId = $data['cost_center_id'] ?? null;
 
         if (empty($costCenterId)) {

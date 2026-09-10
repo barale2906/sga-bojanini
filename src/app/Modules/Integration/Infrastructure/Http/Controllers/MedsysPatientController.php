@@ -50,27 +50,18 @@ class MedsysPatientController extends Controller
 
         $term = trim($request->string('search')->value());
 
-        if (ctype_digit($term)) {
-            $patient = $this->patientService->findByDocument($term);
+        $patients = ctype_digit($term)
+            ? $this->patientService->findByDocument($term)
+            : $this->patientService->findByName($term);
 
-            if ($patient === null) {
-                return $this->error('Paciente no encontrado en MedSys', 404);
-            }
-
-            $appointments = $this->appointmentService
-                ->getPatientSummary($patient->codigo)
-                ->map(fn (object $appt) => $this->enrichAppointment($appt));
-
-            return $this->success(
-                ['patient' => $patient, 'appointments' => $appointments],
-                'Paciente encontrado en MedSys',
-            );
-        }
-
-        $patients = $this->patientService->findByName($term);
+        $enriched = $patients->map(function (object $patient): object {
+            $patient->recent_appointments = $this->appointmentService
+                ->getPatientSummary($patient->codigo);
+            return $patient;
+        });
 
         return $this->success(
-            ['patients' => $patients],
+            ['patients' => $enriched],
             'Resultados de búsqueda en MedSys',
         );
     }

@@ -11,18 +11,25 @@ class MedsysPatientService
 {
     private const NAME_EXPR = "CONCAT(TRIM(nombre1),' ',TRIM(COALESCE(nombre2,'')),' ',TRIM(apellido1),' ',TRIM(COALESCE(apellido2,'')))";
 
-    public function findByDocument(string $document): ?object
+    /** @return Collection<int, object> */
+    public function findByDocument(string $document): Collection
     {
         return DB::connection('medsys')
             ->table('pacientes')
-            ->where('documento', $document)
+            ->where('documento', 'LIKE', $document.'%')
             ->select(
                 'codigo',
                 'tipodoc',
                 'documento',
                 DB::raw(self::NAME_EXPR.' as nombre'),
+                'email',
+                'direccion',
+                'direccion2',
+                'telcelular',
+                'telefono',
             )
-            ->first();
+            ->limit(20)
+            ->get();
     }
 
     /** @return Collection<int, object> */
@@ -36,6 +43,11 @@ class MedsysPatientService
                 'tipodoc',
                 'documento',
                 DB::raw(self::NAME_EXPR.' as nombre'),
+                'email',
+                'direccion',
+                'direccion2',
+                'telcelular',
+                'telefono',
             )
             ->limit(20)
             ->get();

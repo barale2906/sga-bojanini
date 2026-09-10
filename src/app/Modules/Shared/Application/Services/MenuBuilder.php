@@ -104,6 +104,13 @@ class MenuBuilder
             ];
         }
 
+        // ── Órdenes de Servicio ───────────────────────────────────────────────
+        $serviceOrdersSection = $this->buildServiceOrdersSection($has);
+
+        if ($serviceOrdersSection !== null) {
+            $menu[] = $serviceOrdersSection;
+        }
+
         // ── Monitoreo ─────────────────────────────────────────────────────────
         $monitoringSection = $this->buildMonitoringSection($has);
 
@@ -521,6 +528,61 @@ class MenuBuilder
             'key'        => 'integration',
             'label'      => 'Integraciones',
             'icon'       => 'plug',
+            'route'      => null,
+            'permission' => null,
+            'actions'    => [],
+            'children'   => array_values($children),
+        ];
+    }
+
+    /**
+     * @param  callable(string): bool  $has
+     * @return array<string, mixed>|null
+     */
+    private function buildServiceOrdersSection(callable $has): ?array
+    {
+        $children = array_filter([
+            $has('ordenes_servicio.ver') ? [
+                'key'        => 'service-orders',
+                'label'      => 'Generar Orden',
+                'icon'       => 'file-plus',
+                'route'      => 'service-orders.index',
+                'permission' => 'ordenes_servicio.ver',
+                'actions'    => [
+                    'create' => $has('ordenes_servicio.crear'),
+                    'edit'   => $has('ordenes_servicio.editar'),
+                    'delete' => $has('ordenes_servicio.eliminar'),
+                ],
+                'children'   => [],
+            ] : null,
+            $has('ordenes_servicio.aprobar') ? [
+                'key'        => 'service-orders-discounts',
+                'label'      => 'Descuentos',
+                'icon'       => 'badge-percent',
+                'route'      => 'service-orders.discounts',
+                'permission' => 'ordenes_servicio.aprobar',
+                'actions'    => ['approve' => $has('ordenes_servicio.aprobar')],
+                'children'   => [],
+            ] : null,
+            $has('listas_precios.ver') ? [
+                'key'        => 'price-lists',
+                'label'      => 'Listas de Precios',
+                'icon'       => 'list-ordered',
+                'route'      => 'price-lists.index',
+                'permission' => 'listas_precios.ver',
+                'actions'    => ['create' => $has('listas_precios.crear')],
+                'children'   => [],
+            ] : null,
+        ]);
+
+        if (empty($children)) {
+            return null;
+        }
+
+        return [
+            'key'        => 'service-orders-menu',
+            'label'      => 'Órdenes de Servicio',
+            'icon'       => 'clipboard-list',
             'route'      => null,
             'permission' => null,
             'actions'    => [],

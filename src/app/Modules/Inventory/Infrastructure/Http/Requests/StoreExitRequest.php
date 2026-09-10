@@ -24,8 +24,9 @@ class StoreExitRequest extends FormRequest
             'patient_external_id'     => ['nullable', 'string', 'max:100'],
             'reason'                  => ['nullable', 'string'],
 
-            'items'                   => ['required', 'array', 'min:1'],
+            'items'                      => ['required', 'array', 'min:1'],
             'items.*.generic_product_id' => ['required', 'integer', 'exists:product_generics,id'],
+            'items.*.batch_id'           => ['nullable', 'integer', 'exists:batches,id'],
             'items.*.quantity'           => ['required', 'numeric', 'min:0.001'],
             'items.*.location_id'        => ['nullable', 'integer', 'exists:locations,id'],
         ];
@@ -38,6 +39,7 @@ class StoreExitRequest extends FormRequest
             'items.min'                            => 'Debe incluir al menos un producto.',
             'items.*.generic_product_id.required'  => 'El producto es obligatorio en cada ítem.',
             'items.*.generic_product_id.exists'    => 'Uno de los productos no existe.',
+            'items.*.batch_id.exists'              => 'El lote indicado no existe.',
             'items.*.quantity.required'            => 'La cantidad es obligatoria en cada ítem.',
             'items.*.quantity.min'                 => 'La cantidad debe ser mayor a cero en cada ítem.',
         ];

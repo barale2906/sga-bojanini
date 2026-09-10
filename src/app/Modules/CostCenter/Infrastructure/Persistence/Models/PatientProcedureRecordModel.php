@@ -24,6 +24,9 @@ class PatientProcedureRecordModel extends Model
         'patient_document',
         'patient_first_name',
         'patient_last_name',
+        'patient_email',
+        'patient_address',
+        'patient_phone',
         'quantity',
         'unit_price',
         'total',
@@ -32,16 +35,29 @@ class PatientProcedureRecordModel extends Model
         'seller',
         'referrer',
         'is_active',
+        'order_number',
+        'discount_type',
+        'discount_value',
+        'discount_amount',
+        'net_total',
+        'discount_status',
+        'created_by_user_id',
+        'approved_by_user_id',
+        'approved_at',
     ];
 
     protected function casts(): array
     {
         return [
-            'quantity'     => 'float',
-            'unit_price'   => 'float',
-            'total'        => 'float',
-            'service_date' => 'date',
-            'is_active'    => 'boolean',
+            'quantity'        => 'float',
+            'unit_price'      => 'float',
+            'total'           => 'float',
+            'discount_value'  => 'float',
+            'discount_amount' => 'float',
+            'net_total'       => 'float',
+            'service_date'    => 'date',
+            'approved_at'     => 'datetime',
+            'is_active'       => 'boolean',
         ];
     }
 

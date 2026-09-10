@@ -72,7 +72,7 @@ class MovementDocumentModel extends Model
 
     public function movements(): HasMany
     {
-        return $this->hasMany(StockMovementModel::class, 'movement_document_id');
+        return $this->hasMany(StockMovementModel::class, 'movement_document_id')->orderBy('id');
     }
 
     public function signatures(): HasMany

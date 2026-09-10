@@ -90,6 +90,11 @@ class RolesAndPermissionsSeeder extends Seeder
             'evoluciones_clinicas.ver', 'evoluciones_clinicas.crear', 'evoluciones_clinicas.editar', 'evoluciones_clinicas.eliminar',
             // Medicamentos aplicados por procedimiento (solo lectura — se extraen del movimiento de inventario)
             'medicamentos_procedimiento.ver',
+            // Órdenes de servicio
+            'ordenes_servicio.ver', 'ordenes_servicio.crear', 'ordenes_servicio.editar',
+            'ordenes_servicio.eliminar', 'ordenes_servicio.aprobar',
+            // Listas de precios
+            'listas_precios.ver', 'listas_precios.crear',
         ];
 
         foreach ($permissions as $permission) {
@@ -141,6 +146,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'plantillas_clinicas.ver', 'plantillas_clinicas.crear', 'plantillas_clinicas.editar', 'plantillas_clinicas.eliminar',
             'evoluciones_clinicas.ver', 'evoluciones_clinicas.crear', 'evoluciones_clinicas.editar', 'evoluciones_clinicas.eliminar',
             'medicamentos_procedimiento.ver',
+            'ordenes_servicio.ver', 'ordenes_servicio.crear', 'ordenes_servicio.editar', 'ordenes_servicio.eliminar', 'ordenes_servicio.aprobar',
+            'listas_precios.ver', 'listas_precios.crear',
         ]);
 
         // 3. Operador de Almacén — Gestiona inventario día a día
@@ -165,6 +172,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'plantillas_clinicas.ver',
             'evoluciones_clinicas.ver', 'evoluciones_clinicas.crear',
             'medicamentos_procedimiento.ver',
+            'ordenes_servicio.ver', 'ordenes_servicio.crear',
         ]);
 
         // 4. Compras — Gestiona órdenes de compra
@@ -192,6 +200,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'auditoria.ver', 'auditoria.exportar',
             'reportes.ver', 'reportes.exportar',
             'tablero.ver',
+            'ordenes_servicio.ver',
         ]);
 
         // 6. Jefe de Almacén — Operador + aprobaciones + ajustes
@@ -224,6 +233,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'plantillas_clinicas.ver', 'plantillas_clinicas.crear', 'plantillas_clinicas.editar',
             'evoluciones_clinicas.ver', 'evoluciones_clinicas.crear', 'evoluciones_clinicas.editar',
             'medicamentos_procedimiento.ver',
+            'ordenes_servicio.ver', 'ordenes_servicio.crear', 'ordenes_servicio.editar', 'ordenes_servicio.eliminar', 'ordenes_servicio.aprobar',
+            'listas_precios.ver', 'listas_precios.crear',
         ]);
 
         // 7. Personal Médico — Solo ve stock y registra consumos
@@ -242,6 +253,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'plantillas_clinicas.ver',
             'evoluciones_clinicas.ver', 'evoluciones_clinicas.crear',
             'medicamentos_procedimiento.ver',
+            'ordenes_servicio.ver', 'ordenes_servicio.crear',
         ]);
 
         // ─────────────────────────────────────────

@@ -31,6 +31,18 @@ class PatientProcedureRecord
         private ?string $seller = null,
         private ?string $referrer = null,
         private ?int $movementDocumentId = null,
+        private ?string $orderNumber = null,
+        private ?string $discountType = null,
+        private ?float $discountValue = null,
+        private ?float $discountAmount = null,
+        private ?float $netTotal = null,
+        private ?string $discountStatus = null,
+        private ?int $createdByUserId = null,
+        private ?int $approvedByUserId = null,
+        private ?DateTimeImmutable $approvedAt = null,
+        private ?string $patientEmail = null,
+        private ?string $patientAddress = null,
+        private ?string $patientPhone = null,
     ) {}
 
     public static function create(
@@ -46,7 +58,19 @@ class PatientProcedureRecord
         ?string $seller = null,
         ?string $referrer = null,
         ?int $movementDocumentId = null,
+        ?string $orderNumber = null,
+        ?string $discountType = null,
+        ?float $discountValue = null,
+        ?float $discountAmount = null,
+        ?float $netTotal = null,
+        ?string $discountStatus = null,
+        ?int $createdByUserId = null,
+        ?string $patientEmail = null,
+        ?string $patientAddress = null,
+        ?string $patientPhone = null,
     ): self {
+        $total = self::calculateTotal($quantity, $unitPrice);
+
         return new self(
             id:                 null,
             medicalServiceId:   $medicalServiceId,
@@ -56,13 +80,36 @@ class PatientProcedureRecord
             patientLastName:    $patientLastName,
             quantity:           $quantity,
             unitPrice:          $unitPrice,
-            total:              self::calculateTotal($quantity, $unitPrice),
+            total:              $total,
             serviceDate:        $serviceDate,
             notes:              $notes,
             seller:             $seller,
             referrer:           $referrer,
             movementDocumentId: $movementDocumentId,
+            orderNumber:        $orderNumber,
+            discountType:       $discountType,
+            discountValue:      $discountValue,
+            discountAmount:     $discountAmount,
+            netTotal:           $netTotal ?? ($discountAmount !== null ? round($total - $discountAmount, 2) : null),
+            discountStatus:     $discountStatus,
+            createdByUserId:    $createdByUserId,
+            patientEmail:       $patientEmail,
+            patientAddress:     $patientAddress,
+            patientPhone:       $patientPhone,
         );
+    }
+
+    public static function calculateDiscountAmount(float $total, ?string $type, ?float $value): float
+    {
+        if ($type === null || $value === null) {
+            return 0.0;
+        }
+
+        return match ($type) {
+            'fixed'      => round($value, 2),
+            'percentage' => round($total * $value / 100, 2),
+            default      => 0.0,
+        };
     }
 
     public static function calculateTotal(float $quantity, float $unitPrice): float
@@ -148,6 +195,66 @@ class PatientProcedureRecord
     public function getMovementDocumentId(): ?int
     {
         return $this->movementDocumentId;
+    }
+
+    public function getOrderNumber(): ?string
+    {
+        return $this->orderNumber;
+    }
+
+    public function getDiscountType(): ?string
+    {
+        return $this->discountType;
+    }
+
+    public function getDiscountValue(): ?float
+    {
+        return $this->discountValue;
+    }
+
+    public function getDiscountAmount(): ?float
+    {
+        return $this->discountAmount;
+    }
+
+    public function getNetTotal(): ?float
+    {
+        return $this->netTotal;
+    }
+
+    public function getDiscountStatus(): ?string
+    {
+        return $this->discountStatus;
+    }
+
+    public function getCreatedByUserId(): ?int
+    {
+        return $this->createdByUserId;
+    }
+
+    public function getApprovedByUserId(): ?int
+    {
+        return $this->approvedByUserId;
+    }
+
+    public function getApprovedAt(): ?DateTimeImmutable
+    {
+        return $this->approvedAt;
+    }
+
+    public function getPatientEmail(): ?string
+    {
+        return $this->patientEmail;
+    }
+
+    public function getPatientAddress(): ?string
+    {
+        return $this->patientAddress;
+    }
+
+    public function getPatientPhone(): ?string
+    {
+        return $this->patientPhone;
     }
 
     public function activate(): void

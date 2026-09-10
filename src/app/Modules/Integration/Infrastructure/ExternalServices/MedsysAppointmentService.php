@@ -36,51 +36,29 @@ class MedsysAppointmentService
     }
 
     /**
-     * Resumen de citas para mostrar al buscar un paciente:
-     * las 3 más recientes (cualquier estado) + la próxima futura activa si no está ya incluida.
+     * Últimas 3 citas del paciente (cualquier estado), de más reciente a más antigua.
      *
      * @return Collection<int, object>
      */
     public function getPatientSummary(string $patientCode): Collection
     {
-        $cols = [
-            'c.codcontrol',
-            'c.fecha',
-            'c.hora',
-            'c.codtipocontrol',
-            't.descripcion as servicio',
-            'e.descripcion as estado',
-        ];
-
-        $recientes = DB::connection('medsys')
+        return DB::connection('medsys')
             ->table('controles as c')
             ->join('tiposproc as t', 'c.codtipocontrol', '=', 't.codigo')
             ->join('estadoscita as e', 'c.estado', '=', 'e.codigo')
             ->where('c.idpaciente', $patientCode)
-            ->select($cols)
+            ->select(
+                'c.codcontrol',
+                'c.fecha',
+                'c.hora',
+                'c.codtipocontrol',
+                't.descripcion as servicio',
+                'e.descripcion as estado',
+            )
             ->orderBy('c.fecha', 'desc')
             ->orderBy('c.hora', 'desc')
             ->limit(3)
             ->get();
-
-        $proxima = DB::connection('medsys')
-            ->table('controles as c')
-            ->join('tiposproc as t', 'c.codtipocontrol', '=', 't.codigo')
-            ->join('estadoscita as e', 'c.estado', '=', 'e.codigo')
-            ->where('c.idpaciente', $patientCode)
-            ->whereIn('c.estado', self::ACTIVE_STATES)
-            ->where('c.fecha', '>=', now()->toDateString())
-            ->select($cols)
-            ->orderBy('c.fecha')
-            ->orderBy('c.hora')
-            ->limit(1)
-            ->get();
-
-        return $recientes
-            ->concat($proxima)
-            ->unique('codcontrol')
-            ->sortByDesc('fecha')
-            ->values();
     }
 
     /**

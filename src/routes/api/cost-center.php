@@ -26,6 +26,8 @@ Route::middleware(['auth:sanctum', 'user.is_active'])->prefix('v1')->group(funct
     Route::middleware('permission:servicios_medicos.ver')->group(function () {
         Route::get('medical-services/tree', [MedicalServiceController::class, 'tree'])
             ->name('medical-services.tree');
+        Route::get('medical-services/search', [MedicalServiceController::class, 'search'])
+            ->name('medical-services.search');
         Route::apiResource('medical-services', MedicalServiceController::class)->only(['index', 'show']);
         Route::get('medical-services/{medical_service}/procedures', [MedicalServiceController::class, 'procedures'])
             ->name('medical-services.procedures');

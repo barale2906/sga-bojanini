@@ -24,4 +24,18 @@ interface PatientProcedureRecordRepositoryInterface
     public function save(PatientProcedureRecord $record): PatientProcedureRecord;
 
     public function delete(int $id): void;
+
+    /** @return PatientProcedureRecord[] */
+    public function createBatch(array $records): array;
+
+    /** @return PatientProcedureRecord[] */
+    public function findByOrderNumber(string $orderNumber): array;
+
+    /**
+     * Órdenes con algún registro en discount_status='pending'.
+     * @return array<int, array<string, mixed>>
+     */
+    public function findPendingDiscountOrders(array $filters = []): array;
+
+    public function approveDiscountsForOrder(string $orderNumber, int $userId, \DateTimeImmutable $at): void;
 }

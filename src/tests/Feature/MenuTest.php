@@ -48,7 +48,7 @@ class MenuTest extends TestCase
 
     // ─── Super Administrador — ve todo ────────────────────────────────────────
 
-    public function test_super_administrador_ve_seis_secciones(): void
+    public function test_super_administrador_ve_siete_secciones(): void
     {
         $admin = UserModel::where('email', 'alexanderbarajas@gmail.com')->first();
         $token = $this->bearerTokenFor($admin);
@@ -58,12 +58,13 @@ class MenuTest extends TestCase
             ->assertOk()
             ->json('data');
 
-        $this->assertCount(6, $data);
+        $this->assertCount(7, $data);
 
         $keys = array_column($data, 'key');
         $this->assertContains('dashboard',            $keys);
         $this->assertContains('inventory-management', $keys);
         $this->assertContains('purchasing',           $keys);
+        $this->assertContains('service-orders-menu',  $keys);
         $this->assertContains('monitoring',           $keys);
         $this->assertContains('management',           $keys);
         $this->assertContains('configuration',        $keys);
@@ -267,6 +268,45 @@ class MenuTest extends TestCase
         $this->assertTrue($item['actions']['create']);
         $this->assertTrue($item['actions']['edit']);
         $this->assertFalse($item['actions']['delete']);
+    }
+
+    // ─── Órdenes de Servicio ─────────────────────────────────────────────────
+
+    public function test_super_admin_ve_seccion_ordenes_servicio_con_tres_hijos(): void
+    {
+        $admin = UserModel::where('email', 'alexanderbarajas@gmail.com')->first();
+        $token = $this->bearerTokenFor($admin);
+
+        $data = $this->withHeaders(['Authorization' => "Bearer {$token}"])
+            ->getJson('/api/v1/auth/menu')
+            ->json('data');
+
+        $section = $this->findSectionByKey($data, 'service-orders-menu');
+        $this->assertNotNull($section);
+        $this->assertSame('Órdenes de Servicio', $section['label']);
+
+        $childKeys = array_column($section['children'], 'key');
+        $this->assertContains('service-orders',          $childKeys);
+        $this->assertContains('service-orders-discounts', $childKeys);
+        $this->assertContains('price-lists',             $childKeys);
+    }
+
+    public function test_usuario_solo_con_ver_no_ve_descuentos_ni_precios(): void
+    {
+        $user  = $this->authenticateAsRole('personal_medico');
+        $token = $this->bearerTokenFor($user);
+
+        $data = $this->withHeaders(['Authorization' => "Bearer {$token}"])
+            ->getJson('/api/v1/auth/menu')
+            ->json('data');
+
+        $section = $this->findSectionByKey($data, 'service-orders-menu');
+        $this->assertNotNull($section);
+
+        $childKeys = array_column($section['children'], 'key');
+        $this->assertContains('service-orders', $childKeys);
+        $this->assertNotContains('service-orders-discounts', $childKeys);
+        $this->assertNotContains('price-lists', $childKeys);
     }
 
     // ─── Helper ───────────────────────────────────────────────────────────────

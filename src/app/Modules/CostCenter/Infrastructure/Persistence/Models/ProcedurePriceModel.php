@@ -23,6 +23,7 @@ class ProcedurePriceModel extends Model
         'effective_to',
         'is_active',
         'notes',
+        'loaded_by_user_id',
     ];
 
     protected function casts(): array
