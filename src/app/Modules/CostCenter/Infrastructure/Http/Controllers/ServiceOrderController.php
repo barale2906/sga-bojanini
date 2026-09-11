@@ -10,6 +10,7 @@ use App\Modules\CostCenter\Application\UseCases\ApproveServiceOrderDiscountUseCa
 use App\Modules\CostCenter\Application\UseCases\CreateServiceOrderUseCase;
 use App\Modules\CostCenter\Application\UseCases\GetServiceOrderUseCase;
 use App\Modules\CostCenter\Application\UseCases\ListPendingDiscountOrdersUseCase;
+use App\Modules\CostCenter\Application\UseCases\UpdateOrderBillingStatusUseCase;
 use App\Modules\CostCenter\Infrastructure\Http\Requests\StoreServiceOrderRequest;
 use App\Modules\CostCenter\Infrastructure\Http\Resources\PatientProcedureRecordResource;
 use App\Modules\CostCenter\Infrastructure\Http\Resources\ServiceOrderResource;
@@ -123,6 +124,60 @@ class ServiceOrderController extends Controller
         }, $orders);
 
         return $this->success($result, 'Órdenes con descuentos pendientes');
+    }
+
+    /**
+     * Marcar una orden como facturada.
+     *
+     * @urlParam orderNumber string required Número de orden. Example: OS-20260909-000001
+     * @response 200 {"success":true,"data":{"order_number":"OS-20260909-000001","billing_status":"billed",...}}
+     * @response 409 {"success":false,"message":"La orden ... ya se encuentra en estado 'billed'."}
+     */
+    public function bill(string $orderNumber, UpdateOrderBillingStatusUseCase $useCase): JsonResponse
+    {
+        $records = $useCase->execute($orderNumber, 'billed', (int) auth()->id());
+        $first   = $records[0];
+
+        return $this->success(new ServiceOrderResource([
+            'order_number'        => $orderNumber,
+            'patient_external_id' => $first->getPatientExternalId(),
+            'patient_document'    => $first->getPatientDocument(),
+            'patient_first_name'  => $first->getPatientFirstName(),
+            'patient_last_name'   => $first->getPatientLastName(),
+            'patient_email'       => $first->getPatientEmail(),
+            'patient_address'     => $first->getPatientAddress(),
+            'patient_phone'       => $first->getPatientPhone(),
+            'service_date'        => $first->getServiceDate()->format('Y-m-d'),
+            'created_by_user_id'  => $first->getCreatedByUserId(),
+            'records'             => $records,
+        ]), 'Orden marcada como facturada');
+    }
+
+    /**
+     * Anular una orden de servicio.
+     *
+     * @urlParam orderNumber string required Número de orden. Example: OS-20260909-000001
+     * @response 200 {"success":true,"data":{"order_number":"OS-20260909-000001","billing_status":"cancelled",...}}
+     * @response 409 {"success":false,"message":"La orden ... ya se encuentra en estado 'cancelled'."}
+     */
+    public function cancel(string $orderNumber, UpdateOrderBillingStatusUseCase $useCase): JsonResponse
+    {
+        $records = $useCase->execute($orderNumber, 'cancelled', (int) auth()->id());
+        $first   = $records[0];
+
+        return $this->success(new ServiceOrderResource([
+            'order_number'        => $orderNumber,
+            'patient_external_id' => $first->getPatientExternalId(),
+            'patient_document'    => $first->getPatientDocument(),
+            'patient_first_name'  => $first->getPatientFirstName(),
+            'patient_last_name'   => $first->getPatientLastName(),
+            'patient_email'       => $first->getPatientEmail(),
+            'patient_address'     => $first->getPatientAddress(),
+            'patient_phone'       => $first->getPatientPhone(),
+            'service_date'        => $first->getServiceDate()->format('Y-m-d'),
+            'created_by_user_id'  => $first->getCreatedByUserId(),
+            'records'             => $records,
+        ]), 'Orden anulada exitosamente');
     }
 
     /**

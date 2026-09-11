@@ -38,4 +38,10 @@ interface PatientProcedureRecordRepositoryInterface
     public function findPendingDiscountOrders(array $filters = []): array;
 
     public function approveDiscountsForOrder(string $orderNumber, int $userId, \DateTimeImmutable $at): void;
+
+    /**
+     * Cambia el billing_status de todos los registros de una orden.
+     * Status válidos: 'billed' | 'cancelled'
+     */
+    public function updateBillingStatusForOrder(string $orderNumber, string $status, int $userId, \DateTimeImmutable $at): void;
 }

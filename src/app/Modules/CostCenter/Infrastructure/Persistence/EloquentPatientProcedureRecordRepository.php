@@ -62,6 +62,14 @@ class EloquentPatientProcedureRecordRepository implements PatientProcedureRecord
             $query->where('discount_status', $filters['discount_status']);
         }
 
+        if (isset($filters['billing_status'])) {
+            if ($filters['billing_status'] === 'null') {
+                $query->whereNull('billing_status');
+            } else {
+                $query->where('billing_status', $filters['billing_status']);
+            }
+        }
+
         return $query->with('medicalService')
             ->orderByDesc('service_date')
             ->get()
@@ -219,6 +227,17 @@ class EloquentPatientProcedureRecordRepository implements PatientProcedureRecord
             ]);
     }
 
+    public function updateBillingStatusForOrder(string $orderNumber, string $status, int $userId, \DateTimeImmutable $at): void
+    {
+        PatientProcedureRecordModel::where('order_number', $orderNumber)
+            ->lockForUpdate()
+            ->update([
+                'billing_status'    => $status,
+                'billed_by_user_id' => $userId,
+                'billed_at'         => $at->format('Y-m-d H:i:s'),
+            ]);
+    }
+
     private function toDomain(PatientProcedureRecordModel $model): PatientProcedureRecord
     {
         return new PatientProcedureRecord(
@@ -250,6 +269,9 @@ class EloquentPatientProcedureRecordRepository implements PatientProcedureRecord
             patientEmail:       $model->patient_email,
             patientAddress:     $model->patient_address,
             patientPhone:       $model->patient_phone,
+            billingStatus:      $model->billing_status,
+            billedByUserId:     $model->billed_by_user_id,
+            billedAt:           $model->billed_at ? new DateTimeImmutable($model->billed_at->format('Y-m-d H:i:s')) : null,
         );
     }
 }

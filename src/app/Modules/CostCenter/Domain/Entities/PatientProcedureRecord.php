@@ -43,6 +43,9 @@ class PatientProcedureRecord
         private ?string $patientEmail = null,
         private ?string $patientAddress = null,
         private ?string $patientPhone = null,
+        private ?string $billingStatus = null,
+        private ?int $billedByUserId = null,
+        private ?DateTimeImmutable $billedAt = null,
     ) {}
 
     public static function create(
@@ -68,6 +71,9 @@ class PatientProcedureRecord
         ?string $patientEmail = null,
         ?string $patientAddress = null,
         ?string $patientPhone = null,
+        ?string $billingStatus = null,
+        ?int $billedByUserId = null,
+        ?\DateTimeImmutable $billedAt = null,
     ): self {
         $total = self::calculateTotal($quantity, $unitPrice);
 
@@ -96,6 +102,9 @@ class PatientProcedureRecord
             patientEmail:       $patientEmail,
             patientAddress:     $patientAddress,
             patientPhone:       $patientPhone,
+            billingStatus:      $billingStatus,
+            billedByUserId:     $billedByUserId,
+            billedAt:           $billedAt,
         );
     }
 
@@ -255,6 +264,21 @@ class PatientProcedureRecord
     public function getPatientPhone(): ?string
     {
         return $this->patientPhone;
+    }
+
+    public function getBillingStatus(): ?string
+    {
+        return $this->billingStatus;
+    }
+
+    public function getBilledByUserId(): ?int
+    {
+        return $this->billedByUserId;
+    }
+
+    public function getBilledAt(): ?DateTimeImmutable
+    {
+        return $this->billedAt;
     }
 
     public function activate(): void

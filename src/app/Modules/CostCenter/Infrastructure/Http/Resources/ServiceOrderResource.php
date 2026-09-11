@@ -24,6 +24,11 @@ class ServiceOrderResource extends JsonResource
             : (($r['discount_status'] ?? null) === 'pending')
         );
 
+        $first          = $records[0] ?? null;
+        $billingStatus  = $first instanceof PatientProcedureRecord
+            ? $first->getBillingStatus()
+            : ($first['billing_status'] ?? null);
+
         return [
             'order_number'        => $data['order_number'],
             'patient_external_id' => $data['patient_external_id'],
@@ -35,6 +40,7 @@ class ServiceOrderResource extends JsonResource
             'patient_phone'       => $data['patient_phone'] ?? null,
             'service_date'        => $data['service_date'],
             'order_status'        => $hasPending ? 'discount_pending' : 'approved',
+            'billing_status'      => $billingStatus,
             'total_amount'        => round((float) $totalAmount, 2),
             'total_discount'      => round((float) $totalDiscount, 2),
             'net_total'           => round((float) $netTotal, 2),

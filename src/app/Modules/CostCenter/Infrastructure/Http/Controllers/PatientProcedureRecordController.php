@@ -55,6 +55,8 @@ class PatientProcedureRecordController extends Controller
             'is_active',
             'seller',
             'referrer',
+            'billing_status',
+            'order_number',
         ]);
 
         $items = $useCase->execute($filters);

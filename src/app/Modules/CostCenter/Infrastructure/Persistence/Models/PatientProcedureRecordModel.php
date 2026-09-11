@@ -44,6 +44,9 @@ class PatientProcedureRecordModel extends Model
         'created_by_user_id',
         'approved_by_user_id',
         'approved_at',
+        'billing_status',
+        'billed_by_user_id',
+        'billed_at',
     ];
 
     protected function casts(): array
@@ -57,6 +60,7 @@ class PatientProcedureRecordModel extends Model
             'net_total'       => 'float',
             'service_date'    => 'date',
             'approved_at'     => 'datetime',
+            'billed_at'       => 'datetime',
             'is_active'       => 'boolean',
         ];
     }
