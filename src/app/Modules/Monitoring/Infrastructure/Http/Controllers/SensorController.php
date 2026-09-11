@@ -14,6 +14,7 @@ use App\Modules\Monitoring\Infrastructure\Http\Requests\StoreSensorRequest;
 use App\Modules\Monitoring\Infrastructure\Http\Requests\UpdateSensorRequest;
 use App\Modules\Monitoring\Infrastructure\Http\Resources\SensorResource;
 use App\Modules\Monitoring\Infrastructure\Persistence\Models\SensorModel;
+use App\Modules\Shared\Application\Services\CodeGeneratorService;
 use App\Modules\Shared\Infrastructure\Http\Traits\ApiResponse;
 use App\Modules\Shared\Infrastructure\Http\Traits\ChecksSensorAccess;
 use Illuminate\Http\JsonResponse;
@@ -39,10 +40,13 @@ class SensorController extends Controller
 
     public function store(StoreSensorRequest $request, CreateSensorUseCase $useCase): JsonResponse
     {
+        $name = $request->validated('name');
+        $code = $request->validated('code') ?: CodeGeneratorService::fromName($name);
+
         $data = new SensorData(
             zoneId: $request->validated('zone_id'),
-            code: $request->validated('code'),
-            name: $request->validated('name'),
+            code: $code,
+            name: $name,
             type: $request->validated('type'),
             unit: $request->validated('unit'),
         );
@@ -69,10 +73,13 @@ class SensorController extends Controller
     {
         $this->assertSensorAccess($request->user(), $sensor);
 
+        $name = $request->validated('name');
+        $code = $request->validated('code') ?: CodeGeneratorService::fromName($name);
+
         $data = new SensorData(
             zoneId: $request->validated('zone_id'),
-            code: $request->validated('code'),
-            name: $request->validated('name'),
+            code: $code,
+            name: $name,
             type: $request->validated('type'),
             unit: $request->validated('unit'),
         );

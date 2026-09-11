@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Modules\Auth\Infrastructure\Persistence\Models\UserModel;
+use App\Modules\Warehouse\Infrastructure\Persistence\Models\LocationModel;
 use App\Modules\Warehouse\Infrastructure\Persistence\Models\WarehouseModel;
 use App\Modules\Warehouse\Infrastructure\Persistence\Models\ZoneModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -260,6 +261,169 @@ class WarehouseTest extends TestCase
                 'zone_id' => 99999,
                 'name'    => 'Sin zona',
                 'code'    => 'SZ-001',
+            ])
+            ->assertStatus(422);
+    }
+
+    // ── Creación con estructura completa ──────────────────────────────────────
+
+    public function test_crear_almacen_con_zonas_y_ubicaciones(): void
+    {
+        $response = $this->withHeaders($this->authHeaders())
+            ->postJson('/api/v1/warehouses', [
+                'name'    => 'Almacén Completo',
+                'code'    => 'ALM-FULL',
+                'address' => 'Calle 99',
+                'zones'   => [
+                    [
+                        'name'     => 'Zona Fría',
+                        'code'     => 'Z-FRI',
+                        'type'     => 'cold',
+                        'temp_min' => 2,
+                        'temp_max' => 8,
+                        'locations' => [
+                            [
+                                'name'          => 'Estante A1',
+                                'code'          => 'A1',
+                                'volume_cm3'    => 50000,
+                                'max_weight_kg' => 200,
+                            ],
+                            [
+                                'name' => 'Estante A2',
+                                'code' => 'A2',
+                            ],
+                        ],
+                    ],
+                    [
+                        'name'      => 'Zona Ambiente',
+                        'code'      => 'Z-AMB',
+                        'type'      => 'ambient',
+                        'locations' => [],
+                    ],
+                ],
+            ]);
+
+        $response->assertStatus(201)->assertJsonPath('success', true);
+
+        $data = $response->json('data');
+        $this->assertCount(2, $data['zones']);
+
+        $zonaFria = collect($data['zones'])->firstWhere('code', 'Z-FRI');
+        $this->assertNotNull($zonaFria);
+        $this->assertCount(2, $zonaFria['locations']);
+
+        $a1 = collect($zonaFria['locations'])->firstWhere('code', 'A1');
+        $this->assertEquals(50000.0, (float) $a1['volume_cm3']);
+        $this->assertEquals(200.0, (float) $a1['max_weight_kg']);
+
+        $this->assertDatabaseHas('warehouses', ['code' => 'ALM-FULL']);
+        $this->assertDatabaseHas('zones', ['code' => 'Z-FRI']);
+        $this->assertDatabaseHas('locations', ['code' => 'A1']);
+    }
+
+    public function test_editar_almacen_con_zona_existente_y_nueva(): void
+    {
+        // Crear estructura inicial vía endpoint
+        $warehouseId = $this->withHeaders($this->authHeaders())
+            ->postJson('/api/v1/warehouses', [
+                'name'  => 'Alm Editable',
+                'code'  => 'ALM-EDIT',
+                'zones' => [
+                    [
+                        'name' => 'Zona Inicial',
+                        'code' => 'Z-INIT',
+                        'type' => 'ambient',
+                        'locations' => [
+                            ['name' => 'Loc 1', 'code' => 'L1'],
+                        ],
+                    ],
+                ],
+            ])
+            ->json('data.id');
+
+        $zoneId    = \App\Modules\Warehouse\Infrastructure\Persistence\Models\ZoneModel::where('code', 'Z-INIT')->value('id');
+        $locationId = \App\Modules\Warehouse\Infrastructure\Persistence\Models\LocationModel::where('code', 'L1')->value('id');
+
+        // Editar: actualizar zona existente (con id), agregar zona nueva, actualizar ubicación existente
+        $response = $this->withHeaders($this->authHeaders())
+            ->putJson("/api/v1/warehouses/{$warehouseId}", [
+                'name' => 'Alm Editable Actualizado',
+                'code' => 'ALM-EDIT',
+                'zones' => [
+                    [
+                        'id'   => $zoneId,
+                        'name' => 'Zona Inicial Actualizada',
+                        'code' => 'Z-INIT',
+                        'type' => 'ambient',
+                        'locations' => [
+                            [
+                                'id'   => $locationId,
+                                'name' => 'Loc 1 Actualizada',
+                                'code' => 'L1',
+                                'volume_cm3' => 30000,
+                            ],
+                            [
+                                'name' => 'Loc Nueva',
+                                'code' => 'L2',
+                            ],
+                        ],
+                    ],
+                    [
+                        'name'      => 'Zona Nueva',
+                        'code'      => 'Z-NEW',
+                        'type'      => 'cold',
+                        'temp_min'  => 0,
+                        'temp_max'  => 4,
+                        'locations' => [],
+                    ],
+                ],
+            ]);
+
+        $response->assertStatus(200)->assertJsonPath('success', true);
+
+        $data = $response->json('data');
+        $this->assertEquals('Alm Editable Actualizado', $data['name']);
+        $this->assertCount(2, $data['zones']);
+
+        $zonaInicial = collect($data['zones'])->firstWhere('code', 'Z-INIT');
+        $this->assertEquals('Zona Inicial Actualizada', $zonaInicial['name']);
+        $this->assertCount(2, $zonaInicial['locations']);
+
+        $this->assertDatabaseHas('locations', ['id' => $locationId, 'volume_cm3' => 30000]);
+        $this->assertDatabaseHas('locations', ['code' => 'L2']);
+        $this->assertDatabaseHas('zones', ['code' => 'Z-NEW']);
+    }
+
+    public function test_zona_con_tipo_invalido_retorna_422(): void
+    {
+        $this->withHeaders($this->authHeaders())
+            ->postJson('/api/v1/warehouses', [
+                'name'  => 'Alm Inválido',
+                'code'  => 'ALM-INV',
+                'zones' => [
+                    [
+                        'name' => 'Zona Inválida',
+                        'code' => 'Z-INV',
+                        'type' => 'tropical',
+                    ],
+                ],
+            ])
+            ->assertStatus(422)
+            ->assertJsonPath('success', false);
+    }
+
+    public function test_zona_sin_nombre_retorna_422(): void
+    {
+        $this->withHeaders($this->authHeaders())
+            ->postJson('/api/v1/warehouses', [
+                'name'  => 'Alm Sin Zona Nombre',
+                'code'  => 'ALM-SNZ',
+                'zones' => [
+                    [
+                        'code' => 'Z-SN',
+                        'type' => 'ambient',
+                    ],
+                ],
             ])
             ->assertStatus(422);
     }

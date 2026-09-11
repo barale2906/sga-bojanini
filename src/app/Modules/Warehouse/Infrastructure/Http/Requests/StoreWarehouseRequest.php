@@ -17,19 +17,38 @@ class StoreWarehouseRequest extends FormRequest
     {
         return [
             'name'        => ['required', 'string', 'max:255'],
-            'code'        => ['required', 'string', 'max:50', 'unique:warehouses,code'],
+            'code'        => ['nullable', 'string', 'max:50', 'unique:warehouses,code'],
             'address'     => ['nullable', 'string'],
             'description' => ['nullable', 'string'],
+
+            'zones'                              => ['nullable', 'array'],
+            'zones.*.name'                       => ['required', 'string', 'max:255'],
+            'zones.*.code'                       => ['nullable', 'string', 'max:50'],
+            'zones.*.type'                       => ['required', 'in:ambient,cold,frozen,controlled'],
+            'zones.*.temp_min'                   => ['nullable', 'numeric'],
+            'zones.*.temp_max'                   => ['nullable', 'numeric'],
+            'zones.*.humidity_min'               => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'zones.*.humidity_max'               => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'zones.*.description'                => ['nullable', 'string'],
+            'zones.*.locations'                  => ['nullable', 'array'],
+            'zones.*.locations.*.name'           => ['required', 'string', 'max:255'],
+            'zones.*.locations.*.code'           => ['nullable', 'string', 'max:50'],
+            'zones.*.locations.*.volume_cm3'     => ['nullable', 'numeric', 'min:0'],
+            'zones.*.locations.*.max_weight_kg'  => ['nullable', 'numeric', 'min:0'],
+            'zones.*.locations.*.description'    => ['nullable', 'string'],
         ];
     }
 
     public function messages(): array
     {
         return [
-            'name.required' => 'El nombre del almacén es obligatorio.',
-            'code.required' => 'El código del almacén es obligatorio.',
-            'code.unique'   => 'Ya existe un almacén con este código.',
-            'code.max'      => 'El código no puede tener más de 50 caracteres.',
+            'name.required'          => 'El nombre del almacén es obligatorio.',
+            'code.unique'            => 'Ya existe un almacén con este código.',
+            'code.max'               => 'El código no puede tener más de 50 caracteres.',
+            'zones.*.name.required'  => 'El nombre de cada zona es obligatorio.',
+            'zones.*.type.required'  => 'El tipo de cada zona es obligatorio.',
+            'zones.*.type.in'        => 'El tipo de zona debe ser: ambient, cold, frozen o controlled.',
+            'zones.*.locations.*.name.required' => 'El nombre de cada ubicación es obligatorio.',
         ];
     }
 }

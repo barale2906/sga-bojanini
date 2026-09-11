@@ -20,7 +20,7 @@ class UpdateSensorRequest extends FormRequest
 
         return [
             'zone_id' => ['required', 'integer', 'exists:zones,id'],
-            'code'    => ['required', 'string', 'max:50', Rule::unique('sensors', 'code')->ignore($sensorId)],
+            'code'    => ['nullable', 'string', 'max:50', Rule::unique('sensors', 'code')->ignore($sensorId)],
             'name'    => ['required', 'string', 'max:255'],
             'type'    => ['required', 'in:temperature,humidity'],
             'unit'    => ['required', 'string', 'max:10'],

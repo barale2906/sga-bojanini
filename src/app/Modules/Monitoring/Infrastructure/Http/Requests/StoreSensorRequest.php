@@ -17,7 +17,7 @@ class StoreSensorRequest extends FormRequest
     {
         return [
             'zone_id' => ['required', 'integer', 'exists:zones,id'],
-            'code'    => ['required', 'string', 'max:50', 'unique:sensors,code'],
+            'code'    => ['nullable', 'string', 'max:50', 'unique:sensors,code'],
             'name'    => ['required', 'string', 'max:255'],
             'type'    => ['required', 'in:temperature,humidity'],
             'unit'    => ['required', 'string', 'max:10'],
