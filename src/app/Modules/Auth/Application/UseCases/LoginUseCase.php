@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Auth\Application\UseCases;
 
 use App\Modules\Auth\Application\DTOs\LoginData;
+use App\Modules\Auth\Domain\Exceptions\InvalidCredentialsException;
 use App\Modules\Auth\Infrastructure\Persistence\Models\UserModel;
 use Illuminate\Support\Facades\Auth;
 
@@ -16,7 +17,7 @@ class LoginUseCase
     public function execute(LoginData $data): array
     {
         if (! Auth::attempt(['email' => $data->email, 'password' => $data->password])) {
-            throw new \DomainException('Credenciales inválidas.');
+            throw new InvalidCredentialsException('Credenciales inválidas.');
         }
 
         /** @var UserModel $user */

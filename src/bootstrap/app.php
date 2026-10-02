@@ -102,6 +102,17 @@ return Application::configure(basePath: dirname(__DIR__))
             }
         });
 
+        // Debe ir ANTES del renderizador de DomainException: InvalidCredentialsException
+        // hereda de esa clase y el genérico la capturaría primero, devolviendo 409.
+        $exceptions->render(function (\App\Modules\Auth\Domain\Exceptions\InvalidCredentialsException $e, $request) {
+            if ($request->is('api/*') || $request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ], 401);
+            }
+        });
+
         $exceptions->render(function (\DomainException $e, $request) {
             if ($request->is('api/*') || $request->expectsJson()) {
                 return response()->json([
