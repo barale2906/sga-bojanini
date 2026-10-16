@@ -51,9 +51,9 @@ class FEFOServiceTest extends TestCase
 
         $this->assertCount(2, $selected);
         $this->assertSame($batchSoon->id, $selected[0]['batch_id']);
-        $this->assertSame(30, $selected[0]['quantity']);
+        $this->assertSame(30.0, $selected[0]['quantity']);
         $this->assertSame($batchLater->id, $selected[1]['batch_id']);
-        $this->assertSame(20, $selected[1]['quantity']);
+        $this->assertSame(20.0, $selected[1]['quantity']);
     }
 
     public function test_throws_when_insufficient_stock(): void
@@ -95,9 +95,9 @@ class FEFOServiceTest extends TestCase
 
         $this->assertCount(2, $selected);
         $this->assertSame($batchSoon->id, $selected[0]['batch_id']);
-        $this->assertSame(30, $selected[0]['quantity']);
+        $this->assertSame(30.0, $selected[0]['quantity']);
         $this->assertSame($batchLater->id, $selected[1]['batch_id']);
-        $this->assertSame(20, $selected[1]['quantity']);
+        $this->assertSame(20.0, $selected[1]['quantity']);
     }
 
     public function test_throws_expired_stock_exception_when_only_expired_stock_available(): void
@@ -136,7 +136,7 @@ class FEFOServiceTest extends TestCase
 
         $expiredQuantity = app(FEFOService::class)->getExpiredQuantity($variant->id, $setup['warehouse']->id);
 
-        $this->assertSame(70, $expiredQuantity);
+        $this->assertSame(70.0, $expiredQuantity);
     }
 
     private function getAgujaVariant(): ProductVariantModel

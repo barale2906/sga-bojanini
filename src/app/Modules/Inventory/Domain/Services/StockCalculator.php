@@ -10,13 +10,13 @@ use Illuminate\Support\Facades\DB;
 
 class StockCalculator
 {
-    public function getCurrentStock(int $productVariantId, int $warehouseId): int
+    public function getCurrentStock(int $productVariantId, int $warehouseId): float
     {
         $summary = StockSummaryModel::where('product_variant_id', $productVariantId)
             ->where('warehouse_id', $warehouseId)
             ->first();
 
-        return $summary ? $summary->available_quantity : 0;
+        return $summary ? (float) $summary->available_quantity : 0.0;
     }
 
     /**

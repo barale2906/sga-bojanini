@@ -9,11 +9,11 @@ use App\Modules\Catalog\Domain\Services\PresentationConverter;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductVariantModel;
 use App\Modules\Inventory\Domain\Events\StockMovementCreated;
 use App\Modules\Inventory\Domain\Exceptions\ProductNotFoundException;
+use App\Modules\Inventory\Domain\Services\BatchLocationService;
 use App\Modules\Inventory\Domain\Services\DocumentNumberGenerator;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\BatchModel;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\MovementDocumentModel;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\StockMovementModel;
-use App\Modules\Warehouse\Infrastructure\Persistence\Models\LocationModel;
 use Illuminate\Support\Facades\DB;
 
 class RegisterEntryUseCase
@@ -21,6 +21,7 @@ class RegisterEntryUseCase
     public function __construct(
         private readonly PresentationConverter $presentationConverter,
         private readonly DocumentNumberGenerator $numberGenerator,
+        private readonly BatchLocationService $batchLocationService,
     ) {}
 
     public function execute(array $data): MovementDocumentModel
@@ -64,53 +65,30 @@ class RegisterEntryUseCase
 
         $quantity = $this->resolveQuantity($item);
 
-        $batch = BatchModel::where('product_variant_id', $item['product_variant_id'])
-            ->where('lot_number', $item['lot_number'])
-            ->first();
+        $this->batchLocationService->assertLocationInWarehouse((int) $item['location_id'], $warehouseId);
 
-        if ($batch) {
-            $batch->quantity_received += $quantity;
-            $batch->quantity_available += $quantity;
-            $batch->status = 'active';
-            $batch->save();
-        } else {
-            $batch = BatchModel::create([
+        // Los datos del lote se conservan tal como se registran. Si la fecha de
+        // vencimiento ya pasó, el lote queda en estado `expired` al sincronizarse
+        // y no estará disponible para salidas ni traslados.
+        $batch = BatchModel::firstOrCreate(
+            [
                 'product_variant_id' => $item['product_variant_id'],
                 'lot_number'         => $item['lot_number'],
+            ],
+            [
                 'expiration_date'    => $item['expiration_date'],
                 'manufacturing_date' => $item['manufacturing_date'] ?? null,
-                'quantity_received'  => $quantity,
-                'quantity_available' => $quantity,
+                'quantity_received'  => 0,
+                'quantity_available' => 0,
                 'status'             => 'active',
                 'notes'              => $item['notes'] ?? null,
                 'received_at'        => now(),
-            ]);
-        }
+            ],
+        );
 
-        LocationModel::findOrFail($item['location_id']);
+        $batch->increment('quantity_received', $quantity);
 
-        $pivotRecord = DB::table('batch_location')
-            ->where('batch_id', $batch->id)
-            ->where('location_id', $item['location_id'])
-            ->first();
-
-        if ($pivotRecord) {
-            DB::table('batch_location')
-                ->where('batch_id', $batch->id)
-                ->where('location_id', $item['location_id'])
-                ->update([
-                    'quantity'   => $pivotRecord->quantity + $quantity,
-                    'updated_at' => now(),
-                ]);
-        } else {
-            DB::table('batch_location')->insert([
-                'batch_id'    => $batch->id,
-                'location_id' => $item['location_id'],
-                'quantity'    => $quantity,
-                'created_at'  => now(),
-                'updated_at'  => now(),
-            ]);
-        }
+        $this->batchLocationService->deposit($batch->id, $warehouseId, (int) $item['location_id'], $quantity);
 
         $movement = StockMovementModel::create([
             'movement_document_id' => $document->id,

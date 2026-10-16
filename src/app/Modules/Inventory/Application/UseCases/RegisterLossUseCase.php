@@ -6,6 +6,7 @@ namespace App\Modules\Inventory\Application\UseCases;
 
 use App\Modules\Inventory\Domain\Events\StockMovementCreated;
 use App\Modules\Inventory\Domain\Exceptions\InsufficientStockException;
+use App\Modules\Inventory\Domain\Services\BatchLocationService;
 use App\Modules\Inventory\Domain\Services\DocumentNumberGenerator;
 use App\Modules\Inventory\Domain\ValueObjects\MovementStatus;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\BatchModel;
@@ -27,6 +28,7 @@ use Illuminate\Support\Facades\DB;
 class RegisterLossUseCase
 {
     public function __construct(
+        private readonly BatchLocationService $batchLocationService,
         private readonly DocumentNumberGenerator $numberGenerator,
     ) {}
 
@@ -40,16 +42,8 @@ class RegisterLossUseCase
         return DB::transaction(function () use ($data) {
             $batch = BatchModel::findOrFail($data['batch_id']);
 
-            $pivotQuantity = (float) (DB::table('batch_location')
-                ->where('batch_id', $batch->id)
-                ->where('location_id', $data['location_id'])
-                ->value('quantity') ?? 0);
-
-            if ($data['quantity'] > $pivotQuantity) {
-                throw new InsufficientStockException(
-                    "El lote {$batch->lot_number} solo tiene {$pivotQuantity} unidades disponibles en esta ubicación, se pidieron {$data['quantity']}."
-                );
-            }
+            $this->batchLocationService->assertLocationInWarehouse((int) $data['location_id'], (int) $data['warehouse_id']);
+            $this->assertLocationHasStock($batch, (int) $data['location_id'], (float) $data['quantity']);
 
             $document = MovementDocumentModel::create([
                 'document_number' => $this->numberGenerator->next('loss'),
@@ -78,32 +72,17 @@ class RegisterLossUseCase
     public function applyStock(StockMovementModel $movement): void
     {
         DB::transaction(function () use ($movement) {
-            $quantity = abs($movement->quantity);
+            $quantity = abs((float) $movement->quantity);
             $batch    = BatchModel::findOrFail($movement->batch_id);
 
-            $pivotQuantity = (float) (DB::table('batch_location')
-                ->where('batch_id', $batch->id)
-                ->where('location_id', $movement->location_from_id)
-                ->value('quantity') ?? 0);
+            $this->assertLocationHasStock($batch, (int) $movement->location_from_id, $quantity);
 
-            if ($quantity > $pivotQuantity) {
-                throw new InsufficientStockException(
-                    "El lote {$batch->lot_number} solo tiene {$pivotQuantity} unidades disponibles en esta ubicación, se pidieron {$quantity}."
-                );
-            }
-
-            $batch->quantity_available = max(0, $batch->quantity_available - $quantity);
-
-            if ($batch->quantity_available === 0) {
-                $batch->status = 'depleted';
-            }
-
-            $batch->save();
-
-            DB::table('batch_location')
-                ->where('batch_id', $batch->id)
-                ->where('location_id', $movement->location_from_id)
-                ->decrement('quantity', $quantity);
+            $this->batchLocationService->withdraw(
+                $batch->id,
+                $movement->warehouse_id,
+                $quantity,
+                $movement->location_from_id,
+            );
 
             event(new StockMovementCreated(
                 movementId: $movement->id,
@@ -113,5 +92,21 @@ class RegisterLossUseCase
                 quantity: $quantity,
             ));
         });
+    }
+
+    /**
+     * La baja se dirige a una ubicación concreta: la cantidad debe existir en ella.
+     *
+     * @throws InsufficientStockException
+     */
+    private function assertLocationHasStock(BatchModel $batch, int $locationId, float $quantity): void
+    {
+        $pivotQuantity = $this->batchLocationService->quantityInLocation($batch->id, $locationId);
+
+        if ($quantity > $pivotQuantity) {
+            throw new InsufficientStockException(
+                "El lote {$batch->lot_number} solo tiene {$pivotQuantity} unidades disponibles en esta ubicación, se pidieron {$quantity}."
+            );
+        }
     }
 }

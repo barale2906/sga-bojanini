@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Modules\Inventory\Application\UseCases;
 
 use App\Modules\Inventory\Domain\Events\StockMovementCreated;
-use App\Modules\Inventory\Domain\Exceptions\InsufficientStockException;
 use App\Modules\Inventory\Domain\Services\BatchLocationService;
 use App\Modules\Inventory\Domain\Services\DocumentNumberGenerator;
 use App\Modules\Inventory\Domain\Services\FEFOService;
@@ -64,6 +63,10 @@ class RegisterReturnUseCase
 
     private function resolveBatchId(array $data, float $quantity): int
     {
+        if (! empty($data['location_id'])) {
+            $this->batchLocationService->assertLocationInWarehouse((int) $data['location_id'], (int) $data['warehouse_id']);
+        }
+
         if (! empty($data['batch_id'])) {
             $batch = BatchModel::findOrFail((int) $data['batch_id']);
 
@@ -73,11 +76,7 @@ class RegisterReturnUseCase
                 );
             }
 
-            if ($batch->quantity_available < $quantity) {
-                throw new InsufficientStockException(
-                    "El lote {$batch->lot_number} solo tiene {$batch->quantity_available} unidades disponibles, se solicitaron {$quantity}."
-                );
-            }
+            $this->fefoService->selectSpecificBatch($batch, (int) $data['warehouse_id'], $quantity, includeExpired: true);
 
             return $batch->id;
         }
@@ -95,25 +94,14 @@ class RegisterReturnUseCase
     public function applyStock(StockMovementModel $movement): void
     {
         DB::transaction(function () use ($movement) {
-            $quantity = abs($movement->quantity);
-            $batch    = BatchModel::findOrFail($movement->batch_id);
+            $quantity = abs((float) $movement->quantity);
 
-            if ($batch->quantity_available < $quantity) {
-                throw new InsufficientStockException(
-                    "El lote {$batch->lot_number} solo tiene {$batch->quantity_available} unidades disponibles al confirmar la devolución."
-                );
-            }
-
-            $batch->quantity_available -= $quantity;
-
-            if ($batch->quantity_available <= 0) {
-                $batch->quantity_available = 0;
-                $batch->status = 'depleted';
-            }
-
-            $batch->save();
-
-            $this->batchLocationService->decrement($batch->id, $quantity, $movement->location_from_id);
+            $this->batchLocationService->withdraw(
+                $movement->batch_id,
+                $movement->warehouse_id,
+                $quantity,
+                $movement->location_from_id,
+            );
 
             event(new StockMovementCreated(
                 movementId: $movement->id,

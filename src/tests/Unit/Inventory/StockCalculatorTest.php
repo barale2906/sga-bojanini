@@ -57,6 +57,6 @@ class StockCalculatorTest extends TestCase
             'available_quantity' => 75,
         ]);
 
-        $this->assertSame(75, app(StockCalculator::class)->getCurrentStock($variant->id, $warehouse->id));
+        $this->assertSame(75.0, app(StockCalculator::class)->getCurrentStock($variant->id, $warehouse->id));
     }
 }

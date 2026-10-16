@@ -9,7 +9,6 @@ use App\Modules\Catalog\Infrastructure\Persistence\Models\GenericProductModel;
 use App\Modules\CostCenter\Infrastructure\Persistence\Models\CostCenterModel;
 use App\Modules\Inventory\Domain\Events\StockBelowReorderPoint;
 use App\Modules\Inventory\Domain\Events\StockMovementCreated;
-use App\Modules\Inventory\Domain\Exceptions\InsufficientStockException;
 use App\Modules\Inventory\Domain\Exceptions\ProductNotFoundException;
 use App\Modules\Inventory\Domain\Services\BatchLocationService;
 use App\Modules\Inventory\Domain\Services\DocumentNumberGenerator;
@@ -114,17 +113,12 @@ class RegisterExitUseCase
         $selectedBatches = $this->resolveSelectionsForItem($item, $data['warehouse_id']);
 
         foreach ($selectedBatches as $selection) {
-            $batch = BatchModel::findOrFail($selection['batch_id']);
-            $batch->quantity_available -= $selection['quantity'];
-
-            if ($batch->quantity_available <= 0) {
-                $batch->quantity_available = 0;
-                $batch->status = 'depleted';
-            }
-
-            $batch->save();
-
-            $this->batchLocationService->decrement($batch->id, $selection['quantity'], $item['location_id'] ?? null);
+            $this->batchLocationService->withdraw(
+                $selection['batch_id'],
+                $data['warehouse_id'],
+                $selection['quantity'],
+                $item['location_id'] ?? null,
+            );
 
             $movement = StockMovementModel::create([
                 'movement_document_id' => $document->id,
@@ -167,12 +161,17 @@ class RegisterExitUseCase
 
     /**
      * Si el ítem trae `batch_id` explícito lo usa directamente (validando pertenencia
-     * al genérico y stock suficiente). Si no, delega al FEFO automático.
+     * al genérico, vigencia y stock suficiente en el almacén). Si no, delega al FEFO
+     * automático. La ubicación indicada, si existe, debe pertenecer al almacén.
      *
      * @return array<int, array{batch_id:int, product_variant_id:int, lot_number:string, quantity:float, expiration_date:string}>
      */
     private function resolveSelectionsForItem(array $item, int $warehouseId): array
     {
+        if (! empty($item['location_id'])) {
+            $this->batchLocationService->assertLocationInWarehouse((int) $item['location_id'], $warehouseId);
+        }
+
         if (! empty($item['batch_id'])) {
             return $this->selectSpecificBatch($item, $warehouseId);
         }
@@ -186,7 +185,8 @@ class RegisterExitUseCase
 
     /**
      * Valida y devuelve la selección para un lote explícito enviado por el frontend.
-     * El lote debe pertenecer al genérico indicado y tener stock suficiente en el almacén.
+     * El lote debe pertenecer al genérico indicado, estar vigente y tener stock
+     * suficiente en el almacén.
      *
      * @return array<int, array{batch_id:int, product_variant_id:int, lot_number:string, quantity:float, expiration_date:string}>
      */
@@ -204,21 +204,7 @@ class RegisterExitUseCase
             );
         }
 
-        $quantity = (float) $item['quantity'];
-
-        if ($batch->quantity_available < $quantity) {
-            throw new InsufficientStockException(
-                "El lote {$batch->lot_number} solo tiene {$batch->quantity_available} unidades disponibles, se solicitaron {$quantity}."
-            );
-        }
-
-        return [[
-            'batch_id'           => $batch->id,
-            'product_variant_id' => $batch->product_variant_id,
-            'lot_number'         => $batch->lot_number,
-            'quantity'           => $quantity,
-            'expiration_date'    => $batch->expiration_date->format('Y-m-d'),
-        ]];
+        return $this->fefoService->selectSpecificBatch($batch, $warehouseId, (float) $item['quantity']);
     }
 
     /** Aplica el stock de todas las líneas de un documento confirmado. Llamado desde ConfirmMovementUseCase. */
@@ -226,18 +212,16 @@ class RegisterExitUseCase
     {
         DB::transaction(function () use ($movement) {
             $quantity = abs($movement->quantity);
-            $batch    = BatchModel::findOrFail($movement->batch_id);
 
-            $batch->quantity_available -= $quantity;
+            // El lote pudo vencer mientras el documento esperaba la firma.
+            $this->fefoService->assertNotExpired(BatchModel::findOrFail($movement->batch_id));
 
-            if ($batch->quantity_available <= 0) {
-                $batch->quantity_available = 0;
-                $batch->status = 'depleted';
-            }
-
-            $batch->save();
-
-            $this->batchLocationService->decrement($batch->id, $quantity, $movement->location_from_id);
+            $this->batchLocationService->withdraw(
+                $movement->batch_id,
+                $movement->warehouse_id,
+                $quantity,
+                $movement->location_from_id,
+            );
 
             event(new StockMovementCreated(
                 movementId:       $movement->id,

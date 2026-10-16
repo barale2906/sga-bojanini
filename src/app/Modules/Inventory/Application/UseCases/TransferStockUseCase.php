@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Modules\Inventory\Application\UseCases;
 
 use App\Modules\Inventory\Domain\Events\StockMovementCreated;
-use App\Modules\Inventory\Domain\Exceptions\InsufficientStockException;
 use App\Modules\Inventory\Domain\Services\BatchLocationService;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\BatchModel;
 use App\Modules\Inventory\Domain\Services\DocumentNumberGenerator;
@@ -74,8 +73,8 @@ class TransferStockUseCase
     }
 
     /**
-     * Si el ítem trae `batch_id` explícito lo valida y usa directamente.
-     * Si no, delega a FEFO.
+     * Si el ítem trae `batch_id` explícito lo valida (variante, vigencia y stock
+     * en el almacén de origen) y lo usa directamente. Si no, delega a FEFO.
      *
      * @return array<int, array{batch_id:int, quantity:float}>
      */
@@ -90,47 +89,28 @@ class TransferStockUseCase
                 );
             }
 
-            $available = (float) DB::table('batch_location')
-                ->join('locations', 'batch_location.location_id', '=', 'locations.id')
-                ->join('zones', 'locations.zone_id', '=', 'zones.id')
-                ->where('batch_location.batch_id', $batch->id)
-                ->where('zones.warehouse_id', $warehouseFromId)
-                ->sum('batch_location.quantity');
-
-            $quantity = (float) $item['quantity'];
-
-            if ($available < $quantity) {
-                throw new InsufficientStockException(
-                    "El lote {$batch->lot_number} solo tiene {$available} unidades en el almacén de origen, se solicitaron {$quantity}."
-                );
-            }
-
-            return [['batch_id' => $batch->id, 'quantity' => $quantity]];
+            return $this->fefoService->selectSpecificBatch($batch, $warehouseFromId, (float) $item['quantity']);
         }
 
         return $this->fefoService->selectBatchesForExit(
             $item['product_variant_id'],
             $warehouseFromId,
-            $item['quantity'],
+            (float) $item['quantity'],
         );
     }
 
     /**
-     * Devuelve la ubicación con más stock del lote en el almacén de origen.
+     * Devuelve la ubicación de origen del lote dentro del almacén de origen.
      * Si el usuario envió location_from_id la prioriza, pero sólo si realmente
      * tiene stock; de lo contrario se elige la ubicación con mayor cantidad.
      */
     private function resolveSourceLocation(int $batchId, int $warehouseId, ?int $preferredLocationId): ?int
     {
-        $query = DB::table('batch_location')
-            ->join('locations', 'batch_location.location_id', '=', 'locations.id')
-            ->join('zones', 'locations.zone_id', '=', 'zones.id')
-            ->where('batch_location.batch_id', $batchId)
-            ->where('zones.warehouse_id', $warehouseId)
-            ->where('batch_location.quantity', '>', 0)
-            ->select('batch_location.location_id', 'batch_location.quantity');
+        if ($preferredLocationId !== null) {
+            $this->batchLocationService->assertLocationInWarehouse($preferredLocationId, $warehouseId);
+        }
 
-        $pivots = $query->orderByDesc('batch_location.quantity')->get();
+        $pivots = $this->batchLocationService->locationsWithStock($batchId, $warehouseId);
 
         if ($pivots->isEmpty()) {
             return $preferredLocationId;
@@ -140,52 +120,31 @@ class TransferStockUseCase
             return $preferredLocationId;
         }
 
-        return $pivots->first()->location_id;
+        return (int) $pivots->first()->location_id;
     }
 
     /** Aplica los cambios de ubicación del lote. Llamado desde ConfirmMovementUseCase. */
     public function applyStock(StockMovementModel $movement): void
     {
         DB::transaction(function () use ($movement) {
-            $quantity = $movement->quantity;
+            $quantity = (float) $movement->quantity;
 
-            $available = (float) DB::table('batch_location')
-                ->join('locations', 'batch_location.location_id', '=', 'locations.id')
-                ->join('zones', 'locations.zone_id', '=', 'zones.id')
-                ->where('batch_location.batch_id', $movement->batch_id)
-                ->where('zones.warehouse_id', $movement->warehouse_id)
-                ->sum('batch_location.quantity');
+            // El lote pudo vencer mientras el documento esperaba la firma.
+            $this->fefoService->assertNotExpired(BatchModel::findOrFail($movement->batch_id));
 
-            if ($quantity > $available) {
-                throw new InsufficientStockException(
-                    "Stock insuficiente al confirmar el traslado. Se requieren {$quantity} unidades pero solo hay {$available} disponibles en el almacén de origen."
-                );
-            }
+            $this->batchLocationService->withdraw(
+                $movement->batch_id,
+                $movement->warehouse_id,
+                $quantity,
+                $movement->location_from_id,
+            );
 
-            $this->batchLocationService->decrement($movement->batch_id, $quantity, $movement->location_from_id);
-
-            $pivot = DB::table('batch_location')
-                ->where('batch_id', $movement->batch_id)
-                ->where('location_id', $movement->location_to_id)
-                ->first();
-
-            if ($pivot) {
-                DB::table('batch_location')
-                    ->where('batch_id', $movement->batch_id)
-                    ->where('location_id', $movement->location_to_id)
-                    ->update([
-                        'quantity'   => $pivot->quantity + $quantity,
-                        'updated_at' => now(),
-                    ]);
-            } else {
-                DB::table('batch_location')->insert([
-                    'batch_id'    => $movement->batch_id,
-                    'location_id' => $movement->location_to_id,
-                    'quantity'    => $quantity,
-                    'created_at'  => now(),
-                    'updated_at'  => now(),
-                ]);
-            }
+            $this->batchLocationService->deposit(
+                $movement->batch_id,
+                $movement->warehouse_to_id ?? $movement->warehouse_id,
+                $movement->location_to_id,
+                $quantity,
+            );
 
             event(new StockMovementCreated(
                 movementId:       $movement->id,

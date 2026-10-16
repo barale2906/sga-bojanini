@@ -12,6 +12,12 @@ Schedule::command('sga:check-expirations')
     ->dailyAt('06:00')
     ->name('sga:check-expirations');
 
+// Solo verifica (sin --fix): registra en el log cualquier descuadre de inventario.
+Schedule::command('sga:reconcile-inventory')
+    ->dailyAt('05:30')
+    ->name('sga:reconcile-inventory')
+    ->withoutOverlapping();
+
 Schedule::command('sga:check-reorder-points')
     ->hourly()
     ->name('sga:check-reorder-points');

@@ -22,7 +22,7 @@ class BatchExpiringSoonNotification extends Notification
         private readonly string $expiryDate,
         private readonly int $daysUntilExpiry,
         private readonly string $warehouseName,
-        private readonly int $currentQuantity,
+        private readonly float $currentQuantity,
     ) {}
 
     public function via(object $notifiable): array

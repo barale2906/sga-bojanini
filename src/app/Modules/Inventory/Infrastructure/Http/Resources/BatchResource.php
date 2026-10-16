@@ -44,7 +44,7 @@ class BatchResource extends JsonResource
             'quantity_received'   => $batch->quantity_received,
             'quantity_available'  => $batch->quantity_available,
             'accessible_quantity' => $warehouseBreakdown !== null
-                ? (int) collect($warehouseBreakdown)->sum('quantity')
+                ? (float) collect($warehouseBreakdown)->sum('quantity')
                 : null,
             'status'              => $batch->status,
             'days_until_expiry'   => $batch->expiration_date
@@ -102,7 +102,7 @@ class BatchResource extends JsonResource
                 'id'       => $locs->first()->zone->warehouse->id,
                 'code'     => $locs->first()->zone->warehouse->code,
                 'name'     => $locs->first()->zone->warehouse->name,
-                'quantity' => (int) $locs->sum(fn ($l) => $l->pivot->quantity),
+                'quantity' => (float) $locs->sum(fn ($l) => (float) $l->pivot->quantity),
             ])
             ->values()
             ->all();

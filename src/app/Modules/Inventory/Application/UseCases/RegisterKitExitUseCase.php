@@ -15,12 +15,10 @@ use App\Modules\Inventory\Domain\Services\BatchLocationService;
 use App\Modules\Inventory\Domain\Services\FEFOService;
 use App\Modules\Inventory\Domain\Services\KitAvailabilityService;
 use App\Modules\Inventory\Domain\Services\StockCalculator;
-use App\Modules\Inventory\Infrastructure\Persistence\Models\BatchModel;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\KitTransactionModel;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\MovementDocumentModel;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\StockMovementModel;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 
 class RegisterKitExitUseCase
 {
@@ -101,7 +99,12 @@ class RegisterKitExitUseCase
         );
 
         foreach ($selectedBatches as $selection) {
-            $this->deductFromBatch($selection, $data['location_id'] ?? null);
+            $this->batchLocationService->withdraw(
+                $selection['batch_id'],
+                $data['warehouse_id'],
+                $selection['quantity'],
+                $data['location_id'] ?? null,
+            );
 
             $movement = StockMovementModel::create([
                 'movement_document_id' => $document->id,
@@ -149,23 +152,5 @@ class RegisterKitExitUseCase
                 reorderPoint:     $generic->reorder_point,
             ));
         }
-    }
-
-    /**
-     * @param array{batch_id: int, product_variant_id: int, lot_number: string, quantity: int, expiration_date: string} $selection
-     */
-    private function deductFromBatch(array $selection, ?int $locationId): void
-    {
-        $batch = BatchModel::findOrFail($selection['batch_id']);
-        $batch->quantity_available -= $selection['quantity'];
-
-        if ($batch->quantity_available <= 0) {
-            $batch->quantity_available = 0;
-            $batch->status = 'depleted';
-        }
-
-        $batch->save();
-
-        $this->batchLocationService->decrement($batch->id, $selection['quantity'], $locationId);
     }
 }

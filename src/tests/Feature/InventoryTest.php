@@ -109,7 +109,7 @@ class InventoryTest extends TestCase
         $this->confirmDocument($response->json('data.id'));
 
         $batchSoon->refresh();
-        $this->assertSame(20, $batchSoon->quantity_available);
+        $this->assertSame(20.0, $batchSoon->quantity_available);
 
         $this->assertDatabaseHas('stock_movements', [
             'product_variant_id' => $variant->id,
@@ -219,8 +219,8 @@ class InventoryTest extends TestCase
 
         $batchValid->refresh();
         $batchExpired->refresh();
-        $this->assertSame(70, $batchValid->quantity_available);
-        $this->assertSame(50, $batchExpired->quantity_available);
+        $this->assertSame(70.0, $batchValid->quantity_available);
+        $this->assertSame(50.0, $batchExpired->quantity_available);
 
         $this->assertDatabaseHas('stock_movements', [
             'product_variant_id' => $variant->id,
@@ -300,9 +300,9 @@ class InventoryTest extends TestCase
         $lotA->refresh();
         $lotB->refresh();
 
-        $this->assertSame(0, $lotA->quantity_available);
+        $this->assertSame(0.0, $lotA->quantity_available);
         $this->assertSame('depleted', $lotA->status);
-        $this->assertSame(13, $lotB->quantity_available);
+        $this->assertSame(13.0, $lotB->quantity_available);
     }
 
     /**
@@ -428,7 +428,7 @@ class InventoryTest extends TestCase
         $this->confirmDocument($response->json('data.movement_document_id'));
 
         $batchExpired->refresh();
-        $this->assertSame(40, $batchExpired->quantity_available);
+        $this->assertSame(40.0, $batchExpired->quantity_available);
     }
 
     public function test_ajuste_negativo_permite_gestionar_lote_vencido(): void
@@ -453,7 +453,7 @@ class InventoryTest extends TestCase
         $this->confirmDocument($response->json('data.movement_document_id'));
 
         $batchExpired->refresh();
-        $this->assertSame(40, $batchExpired->quantity_available);
+        $this->assertSame(40.0, $batchExpired->quantity_available);
     }
 
     public function test_listado_de_lotes_por_producto_filtra_disponibles_para_salida(): void
@@ -536,8 +536,8 @@ class InventoryTest extends TestCase
         $this->confirmDocument($response->json('data.movement_document_id'));
 
         $batch->refresh();
-        $this->assertSame(45, $batch->quantity_available);
-        $this->assertSame(45, $batch->locations()->first()->pivot->quantity);
+        $this->assertSame(45.0, $batch->quantity_available);
+        $this->assertSame(45.0, (float) $batch->locations()->first()->pivot->quantity);
     }
 
     public function test_baja_permite_gestionar_lote_vencido(): void
@@ -563,7 +563,7 @@ class InventoryTest extends TestCase
         $this->confirmDocument($response->json('data.movement_document_id'));
 
         $batchExpired->refresh();
-        $this->assertSame(40, $batchExpired->quantity_available);
+        $this->assertSame(40.0, $batchExpired->quantity_available);
     }
 
     public function test_baja_con_stock_insuficiente_retorna_error(): void
@@ -587,7 +587,7 @@ class InventoryTest extends TestCase
             ->assertJsonPath('success', false);
 
         $batch->refresh();
-        $this->assertSame(5, $batch->quantity_available);
+        $this->assertSame(5.0, $batch->quantity_available);
     }
 
     public function test_baja_permite_elegir_lote_especifico_sin_aplicar_fefo(): void
@@ -617,8 +617,8 @@ class InventoryTest extends TestCase
         $batchExpiresFirst->refresh();
         $batchExpiresLater->refresh();
 
-        $this->assertSame(30, $batchExpiresFirst->quantity_available);
-        $this->assertSame(20, $batchExpiresLater->quantity_available);
+        $this->assertSame(30.0, $batchExpiresFirst->quantity_available);
+        $this->assertSame(20.0, $batchExpiresLater->quantity_available);
     }
 
     public function test_baja_valida_cantidad_contra_la_ubicacion_del_lote(): void
@@ -659,7 +659,7 @@ class InventoryTest extends TestCase
             ->assertJsonPath('success', false);
 
         $batch->refresh();
-        $this->assertSame(20, $batch->quantity_available);
+        $this->assertSame(20.0, $batch->quantity_available);
     }
 
     public function test_baja_requiere_batch_id(): void
@@ -726,7 +726,7 @@ class InventoryTest extends TestCase
         $this->confirmDocument($response->json('data.movement_document_id'));
 
         $batch->refresh();
-        $this->assertSame(40, $batch->quantity_available);
+        $this->assertSame(40.0, $batch->quantity_available);
 
         $this->assertDatabaseHas('batch_location', [
             'batch_id'    => $batch->id,
@@ -775,7 +775,7 @@ class InventoryTest extends TestCase
         $this->confirmDocument($response->json('data.movement_document_id'));
 
         $batch->refresh();
-        $this->assertSame(30, $batch->quantity_available);
+        $this->assertSame(30.0, $batch->quantity_available);
 
         $this->assertDatabaseHas('batch_location', [
             'batch_id'    => $batch->id,
@@ -834,7 +834,7 @@ class InventoryTest extends TestCase
         $this->confirmDocument($response->json('data.id'));
 
         $batch->refresh();
-        $this->assertSame(100, $batch->quantity_available);
+        $this->assertSame(100.0, $batch->quantity_available);
 
         $this->assertDatabaseHas('batch_location', [
             'batch_id'    => $batch->id,
@@ -931,10 +931,10 @@ class InventoryTest extends TestCase
         $gasaLot2->refresh();
         $agujaLot->refresh();
 
-        $this->assertSame(0, $gasaLot1->quantity_available);
+        $this->assertSame(0.0, $gasaLot1->quantity_available);
         $this->assertSame('depleted', $gasaLot1->status);
-        $this->assertSame(4, $gasaLot2->quantity_available);
-        $this->assertSame(80, $agujaLot->quantity_available);
+        $this->assertSame(4.0, $gasaLot2->quantity_available);
+        $this->assertSame(80.0, $agujaLot->quantity_available);
     }
 
     /**
@@ -1207,6 +1207,258 @@ class InventoryTest extends TestCase
         $this->withHeaders($this->auth())
             ->deleteJson("/api/v1/movement-documents/{$documentId}/pending")
             ->assertStatus(422);
+    }
+
+    public function test_salida_solo_descuenta_del_almacen_del_movimiento(): void
+    {
+        $almacenA = $this->createWarehouseSetup('-A');
+        $almacenB = $this->createWarehouseSetup('-B');
+        $generic  = $this->getGeneric('000001');
+        $variant  = $this->getVariant('000001');
+
+        // Mismo lote en dos almacenes: 3 en A y 1 en B (caso Radiesse).
+        $batch = $this->createBatch($variant->id, 'LOT-MULTI-ALM', now()->addDays(60)->format('Y-m-d'), 3, $almacenA['location'], $almacenA['warehouse']->id);
+        $this->addStockInLocation($batch, $almacenB['location'], $almacenB['warehouse']->id, 1);
+        $this->recalculateStock($variant->id, $almacenA['warehouse']->id);
+        $this->recalculateStock($variant->id, $almacenB['warehouse']->id);
+
+        $center = CostCenterModel::where('type', 'internal')->first();
+
+        $response = $this->withHeaders($this->auth())
+            ->postJson('/api/v1/movements/exit', [
+                'warehouse_id'   => $almacenA['warehouse']->id,
+                'cost_center_id' => $center->id,
+                'items'          => [['generic_product_id' => $generic->id, 'quantity' => 3]],
+            ])
+            ->assertStatus(201);
+
+        $this->confirmDocument($response->json('data.id'));
+
+        $this->assertDatabaseHas('batch_location', ['batch_id' => $batch->id, 'location_id' => $almacenA['location']->id, 'quantity' => 0]);
+        $this->assertDatabaseHas('batch_location', ['batch_id' => $batch->id, 'location_id' => $almacenB['location']->id, 'quantity' => 1]);
+        $this->assertDatabaseHas('stock_summaries', ['product_variant_id' => $variant->id, 'warehouse_id' => $almacenB['warehouse']->id, 'available_quantity' => 1]);
+        $this->assertSame(1.0, $batch->refresh()->quantity_available);
+    }
+
+    public function test_salida_no_completa_con_stock_de_otro_almacen(): void
+    {
+        $almacenA = $this->createWarehouseSetup('-A');
+        $almacenB = $this->createWarehouseSetup('-B');
+        $generic  = $this->getGeneric('000001');
+        $variant  = $this->getVariant('000001');
+
+        $batch = $this->createBatch($variant->id, 'LOT-MULTI-ALM', now()->addDays(60)->format('Y-m-d'), 1, $almacenA['location'], $almacenA['warehouse']->id);
+        $this->addStockInLocation($batch, $almacenB['location'], $almacenB['warehouse']->id, 5);
+
+        $center = CostCenterModel::where('type', 'internal')->first();
+
+        // FEFO automático: el total global del lote (6) no cuenta, solo el del almacén A (1).
+        $this->withHeaders($this->auth())
+            ->postJson('/api/v1/movements/exit', [
+                'warehouse_id'   => $almacenA['warehouse']->id,
+                'cost_center_id' => $center->id,
+                'items'          => [['generic_product_id' => $generic->id, 'quantity' => 2]],
+            ])
+            ->assertStatus(409);
+
+        // Lote explícito: misma regla.
+        $this->withHeaders($this->auth())
+            ->postJson('/api/v1/movements/exit', [
+                'warehouse_id'   => $almacenA['warehouse']->id,
+                'cost_center_id' => $center->id,
+                'items'          => [['generic_product_id' => $generic->id, 'batch_id' => $batch->id, 'quantity' => 2]],
+            ])
+            ->assertStatus(409);
+
+        $this->assertDatabaseHas('batch_location', ['batch_id' => $batch->id, 'location_id' => $almacenB['location']->id, 'quantity' => 5]);
+    }
+
+    public function test_salida_rechaza_ubicacion_de_otro_almacen(): void
+    {
+        $almacenA = $this->createWarehouseSetup('-A');
+        $almacenB = $this->createWarehouseSetup('-B');
+        $generic  = $this->getGeneric('000001');
+        $variant  = $this->getVariant('000001');
+
+        $batch = $this->createBatch($variant->id, 'LOT-MULTI-ALM', now()->addDays(60)->format('Y-m-d'), 3, $almacenA['location'], $almacenA['warehouse']->id);
+        $this->addStockInLocation($batch, $almacenB['location'], $almacenB['warehouse']->id, 1);
+
+        $center = CostCenterModel::where('type', 'internal')->first();
+
+        $this->withHeaders($this->auth())
+            ->postJson('/api/v1/movements/exit', [
+                'warehouse_id'   => $almacenA['warehouse']->id,
+                'cost_center_id' => $center->id,
+                'items'          => [['generic_product_id' => $generic->id, 'quantity' => 1, 'location_id' => $almacenB['location']->id]],
+            ])
+            ->assertStatus(409)
+            ->assertJsonPath('success', false);
+
+        $this->assertDatabaseCount('movement_documents', 2);
+        $this->assertDatabaseHas('batch_location', ['batch_id' => $batch->id, 'location_id' => $almacenB['location']->id, 'quantity' => 1]);
+    }
+
+    public function test_entrada_con_fecha_vencida_conserva_los_datos_y_queda_vencida(): void
+    {
+        $setup   = $this->createWarehouseSetup();
+        $variant = $this->getVariant('000001');
+        $vencido = now()->subMonth()->format('Y-m-d');
+
+        $this->withHeaders($this->auth())
+            ->postJson('/api/v1/movements/entry', [
+                'warehouse_id' => $setup['warehouse']->id,
+                'items'        => [[
+                    'product_variant_id' => $variant->id,
+                    'location_id'        => $setup['location']->id,
+                    'lot_number'         => 'LOT-VENCIDO',
+                    'expiration_date'    => $vencido,
+                    'quantity_base'      => 4,
+                ]],
+            ])
+            ->assertStatus(201);
+
+        $batch = BatchModel::where('lot_number', 'LOT-VENCIDO')->firstOrFail();
+
+        $this->assertSame($vencido, $batch->expiration_date->format('Y-m-d'));
+        $this->assertSame(4.0, $batch->quantity_available);
+        $this->assertSame('expired', $batch->status);
+        $this->assertDatabaseHas('stock_summaries', [
+            'product_variant_id' => $variant->id,
+            'warehouse_id'       => $setup['warehouse']->id,
+            'available_quantity' => 0,
+        ]);
+    }
+
+    public function test_entrada_rechaza_ubicacion_de_otro_almacen(): void
+    {
+        $almacenA = $this->createWarehouseSetup('-A');
+        $almacenB = $this->createWarehouseSetup('-B');
+        $variant  = $this->getVariant('000001');
+
+        $this->withHeaders($this->auth())
+            ->postJson('/api/v1/movements/entry', [
+                'warehouse_id' => $almacenA['warehouse']->id,
+                'items'        => [[
+                    'product_variant_id' => $variant->id,
+                    'location_id'        => $almacenB['location']->id,
+                    'lot_number'         => 'LOT-UBIC-AJENA',
+                    'expiration_date'    => now()->addMonths(6)->format('Y-m-d'),
+                    'quantity_base'      => 4,
+                ]],
+            ])
+            ->assertStatus(409);
+
+        $this->assertDatabaseMissing('batches', ['lot_number' => 'LOT-UBIC-AJENA']);
+    }
+
+    public function test_transferencia_rechaza_lote_explicito_vencido(): void
+    {
+        $origen  = $this->createWarehouseSetup('-ORIGEN');
+        $destino = $this->createWarehouseSetup('-DESTINO');
+        $variant = $this->getVariant('000001');
+
+        $batch = $this->createBatch($variant->id, 'LOT-EXPIRED', now()->subDay()->format('Y-m-d'), 10, $origen['location'], $origen['warehouse']->id);
+
+        $this->withHeaders($this->auth())
+            ->postJson('/api/v1/movements/transfer', [
+                'warehouse_from_id' => $origen['warehouse']->id,
+                'warehouse_to_id'   => $destino['warehouse']->id,
+                'items'             => [[
+                    'product_variant_id' => $variant->id,
+                    'batch_id'           => $batch->id,
+                    'location_to_id'     => $destino['location']->id,
+                    'quantity'           => 5,
+                ]],
+            ])
+            ->assertStatus(409)
+            ->assertJsonPath('error_code', 'EXPIRED_STOCK');
+    }
+
+    public function test_baja_por_vencimiento_solo_afecta_el_almacen_indicado(): void
+    {
+        $almacenA = $this->createWarehouseSetup('-A');
+        $almacenB = $this->createWarehouseSetup('-B');
+        $variant  = $this->getVariant('000001');
+
+        $batch = $this->createBatch($variant->id, 'LOT-WO', now()->subDay()->format('Y-m-d'), 3, $almacenA['location'], $almacenA['warehouse']->id);
+        $this->addStockInLocation($batch, $almacenB['location'], $almacenB['warehouse']->id, 2);
+
+        $response = $this->withHeaders($this->auth())
+            ->postJson('/api/v1/movements/write-off', [
+                'batch_id'     => $batch->id,
+                'warehouse_id' => $almacenA['warehouse']->id,
+            ])
+            ->assertStatus(201);
+
+        $this->confirmDocument($response->json('data.movement_document_id'));
+
+        $this->assertDatabaseHas('stock_movements', ['batch_id' => $batch->id, 'movement_type' => 'expiration_write_off', 'quantity' => -3]);
+        $this->assertDatabaseHas('batch_location', ['batch_id' => $batch->id, 'location_id' => $almacenA['location']->id, 'quantity' => 0]);
+        $this->assertDatabaseHas('batch_location', ['batch_id' => $batch->id, 'location_id' => $almacenB['location']->id, 'quantity' => 2]);
+        $this->assertSame(2.0, $batch->refresh()->quantity_available);
+    }
+
+    public function test_conciliacion_reubica_stock_en_el_almacen_que_indican_los_movimientos(): void
+    {
+        $almacenA = $this->createWarehouseSetup('-A');
+        $almacenB = $this->createWarehouseSetup('-B');
+        $variant  = $this->getVariant('000001');
+
+        $batch = $this->createBatch($variant->id, 'LOT-DESCUADRE', now()->addDays(60)->format('Y-m-d'), 3, $almacenA['location'], $almacenA['warehouse']->id);
+        $this->addStockInLocation($batch, $almacenB['location'], $almacenB['warehouse']->id, 1);
+
+        // Descuadre histórico: una salida de A descontó la unidad de B.
+        StockMovementModel::create([
+            'movement_document_id' => MovementDocumentModel::first()->id,
+            'warehouse_id'         => $almacenA['warehouse']->id,
+            'product_variant_id'   => $variant->id,
+            'batch_id'             => $batch->id,
+            'location_from_id'     => $almacenB['location']->id,
+            'movement_type'        => 'exit',
+            'quantity'             => -1,
+            'user_id'              => UserModel::first()->id,
+        ]);
+        $batch->locations()->updateExistingPivot($almacenB['location']->id, ['quantity' => 0]);
+        $batch->update(['quantity_available' => 3]);
+
+        $this->artisan('sga:reconcile-inventory')->assertExitCode(1);
+        $this->artisan('sga:reconcile-inventory', ['--fix' => true])->assertExitCode(0);
+        $this->artisan('sga:reconcile-inventory')->assertExitCode(0);
+
+        $this->assertDatabaseHas('batch_location', ['batch_id' => $batch->id, 'location_id' => $almacenA['location']->id, 'quantity' => 2]);
+        $this->assertDatabaseHas('batch_location', ['batch_id' => $batch->id, 'location_id' => $almacenB['location']->id, 'quantity' => 1]);
+        $this->assertDatabaseHas('stock_summaries', ['product_variant_id' => $variant->id, 'warehouse_id' => $almacenA['warehouse']->id, 'available_quantity' => 2]);
+        $this->assertDatabaseHas('stock_summaries', ['product_variant_id' => $variant->id, 'warehouse_id' => $almacenB['warehouse']->id, 'available_quantity' => 1]);
+        $this->assertSame(3.0, $batch->refresh()->quantity_available);
+    }
+
+    /** Registra stock de un lote existente en otra ubicación, con su movimiento de entrada. */
+    private function addStockInLocation(BatchModel $batch, LocationModel $location, int $warehouseId, int $quantity): void
+    {
+        $batch->locations()->attach($location->id, ['quantity' => $quantity]);
+        $batch->update([
+            'quantity_received'  => $batch->quantity_received + $quantity,
+            'quantity_available' => $batch->quantity_available + $quantity,
+        ]);
+
+        $document = MovementDocumentModel::create([
+            'document_number' => 'ENT-TEST-'.uniqid(),
+            'document_type'   => 'entry',
+            'warehouse_id'    => $warehouseId,
+            'user_id'         => UserModel::first()->id,
+            'status'          => 'confirmed',
+        ]);
+
+        StockMovementModel::create([
+            'movement_document_id' => $document->id,
+            'warehouse_id'         => $warehouseId,
+            'product_variant_id'   => $batch->product_variant_id,
+            'batch_id'             => $batch->id,
+            'location_to_id'       => $location->id,
+            'movement_type'        => 'entry',
+            'quantity'             => $quantity,
+            'user_id'              => UserModel::first()->id,
+        ]);
     }
 
     /**

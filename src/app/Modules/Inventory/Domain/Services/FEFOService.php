@@ -9,46 +9,40 @@ use App\Modules\Inventory\Domain\Exceptions\InsufficientStockException;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\BatchModel;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * Selección de lotes para movimientos que retiran stock de un almacén.
+ *
+ * Toda cantidad se mide DENTRO del almacén indicado (suma de las ubicaciones
+ * del lote en ese almacén, en cualquier zona o estante); nunca se usa el
+ * total global del lote (`batches.quantity_available`), que agrega todos
+ * los almacenes.
+ */
 class FEFOService
 {
+    public function __construct(
+        private readonly BatchLocationService $batchLocationService,
+    ) {}
+
     /**
      * Selecciona lotes de una variante específica para cubrir una cantidad,
      * aplicando FEFO (First Expired, First Out).
      *
-     * @return array<int, array{batch_id: int, product_variant_id: int, lot_number: string, quantity: int, expiration_date: string}>
+     * @return array<int, array{batch_id: int, product_variant_id: int, lot_number: string, quantity: float, expiration_date: string}>
      *
      * @throws ExpiredStockException
      * @throws InsufficientStockException
      */
     public function selectBatchesForExit(int $productVariantId, int $warehouseId, float $quantity, bool $includeExpired = false): array
     {
-        $batches = $this->baseQuery($productVariantId, $warehouseId)
-            ->when(
-                $includeExpired,
-                fn ($query) => $query->whereIn('status', ['active', 'expired']),
-                fn ($query) => $query->valid(),
-            )
-            ->orderBy('expiration_date', 'asc')
-            ->get();
-
-        $totalAvailable = $batches->sum('quantity_available');
-
-        if ($totalAvailable < $quantity) {
-            if (! $includeExpired && $this->hasExpiredStock($productVariantId, $warehouseId)) {
-                throw new ExpiredStockException(
-                    "El producto tiene stock registrado en este almacén, pero corresponde a lotes vencidos. ".
-                    'Gestione el stock vencido mediante una devolución, un ajuste o una baja por vencimiento antes de continuar.'
-                );
-            }
-
-            throw new InsufficientStockException(
-                "Stock insuficiente. Se requieren {$quantity} unidades pero solo hay {$totalAvailable} disponibles."
-            );
-        }
-
-        return $this->pickFromBatches($batches, $quantity);
+        return $this->select(
+            fn (Builder $query) => $query->where('product_variant_id', $productVariantId),
+            $warehouseId,
+            $quantity,
+            $includeExpired,
+        );
     }
 
     /**
@@ -58,7 +52,7 @@ class FEFOService
      * Usado en salidas donde el usuario pide por genérico y el sistema elige
      * la variante con el lote más próximo a vencer.
      *
-     * @return array<int, array{batch_id: int, product_variant_id: int, lot_number: string, quantity: int, expiration_date: string}>
+     * @return array<int, array{batch_id: int, product_variant_id: int, lot_number: string, quantity: float, expiration_date: string}>
      *
      * @throws ExpiredStockException
      * @throws InsufficientStockException
@@ -74,43 +68,94 @@ class FEFOService
             throw new InsufficientStockException('El producto genérico no tiene variantes activas.');
         }
 
-        $batches = BatchModel::whereIn('product_variant_id', $variantIds)
-            ->where('quantity_available', '>', 0)
-            ->whereHas('locations', function ($query) use ($warehouseId) {
-                $query->whereHas('zone', function ($q) use ($warehouseId) {
-                    $q->where('warehouse_id', $warehouseId);
-                });
-            })
+        return $this->select(
+            fn (Builder $query) => $query->whereIn('product_variant_id', $variantIds),
+            $warehouseId,
+            $quantity,
+            $includeExpired,
+        );
+    }
+
+    /**
+     * Valida un lote elegido explícitamente por el usuario y devuelve la
+     * selección con el mismo formato que FEFO: el lote debe tener stock
+     * suficiente en el almacén y, salvo `$includeExpired`, estar vigente.
+     *
+     * @return array<int, array{batch_id: int, product_variant_id: int, lot_number: string, quantity: float, expiration_date: string}>
+     *
+     * @throws ExpiredStockException
+     * @throws InsufficientStockException
+     */
+    public function selectSpecificBatch(BatchModel $batch, int $warehouseId, float $quantity, bool $includeExpired = false): array
+    {
+        if (! $includeExpired) {
+            $this->assertNotExpired($batch);
+        }
+
+        $available = $this->batchLocationService->quantityInWarehouse($batch->id, $warehouseId);
+
+        if ($available < $quantity) {
+            throw new InsufficientStockException(
+                "El lote {$batch->lot_number} solo tiene {$available} unidades disponibles en este almacén, se solicitaron {$quantity}."
+            );
+        }
+
+        return [$this->toSelection($batch, $quantity)];
+    }
+
+    /**
+     * Impide retirar como stock vigente un lote vencido (por estado o por fecha).
+     *
+     * @throws ExpiredStockException
+     */
+    public function assertNotExpired(BatchModel $batch): void
+    {
+        $expiredByDate = $batch->expiration_date !== null
+            && $batch->expiration_date->copy()->startOfDay()->lt(Carbon::today());
+
+        if ($batch->status === 'expired' || $expiredByDate) {
+            throw new ExpiredStockException(
+                "El lote {$batch->lot_number} está vencido ({$batch->expiration_date?->format('Y-m-d')}). ".
+                'Gestione el stock vencido mediante una devolución, un ajuste o una baja por vencimiento.'
+            );
+        }
+    }
+
+    /**
+     * Suma la cantidad de lotes vencidos de una variante en un almacén.
+     */
+    public function getExpiredQuantity(int $productVariantId, int $warehouseId): float
+    {
+        return $this->expiredQuantity(
+            fn (Builder $query) => $query->where('product_variant_id', $productVariantId),
+            $warehouseId,
+        );
+    }
+
+    /**
+     * @param  callable(Builder): Builder  $scope  Restringe los lotes candidatos (variante o genérico).
+     * @return array<int, array{batch_id: int, product_variant_id: int, lot_number: string, quantity: float, expiration_date: string}>
+     */
+    private function select(callable $scope, int $warehouseId, float $quantity, bool $includeExpired): array
+    {
+        $batches = $scope($this->batchesInWarehouse($warehouseId))
             ->when(
                 $includeExpired,
                 fn ($query) => $query->whereIn('status', ['active', 'expired']),
                 fn ($query) => $query->valid(),
             )
-            ->orderBy('expiration_date', 'asc')
+            ->orderBy('expiration_date')
+            ->orderBy('batches.id')
             ->get();
 
-        $totalAvailable = $batches->sum('quantity_available');
+        $totalAvailable = round((float) $batches->sum('warehouse_quantity'), 3);
 
         if ($totalAvailable < $quantity) {
-            if (! $includeExpired) {
-                $expiredQty = (int) BatchModel::whereIn('product_variant_id', $variantIds)
-                    ->where('quantity_available', '>', 0)
-                    ->whereHas('locations', function ($query) use ($warehouseId) {
-                        $query->whereHas('zone', fn ($q) => $q->where('warehouse_id', $warehouseId));
-                    })
-                    ->where(function ($q) {
-                        $q->where('status', 'expired')
-                            ->orWhere(fn ($sq) => $sq->where('status', 'active')
-                                ->whereDate('expiration_date', '<', Carbon::today()));
-                    })
-                    ->sum('quantity_available');
-
-                if ($expiredQty > 0) {
-                    throw new ExpiredStockException(
-                        "El producto tiene stock registrado en este almacén, pero corresponde a lotes vencidos. ".
-                        'Gestione el stock vencido mediante una devolución, un ajuste o una baja por vencimiento antes de continuar.'
-                    );
-                }
+            if (! $includeExpired && $this->expiredQuantity($scope, $warehouseId) > 0) {
+                throw new ExpiredStockException(
+                    'El producto tiene stock registrado en este almacén, pero corresponde a lotes vencidos. '.
+                    'Gestione el stock vencido mediante una devolución, un ajuste o una baja por vencimiento antes de continuar.'
+                );
             }
 
             throw new InsufficientStockException(
@@ -121,12 +166,10 @@ class FEFOService
         return $this->pickFromBatches($batches, $quantity);
     }
 
-    /**
-     * Suma la cantidad disponible de lotes vencidos de una variante en un almacén.
-     */
-    public function getExpiredQuantity(int $productVariantId, int $warehouseId): float
+    /** @param  callable(Builder): Builder  $scope */
+    private function expiredQuantity(callable $scope, int $warehouseId): float
     {
-        return (float) $this->baseQuery($productVariantId, $warehouseId)
+        return (float) $scope($this->batchesInWarehouse($warehouseId))
             ->where(function ($query) {
                 $query->where('status', 'expired')
                     ->orWhere(function ($q) {
@@ -134,29 +177,30 @@ class FEFOService
                             ->whereDate('expiration_date', '<', Carbon::today());
                     });
             })
-            ->sum('quantity_available');
-    }
-
-    private function hasExpiredStock(int $productVariantId, int $warehouseId): bool
-    {
-        return $this->getExpiredQuantity($productVariantId, $warehouseId) > 0;
-    }
-
-    private function baseQuery(int $productVariantId, int $warehouseId): Builder
-    {
-        return BatchModel::where('product_variant_id', $productVariantId)
-            ->where('quantity_available', '>', 0)
-            ->whereHas('locations', function ($query) use ($warehouseId) {
-                $query->whereHas('zone', function ($q) use ($warehouseId) {
-                    $q->where('warehouse_id', $warehouseId);
-                });
-            });
+            ->sum('warehouse_stock.warehouse_quantity');
     }
 
     /**
-     * @return array<int, array{batch_id: int, product_variant_id: int, lot_number: string, quantity: int, expiration_date: string}>
+     * Lotes con stock en el almacén, exponiendo la cantidad en ese almacén
+     * como atributo `warehouse_quantity`.
      */
-    private function pickFromBatches(\Illuminate\Database\Eloquent\Collection $batches, float $quantity): array
+    private function batchesInWarehouse(int $warehouseId): Builder
+    {
+        return BatchModel::query()
+            ->joinSub(
+                $this->batchLocationService->warehouseStockQuery($warehouseId),
+                'warehouse_stock',
+                'warehouse_stock.batch_id',
+                '=',
+                'batches.id',
+            )
+            ->select('batches.*', 'warehouse_stock.warehouse_quantity');
+    }
+
+    /**
+     * @return array<int, array{batch_id: int, product_variant_id: int, lot_number: string, quantity: float, expiration_date: string}>
+     */
+    private function pickFromBatches(Collection $batches, float $quantity): array
     {
         $selected  = [];
         $remaining = $quantity;
@@ -166,19 +210,27 @@ class FEFOService
                 break;
             }
 
-            $take = min($remaining, $batch->quantity_available);
+            $take = round(min($remaining, (float) $batch->warehouse_quantity), 3);
 
-            $selected[] = [
-                'batch_id'           => $batch->id,
-                'product_variant_id' => $batch->product_variant_id,
-                'lot_number'         => $batch->lot_number,
-                'quantity'           => $take,
-                'expiration_date'    => $batch->expiration_date->format('Y-m-d'),
-            ];
+            $selected[] = $this->toSelection($batch, $take);
 
-            $remaining -= $take;
+            $remaining = round($remaining - $take, 3);
         }
 
         return $selected;
+    }
+
+    /**
+     * @return array{batch_id: int, product_variant_id: int, lot_number: string, quantity: float, expiration_date: string}
+     */
+    private function toSelection(BatchModel $batch, float $quantity): array
+    {
+        return [
+            'batch_id'           => $batch->id,
+            'product_variant_id' => $batch->product_variant_id,
+            'lot_number'         => $batch->lot_number,
+            'quantity'           => $quantity,
+            'expiration_date'    => $batch->expiration_date->format('Y-m-d'),
+        ];
     }
 }
