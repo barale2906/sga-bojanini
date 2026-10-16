@@ -134,6 +134,8 @@ class StockController extends Controller
             ->with(['variant.genericProduct', 'warehouse'])
             ->join('product_variants', 'stock_summaries.product_variant_id', '=', 'product_variants.id')
             ->join('product_generics', 'product_variants.generic_product_id', '=', 'product_generics.id')
+            ->whereNull('product_variants.deleted_at')
+            ->whereNull('product_generics.deleted_at')
             ->where('product_generics.reorder_point', '>', 0)
             ->whereColumn('stock_summaries.available_quantity', '<=', 'product_generics.reorder_point')
             ->select('stock_summaries.*');

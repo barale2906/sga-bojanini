@@ -51,10 +51,10 @@ class BatchResource extends JsonResource
                 ? (int) now()->diffInDays(Carbon::parse($batch->expiration_date), false)
                 : null,
             'received_at'         => $batch->received_at?->toIso8601String(),
-            'variant'             => $batch->relationLoaded('variant') ? [
+            'variant'             => $batch->relationLoaded('variant') && $batch->variant ? [
                 'id'        => $batch->variant->id,
                 'lab_brand' => $batch->variant->lab_brand,
-                'generic'   => $batch->variant->relationLoaded('genericProduct') ? [
+                'generic'   => $batch->variant->relationLoaded('genericProduct') && $batch->variant->genericProduct ? [
                     'id'       => $batch->variant->genericProduct->id,
                     'barcode'  => $batch->variant->genericProduct->barcode,
                     'name'     => $batch->variant->genericProduct->name,
