@@ -11,6 +11,7 @@
 7. [Gestión de estados en la UI](#7-gestión-de-estados-en-la-ui)
 8. [Manejo de errores](#8-manejo-de-errores)
 9. [Ejemplos completos](#9-ejemplos-completos)
+10. [Firma registrada ("Mi firma") y PIN](#10-firma-registrada-mi-firma-y-pin)
 
 ---
 
@@ -228,29 +229,53 @@ Para movimientos que pueden generar **múltiples registros** (salida, transferen
 ### 4.3 Confirmar movimiento (Fase 2)
 
 ```
-POST /api/v1/movements/{id}/confirm
+POST /api/v1/movement-documents/{id}/confirm
 Authorization: Bearer {token}
 Content-Type: application/json
+```
 
+Cada rol puede firmar de dos formas (ver [sección 10](#10-firma-registrada-mi-firma-y-pin)):
+
+| Rol | Forma | Qué enviar |
+|---|---|---|
+| Quien entrega | **Firma registrada** (por defecto) | Omitir `delivered_by`: se usa la firma del usuario autenticado |
+| Quien entrega | Manual (pad) | `delivered_by: { name, document, signature }` |
+| Quien recibe | **PIN** (usuario registrado) | `received_by: { pin: "483" }` |
+| Quien recibe | Manual (externo / sin registro) | `received_by: { name, document, signature }` |
+
+**Caso típico (entrega con firma registrada, recibe con PIN):**
+```json
 {
-  "delivered_by": {
-    "name":      "Juan Pérez",          // requerido, máx. 150 caracteres
-    "document":  "12345678",            // requerido, máx. 50 caracteres
-    "signature": "data:image/png;base64,iVBORw0KGgo..."  // requerido
-  },
+  "received_by": { "pin": "483" }
+}
+```
+
+**Receptor externo:**
+```json
+{
   "received_by": {
-    "name":      "María López",
-    "document":  "87654321",
+    "name":      "María López",          // requerido sin pin, máx. 150
+    "document":  "87654321",             // requerido sin pin, máx. 50
     "signature": "data:image/png;base64,iVBORw0KGgo..."
   }
 }
 ```
 
+**Flujo original (ambos manuales) — sigue funcionando:**
+```json
+{
+  "delivered_by": { "name": "Juan Pérez", "document": "12345678", "signature": "data:image/png;base64,..." },
+  "received_by":  { "name": "María López", "document": "87654321", "signature": "data:image/png;base64,..." }
+}
+```
+
+> Si llega `received_by.pin`, los demás campos de `received_by` se ignoran.
+
 **Respuesta exitosa (200):**
 ```json
 {
   "success": true,
-  "message": "Movimiento confirmado exitosamente",
+  "message": "Documento confirmado exitosamente",
   "data": {
     "id": 42,
     "status": "confirmed",
@@ -258,24 +283,30 @@ Content-Type: application/json
       {
         "id": 1,
         "role": "delivered_by",
+        "method": "stored",
         "signer_name": "Juan Pérez",
-        "signer_document": "12345678",
-        "signed_at": "2026-07-04T17:05:00+00:00"
+        "signer_document": "CC 12345678",
+        "signature_data": "data:image/png;base64,...",
+        "signed_at": "2026-10-16T17:05:00+00:00"
       },
       {
         "id": 2,
         "role": "received_by",
+        "method": "pin",
         "signer_name": "María López",
-        "signer_document": "87654321",
-        "signed_at": "2026-07-04T17:05:00+00:00"
+        "signer_document": "CC 87654321",
+        "signature_data": "data:image/png;base64,...",
+        "signed_at": "2026-10-16T17:05:00+00:00"
       }
     ],
-    ...resto del movimiento
+    ...resto del documento
   }
 }
 ```
 
-> `signature_data` (la imagen en sí) **no** se incluye en esta respuesta por peso. Para obtenerla usar el endpoint 4.5.
+- `method`: `pad` (dibujada), `stored` (firma registrada de quien confirma) o `pin` (firma registrada validada con PIN).
+- Con firma registrada o PIN el frontend **no conoce de antemano** nombre, documento ni imagen: para imprimir el comprobante use `data.signatures` de esta respuesta.
+- La firma se copia al comprobante: si el usuario actualiza su firma después, los comprobantes ya emitidos no cambian.
 
 ---
 
@@ -596,9 +627,13 @@ GET /api/v1/movements?status=pending_signature&warehouse_id={id}
 
 | HTTP | Causa |
 |---|---|
-| 400 (DomainException) | El movimiento ya fue confirmado anteriormente |
-| 422 | Alguna firma o campo obligatorio faltante |
-| 404 | Movimiento no encontrado |
+| 409 | El documento ya fue confirmado |
+| 409 | Se omitió `delivered_by` y el usuario no tiene firma registrada (mensaje: *"No tiene una firma registrada…"*). Ofrecer firma manual |
+| 409 | El PIN corresponde al mismo usuario que entrega (*"Quien recibe no puede ser la misma persona que entrega."*) |
+| 422 `errors["received_by.pin"]` | PIN con formato inválido o que no corresponde a ninguna firma activa. Limpiar el campo y pedirlo de nuevo |
+| 422 | Alguna firma o campo obligatorio faltante (modo manual) |
+| 429 | 3 PIN fallidos en 15 minutos por el usuario que confirma. Esperar o usar firma manual |
+| 404 | Documento no encontrado |
 
 ### Errores en cancelación
 
@@ -736,3 +771,94 @@ async function registrarYFirmarSalida({ productId, warehouseId, locationId, quan
 - **No hay expiración del token de firma:** Una vez creado el movimiento `pending_signature`, puede firmarse en cualquier momento hasta que el sistema lo elimine automáticamente a los **30 días**.
 - **Movimientos multi-lote:** El backend puede devolver N movimientos por una sola acción del usuario. La UI debe manejar todos y confirmar cada uno. Se recomienda reutilizar los mismos datos de firma para todos los registros de la misma operación.
 - **PDF:** Se genera con el endpoint de reporte (fuera del scope de este módulo). Asegurarse de solicitarlo solo cuando `status === "confirmed"`.
+
+---
+
+## 10. Firma registrada ("Mi firma") y PIN
+
+Cada usuario registra **una sola vez** su documento y su firma en *Mi perfil → Mi firma* (`/profile/signature`). Con eso:
+
+- **Quien entrega** (el usuario de la sesión que confirma) no vuelve a firmar: su firma registrada se aplica automáticamente.
+- **Quien recibe**, si es usuario del sistema, digita su **PIN de 3 dígitos** en el mismo equipo; no se pide cédula.
+- **Externos o usuarios sin firma registrada** siguen firmando en el pad.
+
+### Privacidad
+
+Los endpoints de "Mi firma" **no reciben ID de usuario**: operan siempre sobre el usuario del token. Ningún rol (ni `super_administrador`) puede ver o cambiar la firma de otro usuario. La firma no se guarda en `localStorage`.
+
+### Endpoints
+
+Todos requieren `Authorization: Bearer {token}`; no requieren permisos adicionales.
+
+#### `GET /api/v1/auth/me/signature`
+
+```json
+{
+  "success": true,
+  "message": "Mi firma",
+  "data": {
+    "signature": {
+      "signer_name": "Juan Pérez",
+      "document_type": "CC",
+      "document_type_label": "Cédula de ciudadanía",
+      "document_number": "12345678",
+      "signature_data": "data:image/png;base64,...",
+      "has_pin": true,
+      "pin_generated_at": "2026-10-16T10:00:00+00:00",
+      "registered_at": "2026-10-16T10:00:00+00:00"
+    },
+    "document_types": [
+      { "value": "CC", "label": "Cédula de ciudadanía" },
+      { "value": "CE", "label": "Cédula de extranjería" },
+      { "value": "TI", "label": "Tarjeta de identidad" },
+      { "value": "PA", "label": "Pasaporte" },
+      { "value": "PPT", "label": "Permiso por protección temporal" }
+    ]
+  }
+}
+```
+
+`data.signature` es `null` si el usuario aún no la registra.
+
+#### `PUT /api/v1/auth/me/signature` — registrar o actualizar
+
+```json
+{
+  "current_password": "********",
+  "document_type":    "CC",
+  "document_number":  "12345678",
+  "signature":        "data:image/png;base64,..."
+}
+```
+
+| Campo | Regla |
+|---|---|
+| `current_password` | Obligatoria y correcta (si alguien deja la sesión abierta no puede reemplazar la firma) |
+| `document_type` | Uno de `document_types` |
+| `document_number` | 4–20 caracteres, solo letras y números (sin puntos ni espacios) |
+| `signature` | PNG en base64 (`data:image/png;base64,...`), máx. ~512 KB |
+
+- **Primer registro → 201** con `data.pin` (3 dígitos). **Es la única vez que se muestra**: la UI debe pedir al usuario que lo guarde.
+- **Actualización → 200** con `data.pin: null`: se crea una nueva versión de la firma y se conserva el PIN vigente.
+- Límite: 10 peticiones por minuto.
+
+#### `POST /api/v1/auth/me/signature/pin` — generar un PIN nuevo
+
+```json
+{ "current_password": "********" }
+```
+
+Respuesta 200 con `data.pin` (única vez que se muestra). El PIN anterior deja de funcionar de inmediato y queda **180 días en cuarentena**: durante ese tiempo no se asigna a ningún otro usuario. 409 si el usuario aún no registra su firma. Límite: 5 peticiones por minuto.
+
+### Reglas del PIN
+
+- Lo **genera el sistema** (3 dígitos, único, sin secuencias ni dígitos repetidos). El usuario no lo elige: así nadie puede descubrir el PIN de otro probando si "está disponible".
+- Se almacena como HMAC, nunca en claro. Si se olvida, se regenera desde *Mi firma*.
+- 3 intentos fallidos en 15 minutos (por usuario que confirma) bloquean temporalmente la confirmación con PIN → HTTP 429.
+- Un PIN de un usuario inactivo no es válido.
+- **Cuarentena de 180 días:** un PIN liberado al regenerarlo no se reasigna a otro usuario hasta pasados 180 días (tabla `retired_signature_pins`), para que quien conocía el PIN viejo no pueda firmar como otra persona. Actualizar la firma no libera el PIN (se conserva).
+- Con 3 dígitos hay ~974 PIN válidos, que es también el máximo de usuarios con firma registrada. Los PIN en cuarentena también cuentan como no disponibles. Si se agotan, registrar firma responde 409 (*"No hay PIN de firma disponibles"*).
+
+### Comprobante PDF
+
+El comprobante muestra debajo de cada firma registrada la leyenda *"Firma registrada · sesión autenticada"* (entrega) o *"Firma registrada · validada con PIN"* (recibe), y el documento con su tipo (`CC 12345678`).

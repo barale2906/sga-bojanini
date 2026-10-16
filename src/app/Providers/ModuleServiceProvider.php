@@ -7,7 +7,9 @@ namespace App\Providers;
 use App\Modules\Audit\Domain\Repositories\AuditLogRepositoryInterface;
 use App\Modules\Audit\Infrastructure\Persistence\EloquentAuditLogRepository;
 use App\Modules\Auth\Domain\Repositories\UserRepositoryInterface;
+use App\Modules\Auth\Domain\Repositories\UserSignatureRepositoryInterface;
 use App\Modules\Auth\Infrastructure\Persistence\EloquentUserRepository;
+use App\Modules\Auth\Infrastructure\Persistence\EloquentUserSignatureRepository;
 use App\Modules\Catalog\Domain\Repositories\CategoryRepositoryInterface;
 use App\Modules\Catalog\Domain\Repositories\GenericProductRepositoryInterface;
 use App\Modules\Catalog\Domain\Repositories\ProductClassificationRepositoryInterface;
@@ -85,6 +87,7 @@ class ModuleServiceProvider extends ServiceProvider
     public array $bindings = [
         // Auth (Fase 1)
         UserRepositoryInterface::class => EloquentUserRepository::class,
+        UserSignatureRepositoryInterface::class => EloquentUserSignatureRepository::class,
 
         // Warehouse (Fase 2)
         WarehouseRepositoryInterface::class => EloquentWarehouseRepository::class,

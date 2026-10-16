@@ -53,6 +53,7 @@
         .sig-label { font-weight: bold; font-size: 9px; color: #555; margin-bottom: 4px; text-transform: uppercase; }
         .sig-img { max-width: 180px; max-height: 60px; border: 1px solid #e5e7eb; padding: 2px; }
         .sig-name { margin-top: 4px; font-size: 9px; border-top: 1px solid #aaa; padding-top: 3px; }
+        .sig-method { color: #2b6cb0; font-size: 8px; font-style: italic; }
         .sig-pending { color: #92400e; font-style: italic; font-size: 9px; margin-top: 20px; }
 
         .footer { margin-top: 16px; text-align: center; font-size: 8px; color: #999; border-top: 1px solid #e5e7eb; padding-top: 5px; }
@@ -217,6 +218,9 @@
                 {{ $delivered->signer_name }}<br>
                 Doc: {{ $delivered->signer_document }}<br>
                 <span style="color:#666;">{{ \Carbon\Carbon::parse($delivered->signed_at)->format('Y-m-d H:i') }}</span>
+                @if(($delivered->method ?? 'pad') !== 'pad')
+                    <br><span class="sig-method">{{ $delivered->method === 'pin' ? 'Firma registrada · validada con PIN' : 'Firma registrada · sesión autenticada' }}</span>
+                @endif
             </div>
         @else
             <div class="sig-pending">Pendiente de firma</div>
@@ -233,6 +237,9 @@
                 {{ $received->signer_name }}<br>
                 Doc: {{ $received->signer_document }}<br>
                 <span style="color:#666;">{{ \Carbon\Carbon::parse($received->signed_at)->format('Y-m-d H:i') }}</span>
+                @if(($received->method ?? 'pad') !== 'pad')
+                    <br><span class="sig-method">{{ $received->method === 'pin' ? 'Firma registrada · validada con PIN' : 'Firma registrada · sesión autenticada' }}</span>
+                @endif
             </div>
         @else
             <div class="sig-pending">Pendiente de firma</div>

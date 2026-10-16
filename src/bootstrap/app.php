@@ -113,6 +113,18 @@ return Application::configure(basePath: dirname(__DIR__))
             }
         });
 
+        // También antes de DomainException: un PIN de firma mal digitado es un
+        // error de validación del campo (422), no un conflicto de estado.
+        $exceptions->render(function (\App\Modules\Auth\Domain\Exceptions\InvalidSignaturePinException $e, $request) {
+            if ($request->is('api/*') || $request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error de validación.',
+                    'errors'  => [$e->field => [$e->getMessage()]],
+                ], 422);
+            }
+        });
+
         $exceptions->render(function (\DomainException $e, $request) {
             if ($request->is('api/*') || $request->expectsJson()) {
                 return response()->json([

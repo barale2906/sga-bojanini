@@ -353,7 +353,7 @@ class MovementController extends Controller
         $document = MovementDocumentModel::findOrFail($id);
         $this->assertDocumentAccess($request, $document);
 
-        $document = $useCase->execute($id, $request->signatures());
+        $document = $useCase->execute($id, $request->signers(), (int) $request->user()->id);
 
         return $this->success(new MovementDocumentResource($document), 'Documento confirmado exitosamente');
     }
@@ -371,6 +371,7 @@ class MovementController extends Controller
 
         return $this->success([
             'role'            => $signature->role,
+            'method'          => $signature->method ?? 'pad',
             'signer_name'     => $signature->signer_name,
             'signer_document' => $signature->signer_document,
             'signature_data'  => $signature->signature_data,

@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Auth\Infrastructure\Http\Controllers\AuthController;
+use App\Modules\Auth\Infrastructure\Http\Controllers\MySignatureController;
 use App\Modules\Auth\Infrastructure\Http\Controllers\RoleController;
 use App\Modules\Auth\Infrastructure\Http\Controllers\UserController;
 use App\Modules\Shared\Infrastructure\Http\Controllers\MenuController;
@@ -17,6 +18,11 @@ Route::prefix('v1')->group(function () {
         Route::get('auth/menu', [MenuController::class, 'index']);
         Route::put('auth/password', [AuthController::class, 'changePassword']);
         Route::post('auth/refresh', [AuthController::class, 'refresh']);
+
+        // Mi firma: solo opera sobre el usuario autenticado (sin IDs en la ruta)
+        Route::get('auth/me/signature', [MySignatureController::class, 'show']);
+        Route::put('auth/me/signature', [MySignatureController::class, 'save'])->middleware('throttle:10,1');
+        Route::post('auth/me/signature/pin', [MySignatureController::class, 'regeneratePin'])->middleware('throttle:5,1');
 
         Route::get('users', [UserController::class, 'index'])->middleware('permission:usuarios.ver');
         Route::post('users', [UserController::class, 'store'])->middleware('permission:usuarios.crear');

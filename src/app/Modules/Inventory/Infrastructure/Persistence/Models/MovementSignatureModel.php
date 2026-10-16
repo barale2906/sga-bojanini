@@ -17,6 +17,9 @@ class MovementSignatureModel extends Model
     protected $fillable = [
         'movement_document_id',
         'role',
+        'method',
+        'user_id',
+        'user_signature_id',
         'signer_name',
         'signer_document',
         'signature_data',

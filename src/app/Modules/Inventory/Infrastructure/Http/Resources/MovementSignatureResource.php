@@ -14,6 +14,7 @@ class MovementSignatureResource extends JsonResource
         return [
             'id'              => $this->id,
             'role'            => $this->role,
+            'method'          => $this->method ?? 'pad',
             'signer_name'     => $this->signer_name,
             'signer_document' => $this->signer_document,
             'signature_data'  => $this->signature_data,
