@@ -16,7 +16,7 @@ use App\Modules\Assets\Infrastructure\Persistence\Models\AssetMaintenanceModel;
  */
 class UploadAssetDocumentUseCase
 {
-    public const DISK = 'local';
+    public const DISK = 'activos';
 
     public function __construct(
         private readonly AssetRepositoryInterface $assets,

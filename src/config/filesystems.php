@@ -59,6 +59,12 @@ return [
             'throw' => false,
             'report' => false,
         ],
+        'activos' => [
+            'driver' => 'local',
+            'root' => storage_path('app/activos'),
+            'throw' => false,
+            'report' => false,
+        ],
 
     ],
 
