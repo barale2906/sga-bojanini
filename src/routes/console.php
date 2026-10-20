@@ -18,6 +18,10 @@ Schedule::command('sga:reconcile-inventory')
     ->name('sga:reconcile-inventory')
     ->withoutOverlapping();
 
+Schedule::command('sga:check-asset-alerts')
+    ->dailyAt('06:15')
+    ->name('sga:check-asset-alerts');
+
 Schedule::command('sga:check-reorder-points')
     ->hourly()
     ->name('sga:check-reorder-points');

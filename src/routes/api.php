@@ -44,3 +44,6 @@ require __DIR__ . '/api/cost-center.php';
 
 // Fase 11: Órdenes de Servicio y Listas de Precios
 require __DIR__ . '/api/service-orders.php';
+
+// Fase 12: Activos (equipos biomédicos, cómputo y bienes generales)
+require __DIR__ . '/api/assets.php';

@@ -26,4 +26,18 @@ class NotificationRecipientService
             NotificationFacade::send($users, $notification);
         }
     }
+
+    /**
+     * Notifica a los usuarios activos que tienen el permiso indicado (directo
+     * o por rol). Útil para módulos que no tienen roles propios y se
+     * administran solo con permisos.
+     */
+    public function notifyByPermission(string $permission, Notification $notification): void
+    {
+        $users = UserModel::permission($permission)->where('is_active', true)->get();
+
+        if ($users->isNotEmpty()) {
+            NotificationFacade::send($users, $notification);
+        }
+    }
 }

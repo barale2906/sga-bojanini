@@ -92,6 +92,24 @@ class BatchLocationService
     }
 
     /**
+     * Ubicación de la que sale el lote dentro del almacén: la sugerida si es
+     * del almacén y tiene stock del lote; si no, la ubicación del almacén
+     * donde más stock del lote hay guardado. Null si el almacén no tiene stock.
+     */
+    public function resolveSourceLocation(int $batchId, int $warehouseId, ?int $suggestedLocationId = null): ?int
+    {
+        $locations = $this->locationsWithStock($batchId, $warehouseId);
+
+        if ($suggestedLocationId !== null && $locations->contains(fn ($l) => (int) $l->location_id === $suggestedLocationId)) {
+            return $suggestedLocationId;
+        }
+
+        $first = $locations->first();
+
+        return $first === null ? null : (int) $first->location_id;
+    }
+
+    /**
      * Ingresa `$quantity` unidades del lote en una ubicación del almacén y
      * sincroniza el lote.
      *

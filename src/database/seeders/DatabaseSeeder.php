@@ -14,6 +14,7 @@ class DatabaseSeeder extends Seeder
             CostCenterSeeder::class,
             WarehouseSeeder::class,
             PurchasingSeeder::class,
+            AssetSeeder::class,
             //MonitoringSeeder::class,
         ]);
     }

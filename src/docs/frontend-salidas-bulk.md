@@ -51,7 +51,7 @@ Permiso: movimientos.salida
 | `generic_product_id` | integer | ✅ | ID del producto genérico. |
 | `batch_id` | integer | — | ID del lote específico a despachar. Si se envía, el backend usa **ese lote exacto** (no aplica FEFO). Si se omite, FEFO elige el lote automáticamente. |
 | `quantity` | number | ✅ | Cantidad en unidad base a sacar del lote (o que el FEFO debe cubrir). Mín: 0.001. |
-| `location_id` | integer | — | Ubicación/estante de origen. Si se omite, el backend usa el stock disponible en cualquier ubicación. |
+| `location_id` | integer | — | Sugerencia de ubicación de origen (opcional). El backend decide la ubicación según dónde está guardado el lote en el almacén: usa la sugerida solo si es del almacén y tiene stock del lote; si no, la ignora y toma la ubicación con más stock. Nunca devuelve error por una ubicación de otro almacén. |
 
 > **Estrategia recomendada para el frontend:**
 > 1. Consultar los lotes disponibles del producto ordenados por fecha de vencimiento (FEFO).

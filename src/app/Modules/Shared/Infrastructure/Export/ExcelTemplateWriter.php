@@ -28,8 +28,9 @@ class ExcelTemplateWriter
      * @param  string[]  $headers
      * @param  string[]  $spanishLabels
      * @param  string[]  $exampleRow
+     * @param  string|null  $helpComment  comentario de la celda A1; null = texto por defecto
      */
-    public function writeDataSheet(Worksheet $sheet, string $title, array $headers, array $spanishLabels, array $exampleRow): void
+    public function writeDataSheet(Worksheet $sheet, string $title, array $headers, array $spanishLabels, array $exampleRow, ?string $helpComment = null): void
     {
         $sheet->setTitle($title);
 
@@ -56,11 +57,11 @@ class ExcelTemplateWriter
             $sheet->getColumnDimension($columnId)->setAutoSize(true);
         }
 
-        $sheet->getComment('A1')->getText()->createTextRun(
+        $sheet->getComment('A1')->getText()->createTextRun($helpComment ?? (
             'La fila 2 (gris, en español) es solo de referencia para saber qué va en cada columna. '
             .'BÓRRELA antes de cargar el archivo al sistema; si la deja, se reportará como 1 fila '
             .'fallida (no afecta a los demás registros). Ver hoja "Instrucciones" para el detalle completo.'
-        );
+        ));
 
         $sheet->freezePane('A3');
     }

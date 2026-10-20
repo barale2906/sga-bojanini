@@ -99,11 +99,17 @@ class RegisterKitExitUseCase
         );
 
         foreach ($selectedBatches as $selection) {
+            $locationId = $this->batchLocationService->resolveSourceLocation(
+                $selection['batch_id'],
+                $data['warehouse_id'],
+                empty($data['location_id']) ? null : (int) $data['location_id'],
+            );
+
             $this->batchLocationService->withdraw(
                 $selection['batch_id'],
                 $data['warehouse_id'],
                 $selection['quantity'],
-                $data['location_id'] ?? null,
+                $locationId,
             );
 
             $movement = StockMovementModel::create([
@@ -111,7 +117,7 @@ class RegisterKitExitUseCase
                 'warehouse_id'         => $data['warehouse_id'],
                 'product_variant_id'   => $selection['product_variant_id'],
                 'batch_id'             => $selection['batch_id'],
-                'location_from_id'     => $data['location_id'] ?? null,
+                'location_from_id'     => $locationId,
                 'movement_type'        => 'exit',
                 'quantity'             => -$selection['quantity'],
                 'reason'               => $data['reason'] ?? "Salida kit {$kitRef}",

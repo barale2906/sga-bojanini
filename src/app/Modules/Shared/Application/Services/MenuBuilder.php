@@ -10,7 +10,7 @@ namespace App\Modules\Shared\Application\Services;
  *
  * Estructura del árbol (hasta 3 niveles):
  *  - Nivel 1: ítems de primer nivel (Tablero, Inventario, Compras, Monitoreo,
- *    Gestión, Configuración). Algunos son ítems hoja (Tablero, Compras,
+ *    Activos, Gestión, Configuración). Algunos son ítems hoja (Tablero, Compras,
  *    Monitoreo) y otros son grupos contenedores (Inventario, Gestión,
  *    Configuración) cuyo `route` es null.
  *  - Nivel 2: dentro de los grupos contenedores, secciones (p. ej. Catálogo,
@@ -116,6 +116,24 @@ class MenuBuilder
 
         if ($monitoringSection !== null) {
             $menu[] = $monitoringSection;
+        }
+
+        // ── Activos (grupo) ──────────────────────────────────────────────────
+        $assetGroupChildren = array_filter([
+            $this->buildAssetsSection($has),
+            $this->buildAssetMaintenanceSection($has),
+        ]);
+
+        if (! empty($assetGroupChildren)) {
+            $menu[] = [
+                'key'        => 'asset-management',
+                'label'      => 'Activos',
+                'icon'       => 'monitor-cog',
+                'route'      => null,
+                'permission' => null,
+                'actions'    => [],
+                'children'   => array_values($assetGroupChildren),
+            ];
         }
 
         // ── Gestión (grupo) ──────────────────────────────────────────────────
@@ -452,6 +470,96 @@ class MenuBuilder
             'permission' => null,
             'actions'    => [],
             'children'   => array_values($children),
+        ];
+    }
+
+    /**
+     * @param  callable(string): bool  $has
+     * @return array<string, mixed>|null
+     */
+    private function buildAssetsSection(callable $has): ?array
+    {
+        if (! $has('activos.ver')) {
+            return null;
+        }
+
+        return [
+            'key'        => 'assets',
+            'label'      => 'Activos',
+            'icon'       => 'factory',
+            'route'      => null,
+            'permission' => null,
+            'actions'    => [],
+            'children'   => [
+                [
+                    'key'        => 'assets-list',
+                    'label'      => 'Inventario de activos',
+                    'icon'       => 'boxes',
+                    'route'      => 'assets.index',
+                    'permission' => 'activos.ver',
+                    'actions'    => array_merge($this->crudActions($has, 'activos'), [
+                        'retire'  => $has('activos.dar_baja'),
+                        'comment' => $has('activos.comentar'),
+                        'import'  => $has('activos.importar'),
+                        'export'  => $has('activos.exportar'),
+                        'upload'  => $has('activos_documentos.cargar'),
+                    ]),
+                ],
+                [
+                    'key'        => 'asset-transfers',
+                    'label'      => 'Traslados',
+                    'icon'       => 'arrow-left-right',
+                    'route'      => 'asset-transfers.index',
+                    'permission' => 'activos.ver',
+                    'actions'    => [
+                        'request' => $has('activos_traslados.solicitar'),
+                        'confirm' => $has('activos_traslados.confirmar'),
+                    ],
+                ],
+                [
+                    'key'        => 'asset-catalogs',
+                    'label'      => 'Categorías y ubicaciones',
+                    'icon'       => 'map-pin',
+                    'route'      => 'asset-catalogs.index',
+                    'permission' => 'activos.ver',
+                    'actions'    => $this->crudActions($has, 'activos_catalogos'),
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * @param  callable(string): bool  $has
+     * @return array<string, mixed>|null
+     */
+    private function buildAssetMaintenanceSection(callable $has): ?array
+    {
+        if (! $has('activos_mantenimientos.ver')) {
+            return null;
+        }
+
+        return [
+            'key'        => 'asset-maintenance',
+            'label'      => 'Mantenimiento',
+            'icon'       => 'wrench',
+            'route'      => null,
+            'permission' => null,
+            'actions'    => [],
+            'children'   => [
+                [
+                    'key'        => 'maintenance-schedule',
+                    'label'      => 'Cronograma',
+                    'icon'       => 'calendar-clock',
+                    'route'      => 'asset-maintenance.index',
+                    'permission' => 'activos_mantenimientos.ver',
+                    'actions'    => [
+                        'schedule' => $has('activos_mantenimientos.programar'),
+                        'execute'  => $has('activos_mantenimientos.ejecutar'),
+                        'cancel'   => $has('activos_mantenimientos.cancelar'),
+                        'export'   => $has('activos.exportar'),
+                    ],
+                ],
+            ],
         ];
     }
 

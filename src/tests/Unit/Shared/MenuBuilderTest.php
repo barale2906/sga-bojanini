@@ -360,6 +360,55 @@ class MenuBuilderTest extends TestCase
         $this->assertTrue($reports['actions']['export']);
     }
 
+    // ─── Activos ─────────────────────────────────────────────────────────────
+
+    public function test_grupo_activos_no_visible_sin_permisos(): void
+    {
+        $menu = $this->builder->build(['tablero.ver']);
+
+        $this->assertNull($this->findByKey($menu, 'asset-management'));
+    }
+
+    public function test_grupo_activos_con_solo_ver_muestra_inventario_sin_mantenimiento(): void
+    {
+        $menu  = $this->builder->build(['activos.ver']);
+        $group = $this->findByKey($menu, 'asset-management');
+
+        $this->assertNotNull($group);
+        $this->assertSame(['assets'], array_column($group['children'], 'key'));
+
+        $section = $this->findByKey($group['children'], 'assets');
+        $this->assertSame(['assets-list', 'asset-transfers', 'asset-catalogs'], array_column($section['children'], 'key'));
+
+        $list = $this->findByKey($section['children'], 'assets-list');
+        $this->assertFalse($list['actions']['create']);
+        $this->assertFalse($list['actions']['retire']);
+    }
+
+    public function test_grupo_activos_con_mantenimiento_y_acciones_por_permiso(): void
+    {
+        $menu = $this->builder->build([
+            'activos.ver', 'activos.crear', 'activos.dar_baja',
+            'activos_traslados.solicitar',
+            'activos_mantenimientos.ver', 'activos_mantenimientos.ejecutar',
+        ]);
+
+        $group = $this->findByKey($menu, 'asset-management');
+        $this->assertSame(['assets', 'asset-maintenance'], array_column($group['children'], 'key'));
+
+        $assets    = $this->findByKey($group['children'], 'assets');
+        $list      = $this->findByKey($assets['children'], 'assets-list');
+        $transfers = $this->findByKey($assets['children'], 'asset-transfers');
+        $schedule  = $this->findByKey($this->findByKey($group['children'], 'asset-maintenance')['children'], 'maintenance-schedule');
+
+        $this->assertTrue($list['actions']['create']);
+        $this->assertTrue($list['actions']['retire']);
+        $this->assertTrue($transfers['actions']['request']);
+        $this->assertFalse($transfers['actions']['confirm']);
+        $this->assertTrue($schedule['actions']['execute']);
+        $this->assertFalse($schedule['actions']['schedule']);
+    }
+
     // ─── Super administrador ─────────────────────────────────────────────────
 
     public function test_todos_los_permisos_generan_seis_secciones(): void

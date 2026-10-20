@@ -88,6 +88,20 @@ class BatchLocationServiceTest extends TestCase
         app(BatchLocationService::class)->withdraw($batch->id, $origin['warehouse']->id, 1, $other['locationA']->id);
     }
 
+    public function test_resolve_source_location_picks_where_the_batch_is_stored_in_the_warehouse(): void
+    {
+        $origin  = $this->createWarehouseSetup('A');
+        $other   = $this->createWarehouseSetup('B');
+        $batch   = $this->createBatch([$origin['locationA']->id => 3, $origin['locationB']->id => 8, $other['locationA']->id => 20]);
+        $service = app(BatchLocationService::class);
+
+        // Sugerida válida y con stock: se respeta.
+        $this->assertSame($origin['locationA']->id, $service->resolveSourceLocation($batch->id, $origin['warehouse']->id, $origin['locationA']->id));
+        // Sugerida de otro almacén o sin sugerencia: la ubicación del almacén con más stock del lote.
+        $this->assertSame($origin['locationB']->id, $service->resolveSourceLocation($batch->id, $origin['warehouse']->id, $other['locationA']->id));
+        $this->assertSame($origin['locationB']->id, $service->resolveSourceLocation($batch->id, $origin['warehouse']->id));
+    }
+
     public function test_deposit_rejects_location_of_another_warehouse(): void
     {
         $origin = $this->createWarehouseSetup('A');

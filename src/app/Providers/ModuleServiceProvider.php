@@ -4,6 +4,14 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Modules\Assets\Domain\Repositories\AssetCategoryRepositoryInterface;
+use App\Modules\Assets\Domain\Repositories\AssetPlaceRepositoryInterface;
+use App\Modules\Assets\Domain\Repositories\AssetRepositoryInterface;
+use App\Modules\Assets\Domain\Repositories\AssetSiteRepositoryInterface;
+use App\Modules\Assets\Infrastructure\Persistence\EloquentAssetCategoryRepository;
+use App\Modules\Assets\Infrastructure\Persistence\EloquentAssetPlaceRepository;
+use App\Modules\Assets\Infrastructure\Persistence\EloquentAssetRepository;
+use App\Modules\Assets\Infrastructure\Persistence\EloquentAssetSiteRepository;
 use App\Modules\Audit\Domain\Repositories\AuditLogRepositoryInterface;
 use App\Modules\Audit\Infrastructure\Persistence\EloquentAuditLogRepository;
 use App\Modules\Auth\Domain\Repositories\UserRepositoryInterface;
@@ -136,6 +144,12 @@ class ModuleServiceProvider extends ServiceProvider
         // Integration (Fase 8)
         ExternalIntegrationRepositoryInterface::class => EloquentExternalIntegrationRepository::class,
         ConsumptionRecordRepositoryInterface::class => EloquentConsumptionRecordRepository::class,
+
+        // Assets (Fase 12)
+        AssetCategoryRepositoryInterface::class => EloquentAssetCategoryRepository::class,
+        AssetSiteRepositoryInterface::class => EloquentAssetSiteRepository::class,
+        AssetPlaceRepositoryInterface::class => EloquentAssetPlaceRepository::class,
+        AssetRepositoryInterface::class => EloquentAssetRepository::class,
     ];
 
     public function register(): void

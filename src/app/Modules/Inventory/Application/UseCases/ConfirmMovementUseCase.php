@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace App\Modules\Inventory\Application\UseCases;
 
-use App\Modules\Auth\Application\Services\RegisteredSignatureResolver;
-use App\Modules\Auth\Domain\Entities\UserSignature;
-use App\Modules\Inventory\Application\DTOs\SignerInput;
+use App\Modules\Auth\Application\DTOs\SignerInput;
+use App\Modules\Auth\Application\Services\SignerSnapshotResolver;
 use App\Modules\Inventory\Domain\ValueObjects\MovementStatus;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\MovementDocumentModel;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\MovementSignatureModel;
@@ -21,7 +20,7 @@ class ConfirmMovementUseCase
         private readonly RegisterReturnUseCase $returnUseCase,
         private readonly WriteOffExpiredUseCase $writeOffUseCase,
         private readonly RegisterLossUseCase $lossUseCase,
-        private readonly RegisteredSignatureResolver $signatureResolver,
+        private readonly SignerSnapshotResolver $signerResolver,
     ) {}
 
     /**
@@ -47,15 +46,7 @@ class ConfirmMovementUseCase
             throw new \DomainException('El documento ya fue confirmado.');
         }
 
-        $rows = [
-            'delivered_by' => $this->resolveSigner($signers['delivered_by'], $actingUserId),
-            'received_by'  => $this->resolveSigner($signers['received_by'], $actingUserId),
-        ];
-
-        if ($rows['delivered_by']['user_id'] !== null
-            && $rows['delivered_by']['user_id'] === $rows['received_by']['user_id']) {
-            throw new \DomainException('Quien recibe no puede ser la misma persona que entrega.');
-        }
+        $rows = $this->signerResolver->resolveAll($signers, $actingUserId);
 
         DB::transaction(function () use ($document, $rows) {
             foreach ($document->movements as $movement) {
@@ -77,46 +68,6 @@ class ConfirmMovementUseCase
         });
 
         return $document->load(['movements.variant.genericProduct', 'movements.batch', 'warehouse', 'warehouseTo', 'user', 'signatures']);
-    }
-
-    /**
-     * Convierte la entrada de un rol en los atributos de su fila en movement_signatures.
-     *
-     * @return array{method: string, user_id: int|null, user_signature_id: int|null, signer_name: string, signer_document: string, signature_data: string}
-     */
-    private function resolveSigner(SignerInput $input, int $actingUserId): array
-    {
-        return match ($input->method) {
-            SignerInput::METHOD_STORED => $this->fromRegistered(
-                SignerInput::METHOD_STORED,
-                $this->signatureResolver->forUser($actingUserId),
-            ),
-            SignerInput::METHOD_PIN => $this->fromRegistered(
-                SignerInput::METHOD_PIN,
-                $this->signatureResolver->byPin((string) $input->pin, (string) $actingUserId, 'received_by.pin'),
-            ),
-            default => [
-                'method'            => SignerInput::METHOD_PAD,
-                'user_id'           => null,
-                'user_signature_id' => null,
-                'signer_name'       => (string) $input->name,
-                'signer_document'   => (string) $input->document,
-                'signature_data'    => (string) $input->signature,
-            ],
-        };
-    }
-
-    /** @return array{method: string, user_id: int, user_signature_id: int, signer_name: string, signer_document: string, signature_data: string} */
-    private function fromRegistered(string $method, UserSignature $signature): array
-    {
-        return [
-            'method'            => $method,
-            'user_id'           => $signature->getUserId(),
-            'user_signature_id' => $signature->getId(),
-            'signer_name'       => $signature->getSignerName(),
-            'signer_document'   => $signature->getDocumentType()->value . ' ' . $signature->getDocumentNumber(),
-            'signature_data'    => $signature->getSignatureData(),
-        ];
     }
 
     private function applyStockByType(\App\Modules\Inventory\Infrastructure\Persistence\Models\StockMovementModel $movement): void

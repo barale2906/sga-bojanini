@@ -119,6 +119,43 @@ class InventoryTest extends TestCase
         ]);
     }
 
+    public function test_salida_ignora_ubicacion_de_otro_almacen_y_usa_donde_esta_guardado_el_lote(): void
+    {
+        $setup   = $this->createWarehouseSetup();
+        $other   = $this->createWarehouseSetup('-OTRO');
+        $shelf   = $this->createLocation($setup['zone'], 'ESTANTE-2');
+        $generic = $this->getGeneric('000001');
+        $variant = $this->getVariant('000001');
+
+        $batch = $this->createBatch($variant->id, 'LOT-SHELF', now()->addDays(60)->format('Y-m-d'), 12, $shelf, $setup['warehouse']->id);
+        $this->recalculateStock($variant->id, $setup['warehouse']->id);
+
+        $center = CostCenterModel::where('type', 'internal')->first();
+
+        // El cliente envía una ubicación de otro almacén (p. ej. tras cambiar de almacén con ítems en el carrito).
+        $response = $this->withHeaders($this->auth())
+            ->postJson('/api/v1/movements/exit', [
+                'warehouse_id'   => $setup['warehouse']->id,
+                'cost_center_id' => $center->id,
+                'items'          => [[
+                    'generic_product_id' => $generic->id,
+                    'batch_id'           => $batch->id,
+                    'quantity'           => 5,
+                    'location_id'        => $other['location']->id,
+                ]],
+            ])
+            ->assertStatus(201);
+
+        $this->confirmDocument($response->json('data.id'));
+
+        $this->assertSame(7.0, $batch->refresh()->quantity_available);
+        $this->assertDatabaseHas('stock_movements', [
+            'batch_id'         => $batch->id,
+            'movement_type'    => 'exit',
+            'location_from_id' => $shelf->id,
+        ]);
+    }
+
     public function test_salida_con_stock_insuficiente_retorna_error(): void
     {
         $setup   = $this->createWarehouseSetup();
@@ -1273,7 +1310,7 @@ class InventoryTest extends TestCase
         $this->assertDatabaseHas('batch_location', ['batch_id' => $batch->id, 'location_id' => $almacenB['location']->id, 'quantity' => 5]);
     }
 
-    public function test_salida_rechaza_ubicacion_de_otro_almacen(): void
+    public function test_salida_con_ubicacion_de_otro_almacen_no_toca_el_stock_de_ese_almacen(): void
     {
         $almacenA = $this->createWarehouseSetup('-A');
         $almacenB = $this->createWarehouseSetup('-B');
@@ -1285,16 +1322,18 @@ class InventoryTest extends TestCase
 
         $center = CostCenterModel::where('type', 'internal')->first();
 
-        $this->withHeaders($this->auth())
+        $response = $this->withHeaders($this->auth())
             ->postJson('/api/v1/movements/exit', [
                 'warehouse_id'   => $almacenA['warehouse']->id,
                 'cost_center_id' => $center->id,
                 'items'          => [['generic_product_id' => $generic->id, 'quantity' => 1, 'location_id' => $almacenB['location']->id]],
             ])
-            ->assertStatus(409)
-            ->assertJsonPath('success', false);
+            ->assertStatus(201);
 
-        $this->assertDatabaseCount('movement_documents', 2);
+        $this->confirmDocument($response->json('data.id'));
+
+        // La ubicación ajena se ignora: se descuenta de donde está guardado el lote en el almacén A.
+        $this->assertDatabaseHas('batch_location', ['batch_id' => $batch->id, 'location_id' => $almacenA['location']->id, 'quantity' => 2]);
         $this->assertDatabaseHas('batch_location', ['batch_id' => $batch->id, 'location_id' => $almacenB['location']->id, 'quantity' => 1]);
     }
 

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace App\Modules\Inventory\Application\DTOs;
+namespace App\Modules\Auth\Application\DTOs;
 
 /**
- * Cómo firma uno de los roles (entrega / recibe) al confirmar un movimiento.
+ * Cómo firma uno de los roles (entrega / recibe) al firmar un documento (movimiento de inventario, traslado de activo, etc.).
  *
  * - METHOD_PAD:    nombre, documento y firma capturados en el momento.
  * - METHOD_STORED: firma registrada del usuario autenticado (solo entrega).

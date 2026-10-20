@@ -48,7 +48,7 @@ class MenuTest extends TestCase
 
     // ─── Super Administrador — ve todo ────────────────────────────────────────
 
-    public function test_super_administrador_ve_siete_secciones(): void
+    public function test_super_administrador_ve_ocho_secciones(): void
     {
         $admin = UserModel::where('email', 'alexanderbarajas@gmail.com')->first();
         $token = $this->bearerTokenFor($admin);
@@ -58,7 +58,7 @@ class MenuTest extends TestCase
             ->assertOk()
             ->json('data');
 
-        $this->assertCount(7, $data);
+        $this->assertCount(8, $data);
 
         $keys = array_column($data, 'key');
         $this->assertContains('dashboard',            $keys);
@@ -66,6 +66,7 @@ class MenuTest extends TestCase
         $this->assertContains('purchasing',           $keys);
         $this->assertContains('service-orders-menu',  $keys);
         $this->assertContains('monitoring',           $keys);
+        $this->assertContains('asset-management',     $keys);
         $this->assertContains('management',           $keys);
         $this->assertContains('configuration',        $keys);
 
@@ -80,6 +81,11 @@ class MenuTest extends TestCase
         $this->assertContains('catalog',   $inventoryKeys);
         $this->assertContains('warehouse', $inventoryKeys);
         $this->assertContains('inventory', $inventoryKeys);
+
+        $assets     = $this->findSectionByKey($data, 'asset-management');
+        $assetsKeys = array_column($assets['children'], 'key');
+        $this->assertContains('assets',            $assetsKeys);
+        $this->assertContains('asset-maintenance', $assetsKeys);
 
         $management     = $this->findSectionByKey($data, 'management');
         $managementKeys = array_column($management['children'], 'key');

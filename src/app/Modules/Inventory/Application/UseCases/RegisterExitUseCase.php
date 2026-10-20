@@ -92,7 +92,7 @@ class RegisterExitUseCase
                 'warehouse_id'         => $data['warehouse_id'],
                 'product_variant_id'   => $selection['product_variant_id'],
                 'batch_id'             => $selection['batch_id'],
-                'location_from_id'     => $item['location_id'] ?? null,
+                'location_from_id'     => $this->sourceLocation($selection['batch_id'], $data['warehouse_id'], $item),
                 'movement_type'        => 'exit',
                 'quantity'             => -$selection['quantity'],
                 'reason'               => $data['reason'] ?? null,
@@ -113,11 +113,13 @@ class RegisterExitUseCase
         $selectedBatches = $this->resolveSelectionsForItem($item, $data['warehouse_id']);
 
         foreach ($selectedBatches as $selection) {
+            $locationId = $this->sourceLocation($selection['batch_id'], $data['warehouse_id'], $item);
+
             $this->batchLocationService->withdraw(
                 $selection['batch_id'],
                 $data['warehouse_id'],
                 $selection['quantity'],
-                $item['location_id'] ?? null,
+                $locationId,
             );
 
             $movement = StockMovementModel::create([
@@ -125,7 +127,7 @@ class RegisterExitUseCase
                 'warehouse_id'         => $data['warehouse_id'],
                 'product_variant_id'   => $selection['product_variant_id'],
                 'batch_id'             => $selection['batch_id'],
-                'location_from_id'     => $item['location_id'] ?? null,
+                'location_from_id'     => $locationId,
                 'movement_type'        => 'exit',
                 'quantity'             => -$selection['quantity'],
                 'reason'               => $data['reason'] ?? null,
@@ -162,16 +164,12 @@ class RegisterExitUseCase
     /**
      * Si el ítem trae `batch_id` explícito lo usa directamente (validando pertenencia
      * al genérico, vigencia y stock suficiente en el almacén). Si no, delega al FEFO
-     * automático. La ubicación indicada, si existe, debe pertenecer al almacén.
+     * automático.
      *
      * @return array<int, array{batch_id:int, product_variant_id:int, lot_number:string, quantity:float, expiration_date:string}>
      */
     private function resolveSelectionsForItem(array $item, int $warehouseId): array
     {
-        if (! empty($item['location_id'])) {
-            $this->batchLocationService->assertLocationInWarehouse((int) $item['location_id'], $warehouseId);
-        }
-
         if (! empty($item['batch_id'])) {
             return $this->selectSpecificBatch($item, $warehouseId);
         }
@@ -181,6 +179,18 @@ class RegisterExitUseCase
             $warehouseId,
             (float) $item['quantity'],
         );
+    }
+
+    /**
+     * La ubicación de origen la decide el sistema según dónde está guardado el
+     * lote en el almacén; la enviada por el cliente es solo una sugerencia y se
+     * descarta si es de otro almacén o no tiene stock del lote.
+     */
+    private function sourceLocation(int $batchId, int $warehouseId, array $item): ?int
+    {
+        $suggested = empty($item['location_id']) ? null : (int) $item['location_id'];
+
+        return $this->batchLocationService->resolveSourceLocation($batchId, $warehouseId, $suggested);
     }
 
     /**

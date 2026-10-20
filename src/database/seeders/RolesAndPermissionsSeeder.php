@@ -95,6 +95,14 @@ class RolesAndPermissionsSeeder extends Seeder
             'ordenes_servicio.eliminar', 'ordenes_servicio.aprobar',
             // Listas de precios
             'listas_precios.ver', 'listas_precios.crear',
+            // Activos (sin roles propios: se asignan a quien los requiera)
+            'activos.ver', 'activos.crear', 'activos.editar', 'activos.eliminar', 'activos.dar_baja',
+            'activos.comentar', 'activos.importar', 'activos.exportar',
+            'activos_catalogos.crear', 'activos_catalogos.editar', 'activos_catalogos.eliminar',
+            'activos_traslados.solicitar', 'activos_traslados.confirmar',
+            'activos_mantenimientos.ver', 'activos_mantenimientos.programar',
+            'activos_mantenimientos.ejecutar', 'activos_mantenimientos.cancelar',
+            'activos_documentos.cargar', 'activos_documentos.eliminar',
         ];
 
         foreach ($permissions as $permission) {
