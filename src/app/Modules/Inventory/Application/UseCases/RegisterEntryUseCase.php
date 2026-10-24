@@ -86,6 +86,12 @@ class RegisterEntryUseCase
             ],
         );
 
+        // Un reingreso del mismo lote conserva el comentario original; solo se
+        // completa si el lote aún no tenía uno.
+        if (! $batch->wasRecentlyCreated && $batch->notes === null && ! empty($item['notes'])) {
+            $batch->update(['notes' => $item['notes']]);
+        }
+
         $batch->increment('quantity_received', $quantity);
 
         $this->batchLocationService->deposit($batch->id, $warehouseId, (int) $item['location_id'], $quantity);

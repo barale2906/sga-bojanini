@@ -27,6 +27,7 @@ class BatchResource extends JsonResource
                 'quantity_available'  => $batch->getQuantityAvailable(),
                 'status'              => $batch->getStatus(),
                 'days_until_expiry'   => $batch->daysUntilExpiry(),
+                'notes'               => $batch->getNotes(),
                 'received_at'         => $batch->getReceivedAt(),
             ];
         }
@@ -50,6 +51,7 @@ class BatchResource extends JsonResource
             'days_until_expiry'   => $batch->expiration_date
                 ? (int) now()->diffInDays(Carbon::parse($batch->expiration_date), false)
                 : null,
+            'notes'               => $batch->notes,
             'received_at'         => $batch->received_at?->toIso8601String(),
             'variant'             => $batch->relationLoaded('variant') && $batch->variant ? [
                 'id'        => $batch->variant->id,
