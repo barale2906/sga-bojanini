@@ -38,7 +38,7 @@ class AuthTest extends TestCase
             'password' => 'wrongpassword',
         ]);
 
-        $response->assertStatus(409)
+        $response->assertStatus(401)
             ->assertJson(['success' => false]);
     }
 
@@ -76,5 +76,58 @@ class AuthTest extends TestCase
         $response = $this->withHeader('Authorization', "Bearer {$token}")
             ->deleteJson("/api/v1/users/{$userId}");
         $response->assertStatus(200);
+    }
+
+    public function test_refresh_mantiene_vigente_el_token_anterior_durante_la_gracia(): void
+    {
+        $admin = UserModel::where('email', 'alexanderbarajas@gmail.com')->first();
+        $oldToken = $admin->createToken('test', $admin->getAllPermissions()->pluck('name')->toArray())->plainTextToken;
+
+        $response = $this->withHeader('Authorization', "Bearer {$oldToken}")
+            ->postJson('/api/v1/auth/refresh');
+        $response->assertStatus(200)->assertJsonStructure(['data' => ['token']]);
+        $newToken = $response->json('data.token');
+
+        // Petición en vuelo / otra pestaña con el token anterior: no debe dar 401
+        $this->app['auth']->forgetGuards();
+        $this->withHeader('Authorization', "Bearer {$oldToken}")
+            ->getJson('/api/v1/auth/me')
+            ->assertStatus(200);
+
+        // Pasada la gracia, el token anterior deja de servir y el nuevo sigue vigente
+        $this->travel(3)->minutes();
+
+        $this->app['auth']->forgetGuards();
+        $this->withHeader('Authorization', "Bearer {$oldToken}")
+            ->getJson('/api/v1/auth/me')
+            ->assertStatus(401);
+
+        $this->app['auth']->forgetGuards();
+        $this->withHeader('Authorization', "Bearer {$newToken}")
+            ->getJson('/api/v1/auth/me')
+            ->assertStatus(200);
+    }
+
+    public function test_refresh_repetido_no_extiende_la_vigencia_del_token_anterior(): void
+    {
+        $admin = UserModel::where('email', 'alexanderbarajas@gmail.com')->first();
+        $oldToken = $admin->createToken('test', $admin->getAllPermissions()->pluck('name')->toArray())->plainTextToken;
+
+        $this->withHeader('Authorization', "Bearer {$oldToken}")
+            ->postJson('/api/v1/auth/refresh')
+            ->assertStatus(200);
+        $firstExpiry = $admin->tokens()->where('name', 'test')->first()->expires_at;
+
+        // Dos pestañas renovando con el mismo token: la segunda no le alarga la vida
+        $this->travel(1)->minutes();
+        $this->app['auth']->forgetGuards();
+        $this->withHeader('Authorization', "Bearer {$oldToken}")
+            ->postJson('/api/v1/auth/refresh')
+            ->assertStatus(200);
+
+        $this->assertEquals(
+            $firstExpiry->toDateTimeString(),
+            $admin->tokens()->where('name', 'test')->first()->expires_at->toDateTimeString()
+        );
     }
 }

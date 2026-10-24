@@ -23,6 +23,9 @@ class AuthController extends Controller
 {
     use ApiResponse;
 
+    /** Vigencia del token anterior tras un refresh (ver refresh()). */
+    private const REFRESH_GRACE_SECONDS = 120;
+
     /**
      * POST /api/v1/auth/login — Iniciar sesión y obtener token Bearer.
      *
@@ -76,11 +79,23 @@ class AuthController extends Controller
         return $this->success(null, 'Contraseña actualizada exitosamente');
     }
 
+    /**
+     * El token anterior no se borra de inmediato: queda vigente un periodo de
+     * gracia corto para que las peticiones en vuelo y las demás pestañas del
+     * navegador (que comparten el token en localStorage) no reciban 401 y
+     * expulsen al usuario al login. Si ya tenía un vencimiento más cercano
+     * (p. ej. un segundo refresh con el mismo token), se conserva ese.
+     */
     public function refresh(Request $request): JsonResponse
     {
         $user = $request->user();
 
-        $user->currentAccessToken()->delete();
+        $oldToken = $user->currentAccessToken();
+        $graceUntil = now()->addSeconds(self::REFRESH_GRACE_SECONDS);
+
+        if ($oldToken->expires_at === null || $oldToken->expires_at->gt($graceUntil)) {
+            $oldToken->forceFill(['expires_at' => $graceUntil])->save();
+        }
 
         $permissions = $user->getAllPermissions()->pluck('name')->toArray();
         $token = $user->createToken('api', $permissions)->plainTextToken;

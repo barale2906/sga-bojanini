@@ -46,3 +46,9 @@ Schedule::command('medsys:sync-procedure-types')
     ->weeklyOn(1, '04:00')   // Lunes a las 4 AM
     ->name('medsys:sync-procedure-types')
     ->withoutOverlapping();
+
+// Los tokens renovados quedan con un vencimiento corto en vez de borrarse
+// (ver AuthController::refresh); aquí se eliminan los ya vencidos.
+Schedule::command('sanctum:prune-expired --hours=24')
+    ->dailyAt('02:30')
+    ->name('sanctum:prune-expired');
