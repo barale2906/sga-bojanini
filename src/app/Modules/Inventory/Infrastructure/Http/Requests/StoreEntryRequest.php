@@ -27,8 +27,8 @@ class StoreEntryRequest extends FormRequest
             'items.*.product_variant_id'          => ['required', 'integer', 'exists:product_variants,id'],
             'items.*.location_id'                 => ['required', 'integer', 'exists:locations,id'],
             'items.*.lot_number'                  => ['required', 'string', 'max:100'],
-            'items.*.expiration_date'             => ['required', 'date'],
-            'items.*.manufacturing_date'          => ['nullable', 'date'],
+            'items.*.expiration_date'             => ['required', 'date', 'after_or_equal:2000-01-01', 'before:2100-01-01'],
+            'items.*.manufacturing_date'          => ['nullable', 'date', 'after_or_equal:2000-01-01', 'before:2100-01-01'],
             'items.*.quantity_base'               => ['nullable', 'numeric', 'min:0.001'],
             'items.*.product_presentation_id'     => ['nullable', 'integer', 'exists:product_presentations,id'],
             'items.*.quantity_in_presentation'    => ['nullable', 'numeric', 'min:0.001'],
@@ -63,6 +63,10 @@ class StoreEntryRequest extends FormRequest
             'items.*.location_id.required'            => 'La ubicación es obligatoria en cada ítem.',
             'items.*.lot_number.required'             => 'El número de lote es obligatorio en cada ítem.',
             'items.*.expiration_date.required'        => 'La fecha de vencimiento es obligatoria en cada ítem.',
+            'items.*.expiration_date.after_or_equal'  => 'La fecha de vencimiento tiene un año inválido; use el año completo (ej. 2028).',
+            'items.*.expiration_date.before'          => 'La fecha de vencimiento tiene un año inválido; use el año completo (ej. 2028).',
+            'items.*.manufacturing_date.after_or_equal' => 'La fecha de fabricación tiene un año inválido; use el año completo (ej. 2026).',
+            'items.*.manufacturing_date.before'       => 'La fecha de fabricación tiene un año inválido; use el año completo (ej. 2026).',
         ];
     }
 }

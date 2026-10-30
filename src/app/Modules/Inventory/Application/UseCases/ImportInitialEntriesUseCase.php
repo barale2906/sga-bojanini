@@ -70,8 +70,8 @@ class ImportInitialEntriesUseCase
             'product_barcode'    => 'required|string|exists:product_generics,barcode',
             'lot_number'         => 'required|string|max:100',
             'quantity'           => 'required|integer|min:1',
-            'expiration_date'    => 'required|date',
-            'manufacturing_date' => 'nullable|date',
+            'expiration_date'    => 'required|date|after_or_equal:2000-01-01|before:2100-01-01',
+            'manufacturing_date' => 'nullable|date|after_or_equal:2000-01-01|before:2100-01-01',
             'invoice_number'     => 'nullable|string|max:100',
             'entry_temperature'  => 'nullable|numeric',
             'notes'              => 'nullable|string',
@@ -82,6 +82,10 @@ class ImportInitialEntriesUseCase
             'quantity.required'        => 'La cantidad es obligatoria.',
             'quantity.min'             => 'La cantidad debe ser mayor a cero.',
             'expiration_date.required' => 'La fecha de vencimiento es obligatoria.',
+            'expiration_date.after_or_equal'    => 'La fecha de vencimiento tiene un año inválido; use el año completo (ej. 2028).',
+            'expiration_date.before'            => 'La fecha de vencimiento tiene un año inválido; use el año completo (ej. 2028).',
+            'manufacturing_date.after_or_equal' => 'La fecha de fabricación tiene un año inválido; use el año completo (ej. 2026).',
+            'manufacturing_date.before'         => 'La fecha de fabricación tiene un año inválido; use el año completo (ej. 2026).',
         ]);
 
         $generic = GenericProductModel::where('barcode', $validated['product_barcode'])
