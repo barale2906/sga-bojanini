@@ -7,6 +7,9 @@ return [
 
     'fefo' => [
         'alert_days' => (int) env('SGA_FEFO_ALERT_DAYS', 30),
+        // Pantalla de salida: días hacia adelante para mostrar (solo lectura)
+        // los saldos del mismo producto en otros almacenes próximos a vencer.
+        'exit_other_warehouses_days' => (int) env('SGA_EXIT_OTHER_WAREHOUSES_DAYS', 90),
     ],
 
     'reorder' => [

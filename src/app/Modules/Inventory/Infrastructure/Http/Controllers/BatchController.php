@@ -54,7 +54,13 @@ class BatchController extends Controller
         );
 
         return $this->paginated(
-            $query->orderBy('expiration_date')->paginate($perPage)->through(fn ($batch) => new BatchResource($batch)),
+            $query->orderBy('expiration_date')->paginate($perPage)->through(function ($batch) use ($request) {
+                if ($request->filled('warehouse_id')) {
+                    $this->scopeQuantitiesToWarehouse(collect([$batch]), $request->integer('warehouse_id'));
+                }
+
+                return new BatchResource($batch);
+            }),
             'Listado de lotes',
         );
     }
@@ -101,7 +107,11 @@ class BatchController extends Controller
             $this->scopeBatchesToAllowedWarehouses($query, $request);
         }
 
-        $batches = $query->orderBy('expiration_date')->get();
+        $batches = $query->orderBy('expiration_date')->orderBy('id')->get();
+
+        if ($request->filled('warehouse_id')) {
+            $this->scopeQuantitiesToWarehouse($batches, $request->integer('warehouse_id'));
+        }
 
         return $this->success(BatchResource::collection($batches), 'Lotes del producto');
     }
@@ -127,7 +137,11 @@ class BatchController extends Controller
             $this->scopeBatchesToAllowedWarehouses($query, $request);
         }
 
-        $batches = $query->orderBy('expiration_date')->get();
+        $batches = $query->orderBy('expiration_date')->orderBy('id')->get();
+
+        if ($request->filled('warehouse_id')) {
+            $this->scopeQuantitiesToWarehouse($batches, $request->integer('warehouse_id'));
+        }
 
         return $this->success(BatchResource::collection($batches), 'Lotes del producto genérico');
     }
@@ -159,6 +173,79 @@ class BatchController extends Controller
         $batches = $query->orderByDesc('expiration_date')->get();
 
         return $this->success(BatchResource::collection($batches), 'Lotes vencidos');
+    }
+
+    /**
+     * Saldos de un producto genérico en OTROS almacenes que vencen pronto.
+     *
+     * Solo informativo para la pantalla de salida: ayuda a priorizar lotes
+     * próximos a vencer que están en otro almacén, pero no se pueden sacar
+     * desde la salida del almacén seleccionado. Devuelve una fila por
+     * (lote, almacén), ordenada FEFO. La ventana de días sale de
+     * `sga.fefo.exit_other_warehouses_days` (SGA_EXIT_OTHER_WAREHOUSES_DAYS).
+     */
+    public function otherWarehousesExpiring(int $genericId, Request $request): JsonResponse
+    {
+        $excludeId = $request->filled('exclude_warehouse_id') ? $request->integer('exclude_warehouse_id') : null;
+        $days      = (int) config('sga.fefo.exit_other_warehouses_days', 90);
+        $today     = Carbon::today();
+        $limitDate = $today->copy()->addDays($days);
+
+        $batches = BatchModel::with(['variant', 'locations.zone.warehouse'])
+            ->whereHas('variant', fn ($q) => $q->where('generic_product_id', $genericId))
+            ->where('status', 'active')
+            ->where('quantity_available', '>', 0)
+            ->whereDate('expiration_date', '>=', $today)
+            ->whereDate('expiration_date', '<=', $limitDate)
+            ->orderBy('expiration_date')
+            ->orderBy('id')
+            ->get();
+
+        $allowedIds = $this->allowedWarehouseIds($request->user());
+
+        $rows = [];
+        foreach ($batches as $batch) {
+            $byWarehouse = $batch->locations
+                ->filter(fn ($loc) => (float) $loc->pivot->quantity > 0 && $loc->zone && $loc->zone->warehouse)
+                ->filter(fn ($loc) => $loc->zone->warehouse_id !== $excludeId)
+                ->filter(fn ($loc) => $allowedIds === null || in_array($loc->zone->warehouse_id, $allowedIds, true))
+                ->groupBy(fn ($loc) => $loc->zone->warehouse_id);
+
+            foreach ($byWarehouse as $locs) {
+                $warehouse = $locs->first()->zone->warehouse;
+                $rows[] = [
+                    'batch_id'          => $batch->id,
+                    'lot_number'        => $batch->lot_number,
+                    'expiration_date'   => $batch->expiration_date?->format('Y-m-d'),
+                    'days_until_expiry' => (int) $today->diffInDays(Carbon::parse($batch->expiration_date), false),
+                    'lab_brand'         => $batch->variant?->lab_brand,
+                    'warehouse'         => ['id' => $warehouse->id, 'code' => $warehouse->code, 'name' => $warehouse->name],
+                    'quantity'          => (float) $locs->sum(fn ($l) => (float) $l->pivot->quantity),
+                ];
+            }
+        }
+
+        return $this->success([
+            'days'  => $days,
+            'items' => $rows,
+        ], 'Saldos próximos a vencer en otros almacenes');
+    }
+
+    /**
+     * Cuando se filtra por almacén, la cantidad disponible que importa es la
+     * de ESE almacén (suma de sus ubicaciones), no el total global del lote.
+     * Se expone en `warehouse_quantity`; BatchResource la usa como
+     * `quantity_available` y deja el total en `total_quantity_available`.
+     */
+    private function scopeQuantitiesToWarehouse(iterable $batches, int $warehouseId): void
+    {
+        foreach ($batches as $batch) {
+            $quantity = $batch->locations
+                ->filter(fn ($loc) => $loc->zone && $loc->zone->warehouse_id === $warehouseId)
+                ->sum(fn ($loc) => (float) $loc->pivot->quantity);
+
+            $batch->setAttribute('warehouse_quantity', (float) $quantity);
+        }
     }
 
     /** Filtra lotes que tienen cantidad > 0 en ubicaciones de los almacenes indicados. */

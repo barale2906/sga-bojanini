@@ -45,7 +45,7 @@ class EloquentWarehouseRepository implements WarehouseRepositoryInterface
             $query->whereIn('id', $filters['ids']);
         }
 
-        return $query->get()->map(fn ($model) => $this->toDomain($model))->toArray();
+        return $query->orderBy('name')->get()->map(fn ($model) => $this->toDomain($model))->toArray();
     }
 
     public function save(Warehouse $warehouse): Warehouse

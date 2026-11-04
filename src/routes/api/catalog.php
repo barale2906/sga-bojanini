@@ -62,6 +62,8 @@ Route::middleware(['auth:sanctum', 'user.is_active'])->prefix('v1')->group(funct
     // Lotes por producto genérico (todos los variantes, ordenados FEFO)
     Route::get('generic-products/{id}/batches', [BatchController::class, 'byGenericProduct'])
         ->middleware('permission:lotes.ver');
+    Route::get('generic-products/{id}/batches/other-warehouses-expiring', [BatchController::class, 'otherWarehousesExpiring'])
+        ->middleware('permission:lotes.ver');
 
     // Disponibilidad de kit
     Route::get('generic-products/{id}/kit-availability', [GenericProductController::class, 'kitAvailability'])

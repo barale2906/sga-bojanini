@@ -43,7 +43,9 @@ class BatchResource extends JsonResource
             'expiration_date'     => $batch->expiration_date?->format('Y-m-d'),
             'manufacturing_date'  => $batch->manufacturing_date?->format('Y-m-d'),
             'quantity_received'   => $batch->quantity_received,
-            'quantity_available'  => $batch->quantity_available,
+            // Con filtro de almacén, quantity_available es el saldo en ESE almacén.
+            'quantity_available'  => $batch->getAttribute('warehouse_quantity') ?? $batch->quantity_available,
+            'total_quantity_available' => $batch->quantity_available,
             'accessible_quantity' => $warehouseBreakdown !== null
                 ? (float) collect($warehouseBreakdown)->sum('quantity')
                 : null,
