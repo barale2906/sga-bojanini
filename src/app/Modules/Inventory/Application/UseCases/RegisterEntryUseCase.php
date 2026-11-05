@@ -14,6 +14,7 @@ use App\Modules\Inventory\Domain\Services\DocumentNumberGenerator;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\BatchModel;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\MovementDocumentModel;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\StockMovementModel;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class RegisterEntryUseCase
@@ -86,6 +87,10 @@ class RegisterEntryUseCase
             ],
         );
 
+        if (! $batch->wasRecentlyCreated) {
+            $this->reconcileExistingBatchDates($batch, $item);
+        }
+
         // Un reingreso del mismo lote conserva el comentario original; solo se
         // completa si el lote aún no tenía uno.
         if (! $batch->wasRecentlyCreated && $batch->notes === null && ! empty($item['notes'])) {
@@ -118,6 +123,53 @@ class RegisterEntryUseCase
             movementType:     'entry',
             quantity:         $quantity,
         ));
+    }
+
+    /**
+     * Un reingreso de un lote existente no puede cambiar en silencio su fecha
+     * de vencimiento (antes `firstOrCreate` ignoraba la fecha nueva y el lote
+     * conservaba la anterior, aunque fuera errónea).
+     *
+     * - Si la fecha guardada es corrupta (año fuera de 2000–2099, p. ej. 0028
+     *   por un año de 2 dígitos), se corrige con la fecha recibida, ya validada.
+     * - Si es una fecha válida distinta, se rechaza la entrada.
+     */
+    private function reconcileExistingBatchDates(BatchModel $batch, array $item): void
+    {
+        $incoming = Carbon::parse($item['expiration_date'])->startOfDay();
+        $stored   = $batch->expiration_date?->copy()->startOfDay();
+
+        if ($stored !== null && $stored->equalTo($incoming)) {
+            return;
+        }
+
+        if ($stored === null || $this->isCorruptDate($stored)) {
+            $updates = ['expiration_date' => $incoming->toDateString()];
+
+            if (! empty($item['manufacturing_date'])
+                && ($batch->manufacturing_date === null || $this->isCorruptDate($batch->manufacturing_date))) {
+                $updates['manufacturing_date'] = Carbon::parse($item['manufacturing_date'])->toDateString();
+            }
+
+            $batch->update($updates);
+
+            return;
+        }
+
+        throw new \DomainException(sprintf(
+            'El lote %s ya está registrado con vencimiento %s y la fecha indicada (%s) no coincide. '
+            . 'Verifique el número de lote o la fecha de vencimiento.',
+            $batch->lot_number,
+            $stored->format('d/m/Y'),
+            $incoming->format('d/m/Y'),
+        ));
+    }
+
+    private function isCorruptDate(\DateTimeInterface $date): bool
+    {
+        $year = (int) $date->format('Y');
+
+        return $year < 2000 || $year > 2099;
     }
 
     private function resolveQuantity(array $item): float

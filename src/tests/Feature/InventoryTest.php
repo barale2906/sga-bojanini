@@ -84,6 +84,68 @@ class InventoryTest extends TestCase
         ]);
     }
 
+    private function postEntry(array $setup, ProductVariantModel $variant, string $lot, string $expiry)
+    {
+        return $this->withHeaders($this->auth())
+            ->postJson('/api/v1/movements/entry', [
+                'warehouse_id' => $setup['warehouse']->id,
+                'items'        => [[
+                    'product_variant_id' => $variant->id,
+                    'location_id'        => $setup['location']->id,
+                    'lot_number'         => $lot,
+                    'expiration_date'    => $expiry,
+                    'quantity_base'      => 5,
+                ]],
+            ]);
+    }
+
+    public function test_reingreso_de_lote_con_otra_fecha_de_vencimiento_es_rechazado(): void
+    {
+        $setup   = $this->createWarehouseSetup();
+        $variant = $this->getVariant('000001');
+
+        $this->postEntry($setup, $variant, 'LOT-REENTRY', '2031-03-31')->assertStatus(201);
+        $this->postEntry($setup, $variant, 'LOT-REENTRY', '2021-03-31')
+            ->assertStatus(409)
+            ->assertJsonPath('success', false);
+
+        $batch = BatchModel::where('lot_number', 'LOT-REENTRY')->firstOrFail();
+        $this->assertSame('2031-03-31', $batch->expiration_date->format('Y-m-d'));
+        $this->assertEquals(5, $batch->quantity_received);
+    }
+
+    public function test_reingreso_de_lote_con_misma_fecha_suma_cantidad(): void
+    {
+        $setup   = $this->createWarehouseSetup();
+        $variant = $this->getVariant('000001');
+
+        $this->postEntry($setup, $variant, 'LOT-SAME', '2030-06-15')->assertStatus(201);
+        $this->postEntry($setup, $variant, 'LOT-SAME', '2030-06-15')->assertStatus(201);
+
+        $this->assertEquals(10, BatchModel::where('lot_number', 'LOT-SAME')->value('quantity_received'));
+    }
+
+    public function test_reingreso_corrige_lote_con_anio_corrupto(): void
+    {
+        $setup   = $this->createWarehouseSetup();
+        $variant = $this->getVariant('000001');
+
+        BatchModel::create([
+            'product_variant_id' => $variant->id,
+            'lot_number'         => 'LOT-0028',
+            'expiration_date'    => '0028-02-28',
+            'quantity_received'  => 0,
+            'quantity_available' => 0,
+            'status'             => 'expired',
+            'received_at'        => now(),
+        ]);
+
+        $this->postEntry($setup, $variant, 'LOT-0028', '2028-02-28')->assertStatus(201);
+
+        $batch = BatchModel::where('lot_number', 'LOT-0028')->firstOrFail();
+        $this->assertSame('2028-02-28', $batch->expiration_date->format('Y-m-d'));
+    }
+
     public function test_salida_fefo_toma_lote_con_vencimiento_mas_proximo(): void
     {
         $setup   = $this->createWarehouseSetup();
