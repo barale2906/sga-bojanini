@@ -187,6 +187,12 @@ class MovementController extends Controller
         );
     }
 
+    /** Término LIKE "contiene" con los comodines del usuario escapados. */
+    private function likeTerm(string $term): string
+    {
+        return '%' . addcslashes(trim($term), '\\%_') . '%';
+    }
+
     /** Lista movimientos individuales con filtros (para reportes detallados). */
     public function index(ListMovementsRequest $request): JsonResponse
     {
@@ -229,6 +235,15 @@ class MovementController extends Controller
 
         if ($request->filled('status')) {
             $query->where('status', $request->string('status'));
+        }
+
+        if ($request->filled('notes')) {
+            $like = $this->likeTerm((string) $request->input('notes'));
+            $query->where(function ($q) use ($like) {
+                $q->where('reason', 'like', $like)
+                    ->orWhere('item_notes', 'like', $like)
+                    ->orWhereHas('document', fn ($d) => $d->where('reason', 'like', $like));
+            });
         }
 
         if ($request->filled('warehouse_to_id')) {
@@ -284,6 +299,16 @@ class MovementController extends Controller
 
         if ($request->filled('cost_center_id')) {
             $query->where('cost_center_id', (int) $request->input('cost_center_id'));
+        }
+
+        if ($request->filled('notes')) {
+            $like = $this->likeTerm((string) $request->input('notes'));
+            $query->where(function ($q) use ($like) {
+                $q->where('reason', 'like', $like)
+                    ->orWhereHas('movements', fn ($mv) => $mv->where(
+                        fn ($w) => $w->where('reason', 'like', $like)->orWhere('item_notes', 'like', $like)
+                    ));
+            });
         }
 
         if ($request->filled('document_number')) {

@@ -19,6 +19,7 @@ class PurchaseOrderResource extends JsonResource
             'status'                 => $this->status,
             'supplier_id'            => $this->supplier_id,
             'warehouse_id'           => $this->warehouse_id,
+            'cost_center_id'         => $this->cost_center_id,
             'subtotal'               => $this->subtotal,
             'tax_amount'             => $this->tax_amount,
             'total_amount'           => $this->total_amount,
@@ -38,6 +39,12 @@ class PurchaseOrderResource extends JsonResource
                 'name' => $this->warehouse->name,
                 'code' => $this->warehouse->code,
             ]),
+            'cost_center' => $this->whenLoaded('costCenter', fn () => $this->costCenter ? [
+                'id'   => $this->costCenter->id,
+                'code' => $this->costCenter->code,
+                'name' => $this->costCenter->name,
+                'type' => $this->costCenter->type,
+            ] : null),
             'tax_breakdown' => $this->whenLoaded('items', function () {
                 return $this->items
                     ->filter(fn ($item) => (float) $item->tax_rate > 0)

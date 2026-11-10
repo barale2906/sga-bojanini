@@ -38,6 +38,7 @@ class RegisterEntryUseCase
                 'document_type'      => 'entry',
                 'warehouse_id'       => $data['warehouse_id'],
                 'movement_date'      => $movementDate,
+                'cost_center_id'     => $data['cost_center_id'] ?? null,
                 'invoice_number'     => $data['invoice_number'] ?? null,
                 'entry_temperature'  => isset($data['entry_temperature']) ? (float) $data['entry_temperature'] : null,
                 'reason'             => $data['reason'] ?? null,
@@ -49,7 +50,7 @@ class RegisterEntryUseCase
                 $this->processItem($item, $data['warehouse_id'], $data['user_id'], $document, $movementDate);
             }
 
-            return $document->load(['movements.variant.genericProduct', 'movements.batch', 'warehouse', 'user']);
+            return $document->load(['movements.variant.genericProduct', 'movements.batch', 'warehouse', 'user', 'costCenter']);
         });
     }
 
@@ -107,6 +108,7 @@ class RegisterEntryUseCase
             'batch_id'             => $batch->id,
             'location_to_id'       => $item['location_id'],
             'movement_type'        => 'entry',
+            'cost_center_id'       => $document->cost_center_id,
             'quantity'             => $quantity,
             'reason'               => $item['notes'] ?? null,
             'movement_date'        => $movementDate,

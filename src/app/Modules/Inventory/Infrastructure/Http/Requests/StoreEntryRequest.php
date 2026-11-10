@@ -19,6 +19,7 @@ class StoreEntryRequest extends FormRequest
         return [
             'warehouse_id'       => ['required', 'integer', 'exists:warehouses,id'],
             'movement_date'      => ['nullable', 'date', 'before_or_equal:today'],
+            'cost_center_id'     => ['nullable', 'integer', 'exists:cost_centers,id'],
             'invoice_number'     => ['nullable', 'string', 'max:100'],
             'entry_temperature'  => ['nullable', 'numeric'],
             'reason'             => ['nullable', 'string'],

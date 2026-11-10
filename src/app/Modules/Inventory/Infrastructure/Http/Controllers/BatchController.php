@@ -40,6 +40,21 @@ class BatchController extends Controller
             $query->whereHas('variant.genericProduct', fn ($q) => $q->where('category_id', $request->integer('category_id')));
         }
 
+        if ($request->filled('cost_center_id')) {
+            $costCenterId = $request->integer('cost_center_id');
+            $query->whereHas('movements', fn ($q) => $q->where('cost_center_id', $costCenterId));
+        }
+
+        if ($request->filled('notes')) {
+            $like = '%' . addcslashes(trim((string) $request->input('notes')), '\\%_') . '%';
+            $query->where(function ($q) use ($like) {
+                $q->where('notes', 'like', $like)
+                    ->orWhereHas('movements', fn ($m) => $m->where(
+                        fn ($w) => $w->where('reason', 'like', $like)->orWhere('item_notes', 'like', $like)
+                    ));
+            });
+        }
+
         if ($request->filled('warehouse_id')) {
             $warehouseId = $request->integer('warehouse_id');
             $this->assertWarehouseAccess($request->user(), $warehouseId);

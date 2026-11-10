@@ -18,6 +18,7 @@ class StorePurchaseOrderRequest extends FormRequest
         return [
             'supplier_id'            => ['required', 'integer', 'exists:suppliers,id'],
             'warehouse_id'           => ['required', 'integer', 'exists:warehouses,id'],
+            'cost_center_id'         => ['nullable', 'integer', 'exists:cost_centers,id'],
             'notes'                  => ['nullable', 'string'],
             'expected_delivery_date' => ['nullable', 'date'],
             'items'                  => ['required', 'array', 'min:1'],

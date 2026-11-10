@@ -38,6 +38,7 @@ class StockResource extends JsonResource
             'total_quantity'     => $summary->total_quantity,
             'reserved_quantity'  => $summary->reserved_quantity,
             'available_quantity' => $summary->available_quantity,
+            'last_note'          => $summary->getAttribute('last_note'),
             'last_movement_at'   => $summary->last_movement_at?->toIso8601String(),
         ];
     }

@@ -47,6 +47,10 @@ class MovementResource extends JsonResource
             'movement_type'       => $movement->movement_type,
             'quantity'            => $movement->quantity,
             'reason'              => $movement->reason,
+            'item_notes'          => $movement->item_notes,
+            // Nota a mostrar en listados: la del ítem, o la razón del movimiento/comprobante
+            'notes'               => $movement->item_notes
+                ?: ($movement->reason ?: ($movement->relationLoaded('document') ? $movement->document?->reason : null)),
             'movement_date'       => $movement->movement_date?->toIso8601String(),
             'reference_type'      => $movement->reference_type,
             'reference_id'        => $movement->reference_id,

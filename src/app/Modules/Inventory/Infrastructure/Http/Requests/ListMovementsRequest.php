@@ -25,6 +25,7 @@ class ListMovementsRequest extends FormRequest
             'movement_type'       => ['nullable', 'string'],
             'cost_center_id'      => ['nullable', 'integer'],
             'cost_center_type'    => ['nullable', 'string', 'in:internal,external'],
+            'notes'               => ['nullable', 'string', 'max:200'],
             'warehouse_to_id'     => ['nullable', 'integer'],
             'per_page'            => ['nullable', 'integer', 'min:1'],
         ];

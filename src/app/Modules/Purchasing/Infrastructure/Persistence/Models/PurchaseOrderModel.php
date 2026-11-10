@@ -6,6 +6,7 @@ namespace App\Modules\Purchasing\Infrastructure\Persistence\Models;
 
 use App\Modules\Audit\Infrastructure\Traits\Auditable;
 use App\Modules\Auth\Infrastructure\Persistence\Models\UserModel;
+use App\Modules\CostCenter\Infrastructure\Persistence\Models\CostCenterModel;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\SupplierModel;
 use App\Modules\Warehouse\Infrastructure\Persistence\Models\WarehouseModel;
 use Illuminate\Database\Eloquent\Model;
@@ -22,6 +23,7 @@ class PurchaseOrderModel extends Model
         'order_type',
         'supplier_id',
         'warehouse_id',
+        'cost_center_id',
         'code',
         'status',
         'subtotal',
@@ -63,6 +65,11 @@ class PurchaseOrderModel extends Model
     public function warehouse(): BelongsTo
     {
         return $this->belongsTo(WarehouseModel::class, 'warehouse_id');
+    }
+
+    public function costCenter(): BelongsTo
+    {
+        return $this->belongsTo(CostCenterModel::class, 'cost_center_id');
     }
 
     public function createdBy(): BelongsTo

@@ -26,6 +26,7 @@ class CreatePurchaseOrderUseCase
             $order = PurchaseOrderModel::create([
                 'supplier_id'            => $data['supplier_id'],
                 'warehouse_id'           => $data['warehouse_id'],
+                'cost_center_id'         => $data['cost_center_id'] ?? null,
                 'code'                   => $this->generatePurchaseOrderCode(),
                 'status'                 => PurchaseOrderStatus::Draft->value,
                 'subtotal'               => $built['subtotal'],
@@ -38,7 +39,7 @@ class CreatePurchaseOrderUseCase
 
             $this->syncOrderItems($order, $built['items']);
 
-            return $order->fresh(['items.variant.genericProduct', 'items.presentation', 'supplier', 'warehouse']);
+            return $order->fresh(['items.variant.genericProduct', 'items.presentation', 'supplier', 'warehouse', 'costCenter']);
         });
     }
 }

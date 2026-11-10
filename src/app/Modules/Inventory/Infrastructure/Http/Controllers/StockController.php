@@ -45,15 +45,57 @@ class StockController extends Controller
             $query->whereHas('variant.genericProduct', fn ($q) => $q->where('category_id', $request->integer('category_id')));
         }
 
+        // Centro de costos y notas: el stock no los almacena, se deducen de los
+        // movimientos del mismo producto en el mismo almacén.
+        if ($request->filled('cost_center_id') || $request->filled('notes')) {
+            $costCenterId = $request->filled('cost_center_id') ? $request->integer('cost_center_id') : null;
+            $like = $request->filled('notes')
+                ? '%' . addcslashes(trim((string) $request->input('notes')), '\\%_') . '%'
+                : null;
+
+            $query->whereExists(function ($sub) use ($costCenterId, $like) {
+                $sub->selectRaw('1')
+                    ->from('stock_movements as sm')
+                    ->whereColumn('sm.product_variant_id', 'stock_summaries.product_variant_id')
+                    ->whereColumn('sm.warehouse_id', 'stock_summaries.warehouse_id');
+
+                if ($costCenterId !== null) {
+                    $sub->where('sm.cost_center_id', $costCenterId);
+                }
+
+                if ($like !== null) {
+                    $sub->where(fn ($w) => $w->where('sm.reason', 'like', $like)->orWhere('sm.item_notes', 'like', $like));
+                }
+            });
+        }
+
         $perPage = min(
             (int) $request->query('per_page', config('sga.pagination.default_per_page', 25)),
             config('sga.pagination.max_per_page', 100),
         );
 
         return $this->paginated(
-            $query->orderByDesc('updated_at')->paginate($perPage)->through(fn ($summary) => new StockResource($summary)),
+            $query->orderByDesc('updated_at')->paginate($perPage)->through(function ($summary) {
+                // El stock no guarda notas: se muestra la más reciente de sus movimientos.
+                $summary->setAttribute('last_note', $this->latestNote($summary->product_variant_id, $summary->warehouse_id));
+
+                return new StockResource($summary);
+            }),
             'Stock por producto y almacén',
         );
+    }
+
+    private function latestNote(int $variantId, int $warehouseId): ?string
+    {
+        $row = \App\Modules\Inventory\Infrastructure\Persistence\Models\StockMovementModel::query()
+            ->where('product_variant_id', $variantId)
+            ->where('warehouse_id', $warehouseId)
+            ->where(fn ($q) => $q->whereRaw("COALESCE(item_notes, '') <> ''")->orWhereRaw("COALESCE(reason, '') <> ''"))
+            ->orderByDesc('movement_date')
+            ->orderByDesc('id')
+            ->first(['item_notes', 'reason']);
+
+        return $row ? ($row->item_notes ?: $row->reason) : null;
     }
 
     /**

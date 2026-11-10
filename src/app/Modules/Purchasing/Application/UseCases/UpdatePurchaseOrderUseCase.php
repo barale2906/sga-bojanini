@@ -32,6 +32,7 @@ class UpdatePurchaseOrderUseCase
             $order->update([
                 'supplier_id'            => $data['supplier_id'],
                 'warehouse_id'           => $data['warehouse_id'],
+                'cost_center_id'         => $data['cost_center_id'] ?? null,
                 'subtotal'               => $built['subtotal'],
                 'tax_amount'             => $built['tax_amount'],
                 'total_amount'           => $built['total_amount'],
@@ -41,7 +42,7 @@ class UpdatePurchaseOrderUseCase
 
             $this->syncOrderItems($order, $built['items']);
 
-            return $order->fresh(['items.variant.genericProduct', 'items.presentation', 'supplier', 'warehouse']);
+            return $order->fresh(['items.variant.genericProduct', 'items.presentation', 'supplier', 'warehouse', 'costCenter']);
         });
     }
 }
