@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Inventory\Application\UseCases;
 
+use App\Modules\Inventory\Application\Services\MovementTimestamp;
 use App\Modules\Inventory\Domain\Events\StockMovementCreated;
 use App\Modules\Inventory\Domain\Services\BatchLocationService;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\BatchModel;
@@ -34,7 +35,7 @@ class TransferStockUseCase
                 'document_type'   => 'transfer',
                 'warehouse_id'    => $data['warehouse_from_id'],
                 'warehouse_to_id' => $data['warehouse_to_id'],
-                'movement_date'   => $data['movement_date'] ?? now(),
+                'movement_date'   => MovementTimestamp::resolve($data['movement_date'] ?? null),
                 'reason'          => $data['reason'] ?? null,
                 'user_id'         => $data['user_id'],
                 'status'          => MovementStatus::PENDING_SIGNATURE->value,

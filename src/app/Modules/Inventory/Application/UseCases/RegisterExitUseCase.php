@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Inventory\Application\UseCases;
 
+use App\Modules\Inventory\Application\Services\MovementTimestamp;
 use App\Modules\Catalog\Domain\Enums\ProductType;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\GenericProductModel;
 use App\Modules\CostCenter\Infrastructure\Persistence\Models\CostCenterModel;
@@ -49,7 +50,7 @@ class RegisterExitUseCase
                 'document_number'     => $this->numberGenerator->next('exit'),
                 'document_type'       => 'exit',
                 'warehouse_id'        => $data['warehouse_id'],
-                'movement_date'       => $data['movement_date'] ?? now(),
+                'movement_date'       => MovementTimestamp::resolve($data['movement_date'] ?? null),
                 'cost_center_id'      => $data['cost_center_id'],
                 'service_id'          => $data['service_id'] ?? null,
                 'patient_document'    => $data['patient_document'] ?? null,

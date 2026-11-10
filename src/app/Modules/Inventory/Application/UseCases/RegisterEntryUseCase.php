@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Inventory\Application\UseCases;
 
+use App\Modules\Inventory\Application\Services\MovementTimestamp;
 use App\Modules\Catalog\Domain\Enums\ProductType;
 use App\Modules\Catalog\Domain\Services\PresentationConverter;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductVariantModel;
@@ -27,20 +28,20 @@ class RegisterEntryUseCase
 
     public function execute(array $data): MovementDocumentModel
     {
-        return DB::transaction(function () use ($data) {
+        $movementDate = MovementTimestamp::resolve($data['movement_date'] ?? null);
+
+        return DB::transaction(function () use ($data, $movementDate) {
             $document = MovementDocumentModel::create([
                 'document_number'    => $this->numberGenerator->next('entry'),
                 'document_type'      => 'entry',
                 'warehouse_id'       => $data['warehouse_id'],
-                'movement_date'      => $data['movement_date'] ?? now(),
+                'movement_date'      => $movementDate,
                 'invoice_number'     => $data['invoice_number'] ?? null,
                 'entry_temperature'  => isset($data['entry_temperature']) ? (float) $data['entry_temperature'] : null,
                 'reason'             => $data['reason'] ?? null,
                 'user_id'            => $data['user_id'],
                 'status'             => 'confirmed',
             ]);
-
-            $movementDate = $data['movement_date'] ?? now();
 
             foreach ($data['items'] as $item) {
                 $this->processItem($item, $data['warehouse_id'], $data['user_id'], $document, $movementDate);
