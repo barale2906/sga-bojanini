@@ -62,6 +62,7 @@ class TransferStockUseCase
                         'movement_type'        => 'transfer',
                         'quantity'             => $selection['quantity'],
                         'reason'               => $data['reason'] ?? null,
+                        'item_notes'           => $item['notes'] ?? null,
                         'movement_date'        => $document->movement_date,
                         'user_id'              => $data['user_id'],
                         'status'               => MovementStatus::PENDING_SIGNATURE->value,

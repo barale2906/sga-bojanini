@@ -55,6 +55,7 @@ class RegisterReturnUseCase
                 'movement_type'        => 'return',
                 'quantity'             => -$quantity,
                 'reason'               => $data['reason'] ?? 'Devolución a proveedor',
+                'item_notes'           => $data['notes'] ?? null,
                 'user_id'              => $data['user_id'],
                 'status'               => MovementStatus::PENDING_SIGNATURE->value,
             ]);

@@ -11,6 +11,7 @@ use App\Modules\Catalog\Infrastructure\Persistence\Models\ProductVariantModel;
 use App\Modules\Inventory\Domain\Events\StockMovementCreated;
 use App\Modules\Inventory\Domain\Exceptions\ProductNotFoundException;
 use App\Modules\Inventory\Domain\Services\BatchLocationService;
+use App\Modules\Inventory\Domain\Services\BatchNoteService;
 use App\Modules\Inventory\Domain\Services\DocumentNumberGenerator;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\BatchModel;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\MovementDocumentModel;
@@ -24,6 +25,7 @@ class RegisterEntryUseCase
         private readonly PresentationConverter $presentationConverter,
         private readonly DocumentNumberGenerator $numberGenerator,
         private readonly BatchLocationService $batchLocationService,
+        private readonly BatchNoteService $batchNoteService,
     ) {}
 
     public function execute(array $data): MovementDocumentModel
@@ -83,7 +85,6 @@ class RegisterEntryUseCase
                 'quantity_received'  => 0,
                 'quantity_available' => 0,
                 'status'             => 'active',
-                'notes'              => $item['notes'] ?? null,
                 'received_at'        => now(),
             ],
         );
@@ -92,13 +93,10 @@ class RegisterEntryUseCase
             $this->reconcileExistingBatchDates($batch, $item);
         }
 
-        // Un reingreso del mismo lote conserva el comentario original; solo se
-        // completa si el lote aún no tenía uno.
-        if (! $batch->wasRecentlyCreated && $batch->notes === null && ! empty($item['notes'])) {
-            $batch->update(['notes' => $item['notes']]);
-        }
-
         $batch->increment('quantity_received', $quantity);
+
+        // La nota se acumula en el lote (la más reciente primero); nunca se sobrescribe.
+        $this->batchNoteService->append($batch->id, 'entry', $item['notes'] ?? null, $userId, $movementDate);
 
         $this->batchLocationService->deposit($batch->id, $warehouseId, (int) $item['location_id'], $quantity);
 

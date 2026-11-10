@@ -6,6 +6,7 @@ namespace App\Modules\Inventory\Application\UseCases;
 
 use App\Modules\Auth\Application\DTOs\SignerInput;
 use App\Modules\Auth\Application\Services\SignerSnapshotResolver;
+use App\Modules\Inventory\Domain\Services\BatchNoteService;
 use App\Modules\Inventory\Domain\ValueObjects\MovementStatus;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\MovementDocumentModel;
 use App\Modules\Inventory\Infrastructure\Persistence\Models\MovementSignatureModel;
@@ -21,6 +22,7 @@ class ConfirmMovementUseCase
         private readonly WriteOffExpiredUseCase $writeOffUseCase,
         private readonly RegisterLossUseCase $lossUseCase,
         private readonly SignerSnapshotResolver $signerResolver,
+        private readonly BatchNoteService $batchNoteService,
     ) {}
 
     /**
@@ -51,6 +53,18 @@ class ConfirmMovementUseCase
         DB::transaction(function () use ($document, $rows) {
             foreach ($document->movements as $movement) {
                 $this->applyStockByType($movement);
+
+                // La nota del ítem solo se anota en el lote cuando el movimiento se confirma.
+                if ($movement->batch_id !== null) {
+                    $this->batchNoteService->append(
+                        (int) $movement->batch_id,
+                        (string) ($movement->movement_type->value ?? $movement->movement_type),
+                        $movement->item_notes,
+                        $movement->user_id,
+                        $movement->movement_date,
+                    );
+                }
+
                 $movement->status = MovementStatus::CONFIRMED;
                 $movement->save();
             }

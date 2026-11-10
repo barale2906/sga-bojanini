@@ -65,6 +65,7 @@ class WriteOffExpiredUseCase
                 'movement_type'        => 'expiration_write_off',
                 'quantity'             => -$quantity,
                 'reason'               => $data['reason'] ?? 'Baja por vencimiento',
+                'item_notes'           => $data['notes'] ?? null,
                 'user_id'              => $data['user_id'],
                 'status'               => MovementStatus::PENDING_SIGNATURE->value,
             ]);

@@ -29,6 +29,7 @@ class StoreTransferRequest extends FormRequest
             'items.*.location_from_id'     => ['nullable', 'integer', 'exists:locations,id'],
             'items.*.location_to_id'       => ['required', 'integer', 'exists:locations,id'],
             'items.*.quantity'             => ['required', 'numeric', 'min:0.001'],
+            'items.*.notes'             => ['nullable', 'string'],
         ];
     }
 

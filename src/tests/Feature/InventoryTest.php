@@ -1565,6 +1565,117 @@ class InventoryTest extends TestCase
     /**
      * @return array{warehouse: WarehouseModel, zone: ZoneModel, location: LocationModel}
      */
+    public function test_notas_de_movimientos_se_acumulan_en_el_lote_con_la_mas_reciente_primero(): void
+    {
+        $setup   = $this->createWarehouseSetup();
+        $generic = $this->getGeneric('000001');
+        $variant = $this->getVariant('000001');
+        $center  = CostCenterModel::where('type', 'internal')->first();
+
+        // Entrada con nota; el reingreso del mismo lote agrega otra sin pisar la primera.
+        $this->withHeaders($this->auth())->postJson('/api/v1/movements/entry', [
+            'warehouse_id' => $setup['warehouse']->id,
+            'items'        => [[
+                'product_variant_id' => $variant->id, 'location_id' => $setup['location']->id,
+                'lot_number' => 'LOT-NOTAS', 'expiration_date' => '2031-03-31',
+                'quantity_base' => 50, 'notes' => 'Caja golpeada',
+            ]],
+        ])->assertStatus(201);
+
+        $this->withHeaders($this->auth())->postJson('/api/v1/movements/entry', [
+            'warehouse_id' => $setup['warehouse']->id,
+            'items'        => [[
+                'product_variant_id' => $variant->id, 'location_id' => $setup['location']->id,
+                'lot_number' => 'LOT-NOTAS', 'expiration_date' => '2031-03-31',
+                'quantity_base' => 5, 'notes' => 'Reingreso verificado',
+            ]],
+        ])->assertStatus(201);
+
+        $response = $this->withHeaders($this->auth())->postJson('/api/v1/movements/exit', [
+            'warehouse_id'   => $setup['warehouse']->id,
+            'cost_center_id' => $center->id,
+            'items'          => [['generic_product_id' => $generic->id, 'quantity' => 2, 'notes' => 'Para urgencias']],
+        ])->assertStatus(201);
+
+        // La salida pendiente de firma aún no anota nada en el lote.
+        $this->assertCount(2, explode("\n", BatchModel::where('lot_number', 'LOT-NOTAS')->value('notes')));
+        $this->confirmDocument($response->json('data.id'));
+
+        // Sin nota: no agrega nada.
+        $this->withHeaders($this->auth())->postJson('/api/v1/movements/entry', [
+            'warehouse_id' => $setup['warehouse']->id,
+            'items'        => [[
+                'product_variant_id' => $variant->id, 'location_id' => $setup['location']->id,
+                'lot_number' => 'LOT-NOTAS', 'expiration_date' => '2031-03-31',
+                'quantity_base' => 1,
+            ]],
+        ])->assertStatus(201);
+
+        $lines = explode("\n", BatchModel::where('lot_number', 'LOT-NOTAS')->value('notes'));
+
+        $this->assertCount(3, $lines);
+        $this->assertStringContainsString('Salida', $lines[0]);
+        $this->assertStringEndsWith('] Para urgencias', $lines[0]);
+        $this->assertStringEndsWith('] Reingreso verificado', $lines[1]);
+        $this->assertStringEndsWith('] Caja golpeada', $lines[2]);
+        $this->assertStringContainsString(now()->format('d/m/Y'), $lines[0]);
+    }
+
+    public function test_nota_en_salida_multi_lote_se_anota_en_cada_lote(): void
+    {
+        $setup   = $this->createWarehouseSetup();
+        $generic = $this->getGeneric('000001');
+        $variant = $this->getVariant('000001');
+        $center  = CostCenterModel::where('type', 'internal')->first();
+
+        $lotA = $this->createBatch($variant->id, 'LOT-NA', now()->addDays(10)->format('Y-m-d'), 5, $setup['location'], $setup['warehouse']->id);
+        $lotB = $this->createBatch($variant->id, 'LOT-NB', now()->addDays(60)->format('Y-m-d'), 20, $setup['location'], $setup['warehouse']->id);
+        $this->recalculateStock($variant->id, $setup['warehouse']->id);
+
+        $response = $this->withHeaders($this->auth())->postJson('/api/v1/movements/exit', [
+            'warehouse_id'   => $setup['warehouse']->id,
+            'cost_center_id' => $center->id,
+            'items'          => [['generic_product_id' => $generic->id, 'quantity' => 12, 'notes' => 'Entrega mensual']],
+        ])->assertStatus(201);
+
+        $this->assertNull($lotA->fresh()->notes);
+        $this->confirmDocument($response->json('data.id'));
+
+        $this->assertStringEndsWith('] Entrega mensual', $lotA->fresh()->notes);
+        $this->assertStringEndsWith('] Entrega mensual', $lotB->fresh()->notes);
+    }
+
+    public function test_nota_en_ajuste_conserva_la_nota_previa_del_lote(): void
+    {
+        $setup   = $this->createWarehouseSetup();
+        $variant = $this->getVariant('000001');
+
+        $batch = $this->createBatch($variant->id, 'LOT-AJ', now()->addMonths(6)->format('Y-m-d'), 50, $setup['location'], $setup['warehouse']->id);
+        $batch->update(['notes' => 'Nota original de la entrada']);
+        $this->recalculateStock($variant->id, $setup['warehouse']->id);
+
+        $response = $this->withHeaders($this->auth())->postJson('/api/v1/movements/adjustment', [
+            'product_variant_id' => $variant->id,
+            'warehouse_id'       => $setup['warehouse']->id,
+            'batch_id'           => $batch->id,
+            'location_id'        => $setup['location']->id,
+            'quantity'           => -3,
+            'reason'             => 'Conteo físico',
+            'notes'              => 'Diferencia en estante',
+        ])->assertStatus(201);
+
+        // Pendiente de firma: la nota todavía no toca el lote.
+        $this->assertSame('Nota original de la entrada', $batch->fresh()->notes);
+
+        $this->confirmDocument($response->json('data.movement_document_id'));
+
+        $lines = explode("\n", $batch->fresh()->notes);
+        $this->assertCount(2, $lines);
+        $this->assertStringContainsString('Ajuste', $lines[0]);
+        $this->assertStringEndsWith('] Diferencia en estante', $lines[0]);
+        $this->assertSame('Nota original de la entrada', $lines[1]);
+    }
+
     private function createWarehouseSetup(string $suffix = ''): array
     {
         $warehouse = WarehouseModel::create([

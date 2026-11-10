@@ -63,6 +63,7 @@ class RegisterLossUseCase
                 'movement_type'        => 'loss',
                 'quantity'             => -(float) $data['quantity'],
                 'reason'               => $data['reason'],
+                'item_notes'           => $data['notes'] ?? null,
                 'user_id'              => $data['user_id'],
                 'status'               => MovementStatus::PENDING_SIGNATURE->value,
             ]);

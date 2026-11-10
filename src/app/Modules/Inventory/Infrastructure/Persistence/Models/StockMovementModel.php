@@ -35,6 +35,7 @@ class StockMovementModel extends Model
         'movement_type',
         'quantity',
         'reason',
+        'item_notes',
         'movement_date',
         'reference_type',
         'reference_id',

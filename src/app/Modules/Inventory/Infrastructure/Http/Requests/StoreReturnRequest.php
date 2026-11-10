@@ -22,6 +22,7 @@ class StoreReturnRequest extends FormRequest
             'batch_id'           => ['nullable', 'integer', 'exists:batches,id'],
             'quantity'           => ['required', 'numeric', 'min:0.001'],
             'reason'             => ['nullable', 'string'],
+            'notes'             => ['nullable', 'string'],
         ];
     }
 

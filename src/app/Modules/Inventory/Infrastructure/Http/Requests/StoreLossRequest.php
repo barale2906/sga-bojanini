@@ -24,6 +24,7 @@ class StoreLossRequest extends FormRequest
             'batch_id'     => ['required', 'integer', 'exists:batches,id'],
             'quantity'     => ['required', 'numeric', 'min:0.001'],
             'reason'       => ['required', 'string'],
+            'notes'       => ['nullable', 'string'],
         ];
     }
 

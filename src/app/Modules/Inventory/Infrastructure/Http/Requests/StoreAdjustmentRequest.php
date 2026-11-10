@@ -22,6 +22,7 @@ class StoreAdjustmentRequest extends FormRequest
             'batch_id'           => ['nullable', 'integer', 'exists:batches,id'],
             'quantity'           => ['required', 'numeric', 'not_in:0'],
             'reason'             => ['required', 'string'],
+            'notes'             => ['nullable', 'string'],
         ];
     }
 

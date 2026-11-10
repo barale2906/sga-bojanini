@@ -12,6 +12,7 @@ use App\Modules\Inventory\Domain\Events\StockMovementCreated;
 use App\Modules\Inventory\Domain\Exceptions\InsufficientStockException;
 use App\Modules\Inventory\Domain\Exceptions\ProductNotFoundException;
 use App\Modules\Inventory\Domain\Services\BatchLocationService;
+use App\Modules\Inventory\Domain\Services\BatchNoteService;
 use App\Modules\Inventory\Domain\Services\FEFOService;
 use App\Modules\Inventory\Domain\Services\KitAvailabilityService;
 use App\Modules\Inventory\Domain\Services\StockCalculator;
@@ -26,6 +27,7 @@ class RegisterKitExitUseCase
         private readonly KitExplosionService $kitExplosionService,
         private readonly FEFOService $fefoService,
         private readonly BatchLocationService $batchLocationService,
+        private readonly BatchNoteService $batchNoteService,
         private readonly KitAvailabilityService $kitAvailabilityService,
         private readonly StockCalculator $stockCalculator,
     ) {}
@@ -65,7 +67,7 @@ class RegisterKitExitUseCase
         $components = $this->kitExplosionService->explode($item['generic_product_id'], $quantityKits);
 
         foreach ($components as $component) {
-            $this->exitComponent($component, $kitTransaction, $data, $document, $generic->barcode ?? $generic->name);
+            $this->exitComponent($component, $kitTransaction, $data, $document, $generic->barcode ?? $generic->name, $item['notes'] ?? null);
             $this->checkReorderPoint($component['component_generic_id'], $data['warehouse_id']);
         }
     }
@@ -91,6 +93,7 @@ class RegisterKitExitUseCase
         array $data,
         MovementDocumentModel $document,
         string $kitRef,
+        ?string $note = null,
     ): void {
         $selectedBatches = $this->fefoService->selectBatchesForGenericExit(
             $component['component_generic_id'],
@@ -111,6 +114,8 @@ class RegisterKitExitUseCase
                 $selection['quantity'],
                 $locationId,
             );
+
+            $this->batchNoteService->append($selection['batch_id'], 'exit', $note, (int) $data['user_id'], $document->movement_date);
 
             $movement = StockMovementModel::create([
                 'movement_document_id' => $document->id,

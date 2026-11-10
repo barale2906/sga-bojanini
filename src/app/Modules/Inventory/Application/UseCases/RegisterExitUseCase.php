@@ -12,6 +12,7 @@ use App\Modules\Inventory\Domain\Events\StockBelowReorderPoint;
 use App\Modules\Inventory\Domain\Events\StockMovementCreated;
 use App\Modules\Inventory\Domain\Exceptions\ProductNotFoundException;
 use App\Modules\Inventory\Domain\Services\BatchLocationService;
+use App\Modules\Inventory\Domain\Services\BatchNoteService;
 use App\Modules\Inventory\Domain\Services\DocumentNumberGenerator;
 use App\Modules\Inventory\Domain\Services\FEFOService;
 use App\Modules\Inventory\Domain\Services\StockCalculator;
@@ -29,6 +30,7 @@ class RegisterExitUseCase
         private readonly StockCalculator $stockCalculator,
         private readonly RegisterKitExitUseCase $registerKitExitUseCase,
         private readonly BatchLocationService $batchLocationService,
+        private readonly BatchNoteService $batchNoteService,
         private readonly DocumentNumberGenerator $numberGenerator,
     ) {}
 
@@ -97,6 +99,7 @@ class RegisterExitUseCase
                 'movement_type'        => 'exit',
                 'quantity'             => -$selection['quantity'],
                 'reason'               => $data['reason'] ?? null,
+                'item_notes'           => $item['notes'] ?? null,
                 'movement_date'        => $document->movement_date,
                 'cost_center_id'       => $data['cost_center_id'],
                 'service_id'           => $data['service_id'] ?? null,
@@ -122,6 +125,8 @@ class RegisterExitUseCase
                 $selection['quantity'],
                 $locationId,
             );
+
+            $this->batchNoteService->append($selection['batch_id'], 'exit', $item['notes'] ?? null, (int) $data['user_id'], $document->movement_date);
 
             $movement = StockMovementModel::create([
                 'movement_document_id' => $document->id,

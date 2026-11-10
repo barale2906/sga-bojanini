@@ -20,6 +20,7 @@ class StoreWriteOffRequest extends FormRequest
             'warehouse_id' => ['required', 'integer', 'exists:warehouses,id'],
             'location_id'  => ['nullable', 'integer', 'exists:locations,id'],
             'reason'       => ['nullable', 'string'],
+            'notes'       => ['nullable', 'string'],
         ];
     }
 }
