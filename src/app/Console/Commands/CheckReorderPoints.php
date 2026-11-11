@@ -4,28 +4,20 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
-use App\Modules\Purchasing\Domain\Services\ReorderPointCalculator;
+use App\Modules\Purchasing\Application\UseCases\NotifyReorderSuggestionsUseCase;
 use Illuminate\Console\Command;
 
 class CheckReorderPoints extends Command
 {
     protected $signature = 'sga:check-reorder-points';
 
-    protected $description = 'Verifica productos que necesitan reorden y genera sugerencias';
+    protected $description = 'Notifica un resumen de productos que necesitan reorden (necesidad de compra)';
 
-    public function handle(ReorderPointCalculator $calculator): int
+    public function handle(NotifyReorderSuggestionsUseCase $useCase): int
     {
-        $suggestions = $calculator->generateSuggestions();
-        $this->info('Productos que necesitan reorden: '.count($suggestions));
+        $result = $useCase->execute();
 
-        foreach ($suggestions as $suggestion) {
-            $this->line(sprintf(
-                '  - %s (%s): sugerir comprar %d unidades',
-                $suggestion['product_name'],
-                $suggestion['product_code'],
-                $suggestion['suggested_quantity'],
-            ));
-        }
+        $this->info("Productos que necesitan reorden: {$result['products']}");
 
         return self::SUCCESS;
     }

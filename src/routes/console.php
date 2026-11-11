@@ -23,7 +23,7 @@ Schedule::command('sga:check-asset-alerts')
     ->name('sga:check-asset-alerts');
 
 Schedule::command('sga:check-reorder-points')
-    ->hourly()
+    ->dailyAt('06:30')
     ->name('sga:check-reorder-points');
 
 Schedule::command('sga:analyze-conditions')

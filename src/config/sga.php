@@ -84,6 +84,7 @@ return [
         'batch_expiring_soon'             => ['administrador', 'jefe_almacen', 'operador_almacen'],
         'batch_expired'                   => ['administrador', 'jefe_almacen', 'operador_almacen'],
         'stock_below_reorder'             => ['administrador', 'jefe_almacen', 'compras'],
+        'reorder_suggestions'             => ['administrador', 'jefe_almacen', 'compras'],
         'purchase_order_pending_approval' => ['administrador', 'jefe_almacen'],
         'purchase_order_approved'         => ['compras', 'jefe_almacen'],
         'purchase_order_rejected'         => ['compras'],
