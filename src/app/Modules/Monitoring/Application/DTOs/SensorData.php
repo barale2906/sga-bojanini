@@ -12,5 +12,6 @@ class SensorData
         public readonly string $name,
         public readonly string $type,
         public readonly string $unit,
+        public readonly ?bool $isActive = null,
     ) {}
 }

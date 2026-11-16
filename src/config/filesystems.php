@@ -66,6 +66,14 @@ return [
             'report' => false,
         ],
 
+        // Certificados de calibración de los equipos de monitoreo (privado).
+        'monitoreo' => [
+            'driver' => 'local',
+            'root' => storage_path('app/monitoreo'),
+            'throw' => false,
+            'report' => false,
+        ],
+
     ],
 
     /*

@@ -90,6 +90,8 @@ return [
         'purchase_order_rejected'         => ['compras'],
         'condition_out_of_range'          => ['administrador', 'jefe_almacen'],
         'condition_trend_alert'           => ['administrador'],
+        // Además de estos roles se notifica a los usuarios asignados al equipo.
+        'sensor_calibration_alert'        => ['administrador', 'jefe_almacen'],
         'consumption_sync_failed'         => ['administrador'],
     ],
 ];

@@ -12,13 +12,21 @@ use App\Modules\Monitoring\Domain\Repositories\SensorReadingRepositoryInterface;
 use App\Modules\Monitoring\Domain\Services\TrendAnalysisService;
 use App\Modules\Monitoring\Infrastructure\Http\Requests\StoreBulkReadingsRequest;
 use App\Modules\Monitoring\Infrastructure\Http\Requests\StoreReadingRequest;
+use App\Modules\Monitoring\Infrastructure\Export\SensorReadingsExport;
+use App\Modules\Monitoring\Infrastructure\Http\Requests\ExportReadingsRequest;
 use App\Modules\Monitoring\Infrastructure\Http\Resources\ReadingResource;
+use App\Modules\Monitoring\Infrastructure\Persistence\Models\SensorModel;
+use App\Modules\Monitoring\Infrastructure\Persistence\Models\SensorReadingModel;
+use App\Modules\Monitoring\Infrastructure\Queries\SensorOverviewQuery;
 use App\Modules\Shared\Infrastructure\Http\Traits\ApiResponse;
 use App\Modules\Shared\Infrastructure\Http\Traits\ChecksSensorAccess;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Str;
+use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 /**
  * Controller para las lecturas de sensores.
@@ -29,6 +37,8 @@ use Illuminate\Routing\Controller;
  *   GET  /api/v1/sensors/{sensorId}/readings        → index()
  *   GET  /api/v1/sensors/{sensorId}/statistics      → statistics()
  *   GET  /api/v1/sensors/{sensorId}/trend           → trend()
+ *   GET  /api/v1/sensors/{sensorId}/readings/latest → latest()
+ *   GET  /api/v1/sensors/{sensorId}/readings/export → export()
  */
 class SensorReadingController extends Controller
 {
@@ -128,5 +138,56 @@ class SensorReadingController extends Controller
         $result = $trendService->analyzeTrend($sensorId, $from, $to);
 
         return $this->success($result);
+    }
+
+    /**
+     * GET /api/v1/sensors/{sensorId}/readings/latest
+     * Último registro del equipo (fecha/hora de la lectura y quién la hizo).
+     * `data` es null si el equipo aún no tiene lecturas.
+     */
+    public function latest(int $sensorId, Request $request, SensorOverviewQuery $overviewQuery): JsonResponse
+    {
+        SensorModel::findOrFail($sensorId);
+        $this->assertSensorAccess($request->user(), $sensorId);
+
+        return $this->success($overviewQuery->lastReading($sensorId), 'Último registro del equipo');
+    }
+
+    /**
+     * GET /api/v1/sensors/{sensorId}/readings/export?date_from=YYYY-MM-DD&date_to=YYYY-MM-DD
+     * Descarga en Excel las lecturas del periodo con el resumen estadístico.
+     */
+    public function export(
+        int $sensorId,
+        ExportReadingsRequest $request,
+        GetControlChartUseCase $controlChart,
+        SensorOverviewQuery $overviewQuery,
+    ): BinaryFileResponse {
+        $sensor = SensorModel::findOrFail($sensorId);
+        $this->assertSensorAccess($request->user(), $sensorId);
+
+        $from = Carbon::parse($request->validated('date_from'))->startOfDay();
+        $to = Carbon::parse($request->validated('date_to'))->endOfDay();
+
+        $readings = SensorReadingModel::with('user:id,name')
+            ->where('sensor_id', $sensorId)
+            ->whereBetween('recorded_at', [$from, $to])
+            ->orderBy('recorded_at')
+            ->get();
+
+        $overview = $overviewQuery->forSensors([['id' => $sensor->id, 'zone_id' => $sensor->zone_id]]);
+
+        $export = new SensorReadingsExport(
+            sensor: ['name' => $sensor->name, 'code' => $sensor->code, 'type' => $sensor->type, 'unit' => $sensor->unit],
+            zone: $overview[$sensor->id]['zone'] ?? null,
+            readings: $readings,
+            stats: $controlChart->execute($sensorId, $from->toDateString(), $to->toDateString()),
+            dateFrom: $from->toDateString(),
+            dateTo: $to->toDateString(),
+        );
+
+        $filename = 'lecturas_' . Str::slug($sensor->code) . "_{$from->format('Ymd')}_{$to->format('Ymd')}.xlsx";
+
+        return Excel::download($export, $filename);
     }
 }

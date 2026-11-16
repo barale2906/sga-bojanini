@@ -8,25 +8,29 @@ use App\Modules\Auth\Infrastructure\Http\Resources\UserResource;
 use App\Modules\Monitoring\Application\DTOs\SensorData;
 use App\Modules\Monitoring\Application\UseCases\CreateSensorUseCase;
 use App\Modules\Monitoring\Application\UseCases\DeleteSensorUseCase;
+use App\Modules\Monitoring\Application\UseCases\RegisterCalibrationCertificateUseCase;
 use App\Modules\Monitoring\Application\UseCases\UpdateSensorUseCase;
+use App\Modules\Monitoring\Domain\Entities\Sensor;
 use App\Modules\Monitoring\Domain\Repositories\SensorRepositoryInterface;
 use App\Modules\Monitoring\Infrastructure\Http\Requests\StoreSensorRequest;
 use App\Modules\Monitoring\Infrastructure\Http\Requests\UpdateSensorRequest;
 use App\Modules\Monitoring\Infrastructure\Http\Resources\SensorResource;
 use App\Modules\Monitoring\Infrastructure\Persistence\Models\SensorModel;
+use App\Modules\Monitoring\Infrastructure\Queries\SensorOverviewQuery;
 use App\Modules\Shared\Application\Services\CodeGeneratorService;
 use App\Modules\Shared\Infrastructure\Http\Traits\ApiResponse;
 use App\Modules\Shared\Infrastructure\Http\Traits\ChecksSensorAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\DB;
 
 class SensorController extends Controller
 {
     use ApiResponse;
     use ChecksSensorAccess;
 
-    public function index(Request $request, SensorRepositoryInterface $repository): JsonResponse
+    public function index(Request $request, SensorRepositoryInterface $repository, SensorOverviewQuery $overviewQuery): JsonResponse
     {
         $sensors = $repository->findAll([
             'zone_id' => $request->query('zone_id'),
@@ -35,11 +39,29 @@ class SensorController extends Controller
             'ids' => $this->allowedSensorIds($request->user()),
         ]);
 
-        return $this->success(SensorResource::collection($sensors), 'Listado de sensores');
+        $overview = $overviewQuery->forSensors(array_map(
+            fn ($s) => ['id' => $s->getId(), 'zone_id' => $s->getZoneId()],
+            $sensors,
+        ));
+
+        $data = array_map(
+            fn ($s) => (new SensorResource($s))->withOverview($overview[$s->getId()] ?? null),
+            $sensors,
+        );
+
+        return $this->success($data, 'Listado de sensores');
     }
 
-    public function store(StoreSensorRequest $request, CreateSensorUseCase $useCase): JsonResponse
-    {
+    /**
+     * Crea el sensor. Si llega `certificate_file` (multipart) se registra
+     * en la misma transacción como su certificado de calibración vigente.
+     */
+    public function store(
+        StoreSensorRequest $request,
+        CreateSensorUseCase $useCase,
+        RegisterCalibrationCertificateUseCase $registerCertificate,
+        SensorOverviewQuery $overviewQuery,
+    ): JsonResponse {
         $name = $request->validated('name');
         $code = $request->validated('code') ?: CodeGeneratorService::fromName($name);
 
@@ -51,12 +73,23 @@ class SensorController extends Controller
             unit: $request->validated('unit'),
         );
 
-        $sensor = $useCase->execute($data);
+        $certificate = $request->certificateData();
+        $userId = (int) $request->user()->id;
 
-        return $this->created(new SensorResource($sensor), 'Sensor creado exitosamente');
+        $sensor = DB::transaction(function () use ($useCase, $data, $certificate, $registerCertificate, $userId) {
+            $sensor = $useCase->execute($data);
+
+            if ($certificate !== null) {
+                $registerCertificate->execute($sensor->getId(), $certificate, $userId);
+            }
+
+            return $sensor;
+        });
+
+        return $this->created($this->withOverview($sensor, $overviewQuery), 'Sensor creado exitosamente');
     }
 
-    public function show(int $sensor, Request $request, SensorRepositoryInterface $repository): JsonResponse
+    public function show(int $sensor, Request $request, SensorRepositoryInterface $repository, SensorOverviewQuery $overviewQuery): JsonResponse
     {
         $entity = $repository->findById($sensor);
 
@@ -66,10 +99,10 @@ class SensorController extends Controller
 
         $this->assertSensorAccess($request->user(), $sensor);
 
-        return $this->success(new SensorResource($entity), 'Detalle del sensor');
+        return $this->success($this->withOverview($entity, $overviewQuery), 'Detalle del sensor');
     }
 
-    public function update(int $sensor, UpdateSensorRequest $request, UpdateSensorUseCase $useCase): JsonResponse
+    public function update(int $sensor, UpdateSensorRequest $request, UpdateSensorUseCase $useCase, SensorOverviewQuery $overviewQuery): JsonResponse
     {
         $this->assertSensorAccess($request->user(), $sensor);
 
@@ -82,11 +115,12 @@ class SensorController extends Controller
             name: $name,
             type: $request->validated('type'),
             unit: $request->validated('unit'),
+            isActive: $request->has('is_active') ? $request->boolean('is_active') : null,
         );
 
         $entity = $useCase->execute($sensor, $data);
 
-        return $this->success(new SensorResource($entity), 'Sensor actualizado exitosamente');
+        return $this->success($this->withOverview($entity, $overviewQuery), 'Sensor actualizado exitosamente');
     }
 
     public function destroy(int $sensor, Request $request, DeleteSensorUseCase $useCase): JsonResponse
@@ -110,5 +144,12 @@ class SensorController extends Controller
         $sensor = SensorModel::with('users.roles')->findOrFail($id);
 
         return $this->success(UserResource::collection($sensor->users), 'Usuarios con acceso al sensor');
+    }
+
+    private function withOverview(Sensor $sensor, SensorOverviewQuery $overviewQuery): SensorResource
+    {
+        $overview = $overviewQuery->forSensors([['id' => $sensor->getId(), 'zone_id' => $sensor->getZoneId()]]);
+
+        return (new SensorResource($sensor))->withOverview($overview[$sensor->getId()] ?? null);
     }
 }

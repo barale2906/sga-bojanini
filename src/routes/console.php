@@ -22,6 +22,10 @@ Schedule::command('sga:check-asset-alerts')
     ->dailyAt('06:15')
     ->name('sga:check-asset-alerts');
 
+Schedule::command('sga:check-sensor-calibrations')
+    ->dailyAt('06:20')
+    ->name('sga:check-sensor-calibrations');
+
 Schedule::command('sga:check-reorder-points')
     ->dailyAt('06:30')
     ->name('sga:check-reorder-points');

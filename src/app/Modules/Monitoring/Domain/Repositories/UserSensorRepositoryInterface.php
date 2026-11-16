@@ -49,4 +49,12 @@ interface UserSensorRepositoryInterface
      * @param array<int, int> $warehouseIds
      */
     public function syncForUserByWarehouses(int $userId, array $warehouseIds): void;
+
+    /**
+     * Reemplaza los usuarios asignados a un sensor por los indicados. Se usa
+     * cuando el sensor se mueve a una zona de otro almacén.
+     *
+     * @param array<int, int> $userIds
+     */
+    public function syncUsersForSensor(int $sensorId, array $userIds): void;
 }

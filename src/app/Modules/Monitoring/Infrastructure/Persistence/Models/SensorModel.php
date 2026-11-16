@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class SensorModel extends Model
 {
@@ -47,6 +48,18 @@ class SensorModel extends Model
     public function alertRules(): HasMany
     {
         return $this->hasMany(AlertRuleModel::class, 'sensor_id');
+    }
+
+    /** Historial completo de certificados de calibración. */
+    public function calibrationCertificates(): HasMany
+    {
+        return $this->hasMany(SensorCalibrationCertificateModel::class, 'sensor_id');
+    }
+
+    /** Certificado de calibración vigente (el último cargado). */
+    public function currentCalibration(): HasOne
+    {
+        return $this->hasOne(SensorCalibrationCertificateModel::class, 'sensor_id')->where('is_current', true);
     }
 
     /** Usuarios con acceso explícito a este sensor. */

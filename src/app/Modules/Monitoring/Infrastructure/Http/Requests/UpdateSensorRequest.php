@@ -24,6 +24,7 @@ class UpdateSensorRequest extends FormRequest
             'name'    => ['required', 'string', 'max:255'],
             'type'    => ['required', 'in:temperature,humidity'],
             'unit'    => ['required', 'string', 'max:10'],
+            'is_active' => ['sometimes', 'boolean'],
         ];
     }
 }

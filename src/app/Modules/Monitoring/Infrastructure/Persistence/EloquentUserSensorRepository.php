@@ -62,4 +62,9 @@ class EloquentUserSensorRepository implements UserSensorRepositoryInterface
 
         UserModel::findOrFail($userId)->sensors()->sync($sensorIds);
     }
+
+    public function syncUsersForSensor(int $sensorId, array $userIds): void
+    {
+        SensorModel::findOrFail($sensorId)->users()->sync(array_values(array_unique($userIds)));
+    }
 }

@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Monitoring\Infrastructure\Http\Controllers\AlertRuleController;
+use App\Modules\Monitoring\Infrastructure\Http\Controllers\CalibrationCertificateController;
 use App\Modules\Monitoring\Infrastructure\Http\Controllers\ConditionReportController;
 use App\Modules\Monitoring\Infrastructure\Http\Controllers\SensorController;
 use App\Modules\Monitoring\Infrastructure\Http\Controllers\SensorReadingController;
@@ -20,6 +21,20 @@ Route::middleware(['auth:sanctum', 'user.is_active'])->prefix('v1')->group(funct
     Route::get('sensors/{id}/users', [SensorController::class, 'users'])
         ->middleware('permission:sensores.asignar');
 
+    // Certificados de calibración (historial: el anterior se conserva al cargar uno nuevo).
+    Route::get('sensors/{sensorId}/calibrations', [CalibrationCertificateController::class, 'index'])
+        ->middleware('permission:sensores.ver');
+    Route::post('sensors/{sensorId}/calibrations', [CalibrationCertificateController::class, 'store'])
+        ->middleware('permission:sensores.editar');
+    Route::get('calibrations/{id}/download', [CalibrationCertificateController::class, 'download'])
+        ->middleware('permission:sensores.ver');
+    Route::delete('calibrations/{id}', [CalibrationCertificateController::class, 'destroy'])
+        ->middleware('permission:sensores.editar');
+
+    Route::get('sensors/{sensorId}/readings/latest', [SensorReadingController::class, 'latest'])
+        ->middleware('permission:lecturas.ver');
+    Route::get('sensors/{sensorId}/readings/export', [SensorReadingController::class, 'export'])
+        ->middleware('permission:lecturas.ver');
     Route::post('sensors/{sensorId}/readings', [SensorReadingController::class, 'store'])
         ->middleware('permission:lecturas.crear');
     Route::get('sensors/{sensorId}/readings', [SensorReadingController::class, 'index'])
