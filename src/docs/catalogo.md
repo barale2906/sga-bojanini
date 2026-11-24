@@ -1039,7 +1039,7 @@ Al consumir un kit, **no** se descuenta stock del registro del kit; solo de cada
 | Tests de integración | `src/tests/Feature/CatalogTest.php` |
 | OpenAPI (Scramble) | `src/docs/openapi/api.json` |
 | Colección Postman | `src/docs/postman/` |
-| Plan endpoints | `/mnt/trabajo/repos/bojanini/propuesta/planes/backend-endpoints.md` §5.7–5.11 |
+| Plan endpoints | `/mnt/trabajo/Proyectos_programacion/bojanini/propuesta/planes/backend-endpoints.md` §5.7–5.11 |
 | Presentaciones | `backend-ambiente-presentaciones.md` Parte B |
 | Kits / BOM | `backend-productos-compuestos.md` |
 
