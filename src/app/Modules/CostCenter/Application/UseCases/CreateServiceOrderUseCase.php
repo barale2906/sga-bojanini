@@ -13,6 +13,7 @@ use App\Modules\CostCenter\Infrastructure\Persistence\Models\PatientProcedureRec
 use App\Modules\Inventory\Application\UseCases\RegisterExitUseCase;
 use App\Modules\Auth\Infrastructure\Persistence\Models\UserModel;
 use App\Modules\Shared\Infrastructure\Notifications\ServiceOrderDiscountPendingNotification;
+use Illuminate\Support\Facades\DB;
 
 class CreateServiceOrderUseCase
 {
@@ -22,8 +23,25 @@ class CreateServiceOrderUseCase
         private readonly RegisterExitUseCase $registerExitUseCase,
     ) {}
 
-    /** @return PatientProcedureRecord[] */
+    /**
+     * Crea la orden completa o nada: si una línea falla (procedimiento
+     * inválido, stock insuficiente…) se deshacen los registros y las salidas
+     * de inventario de las líneas anteriores. Los aprobadores solo se avisan
+     * cuando la orden ya quedó confirmada.
+     *
+     * @return PatientProcedureRecord[]
+     */
     public function execute(ServiceOrderData $data, int $createdByUserId): array
+    {
+        $records = DB::transaction(fn () => $this->persist($data, $createdByUserId));
+
+        $this->notifyApproversIfDiscounts($records);
+
+        return $records;
+    }
+
+    /** @return PatientProcedureRecord[] */
+    private function persist(ServiceOrderData $data, int $createdByUserId): array
     {
         $orderNumber = $this->generateOrderNumber();
 
@@ -85,23 +103,29 @@ class CreateServiceOrderUseCase
             $records[] = $this->recordRepo->save($record);
         }
 
+        return $records;
+    }
+
+    /** @param PatientProcedureRecord[] $records */
+    private function notifyApproversIfDiscounts(array $records): void
+    {
         $hasDiscounts = collect($records)->some(fn ($r) => $r->getDiscountStatus() === 'pending');
 
-        if ($hasDiscounts) {
-            $totalDiscount = collect($records)->sum(fn ($r) => $r->getDiscountAmount() ?? 0);
-            $patientName   = $records[0]->getPatientFirstName() . ' ' . $records[0]->getPatientLastName();
-
-            $approvers = UserModel::permission('ordenes_servicio.aprobar')->get();
-            foreach ($approvers as $approver) {
-                $approver->notify(new ServiceOrderDiscountPendingNotification(
-                    $records[0]->getOrderNumber(),
-                    $patientName,
-                    (float) $totalDiscount,
-                ));
-            }
+        if (! $hasDiscounts) {
+            return;
         }
 
-        return $records;
+        $totalDiscount = collect($records)->sum(fn ($r) => $r->getDiscountAmount() ?? 0);
+        $patientName   = $records[0]->getPatientFirstName() . ' ' . $records[0]->getPatientLastName();
+
+        $approvers = UserModel::permission('ordenes_servicio.aprobar')->get();
+        foreach ($approvers as $approver) {
+            $approver->notify(new ServiceOrderDiscountPendingNotification(
+                $records[0]->getOrderNumber(),
+                $patientName,
+                (float) $totalDiscount,
+            ));
+        }
     }
 
     private function generateOrderNumber(): string
