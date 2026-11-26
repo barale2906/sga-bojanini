@@ -36,5 +36,13 @@ readonly class PatientProcedureRecordData
         public ?string $seller = null,
         public ?string $referrer = null,
         public ?int $movementDocumentId = null,
+        /**
+         * Campos opcionales que el cliente envió (incluso con valor `null`).
+         * Al actualizar, los demás se conservan. `null` = todos se consideran
+         * enviados (comportamiento de crear).
+         *
+         * @var list<string>|null
+         */
+        public ?array $providedFields = null,
     ) {}
 }
