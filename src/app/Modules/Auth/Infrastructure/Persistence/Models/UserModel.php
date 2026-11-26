@@ -8,6 +8,7 @@ use App\Modules\Monitoring\Infrastructure\Persistence\Models\SensorModel;
 use App\Modules\Warehouse\Infrastructure\Persistence\Models\WarehouseModel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -52,6 +53,22 @@ class UserModel extends Authenticatable
             'password' => 'hashed',
             'is_active' => 'boolean',
         ];
+    }
+
+    /** Dispositivos móviles registrados para notificaciones push. */
+    public function devices(): HasMany
+    {
+        return $this->hasMany(UserDeviceModel::class, 'user_id');
+    }
+
+    /**
+     * Tokens FCM a los que se envían las notificaciones push de este usuario.
+     *
+     * @return array<int, string>
+     */
+    public function routeNotificationForFcm(): array
+    {
+        return $this->devices()->pluck('token')->all();
     }
 
     /** Almacenes a los que este usuario tiene acceso explícito. */
