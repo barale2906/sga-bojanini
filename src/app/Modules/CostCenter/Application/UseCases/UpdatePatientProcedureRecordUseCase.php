@@ -16,7 +16,9 @@ class UpdatePatientProcedureRecordUseCase
 
     public function execute(int $id, PatientProcedureRecordData $data): PatientProcedureRecord
     {
-        if ($this->repository->findById($id) === null) {
+        $current = $this->repository->findById($id);
+
+        if ($current === null) {
             throw new \DomainException("Registro de procedimiento con id {$id} no encontrado.");
         }
 
@@ -28,6 +30,19 @@ class UpdatePatientProcedureRecordUseCase
             throw new \DomainException('El precio unitario no puede ser negativo.');
         }
 
+        // Los campos opcionales que el cliente no envió se conservan; lo demás
+        // (orden, descuento, creador, aprobación, contacto del paciente y
+        // facturación) no lo gestiona esta operación y nunca se pierde.
+        $sent = fn (string $field): bool => $data->providedFields === null
+            || in_array($field, $data->providedFields, true);
+
+        $total          = PatientProcedureRecord::calculateTotal($data->quantity, $data->unitPrice);
+        $discountAmount = PatientProcedureRecord::calculateDiscountAmount(
+            $total,
+            $current->getDiscountType(),
+            $current->getDiscountValue(),
+        );
+
         $updated = new PatientProcedureRecord(
             id:                 $id,
             medicalServiceId:   $data->medicalServiceId,
@@ -37,11 +52,28 @@ class UpdatePatientProcedureRecordUseCase
             patientLastName:    $data->patientLastName,
             quantity:           $data->quantity,
             unitPrice:          $data->unitPrice,
-            total:              PatientProcedureRecord::calculateTotal($data->quantity, $data->unitPrice),
+            total:              $total,
             serviceDate:        $data->serviceDate,
-            notes:              $data->notes,
-            isActive:           $data->isActive,
-            movementDocumentId: $data->movementDocumentId,
+            notes:              $sent('notes') ? $data->notes : $current->getNotes(),
+            isActive:           $sent('is_active') ? $data->isActive : $current->isActive(),
+            seller:             $sent('seller') ? $data->seller : $current->getSeller(),
+            referrer:           $sent('referrer') ? $data->referrer : $current->getReferrer(),
+            movementDocumentId: $sent('movement_document_id') ? $data->movementDocumentId : $current->getMovementDocumentId(),
+            orderNumber:        $current->getOrderNumber(),
+            discountType:       $current->getDiscountType(),
+            discountValue:      $current->getDiscountValue(),
+            discountAmount:     $discountAmount > 0 ? $discountAmount : null,
+            netTotal:           $discountAmount > 0 ? round($total - $discountAmount, 2) : null,
+            discountStatus:     $current->getDiscountStatus(),
+            createdByUserId:    $current->getCreatedByUserId(),
+            approvedByUserId:   $current->getApprovedByUserId(),
+            approvedAt:         $current->getApprovedAt(),
+            patientEmail:       $current->getPatientEmail(),
+            patientAddress:     $current->getPatientAddress(),
+            patientPhone:       $current->getPatientPhone(),
+            billingStatus:      $current->getBillingStatus(),
+            billedByUserId:     $current->getBilledByUserId(),
+            billedAt:           $current->getBilledAt(),
         );
 
         return $this->repository->save($updated);

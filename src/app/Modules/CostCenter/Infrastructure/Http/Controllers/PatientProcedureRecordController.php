@@ -153,6 +153,10 @@ class PatientProcedureRecordController extends Controller
             referrer:           $validated['referrer'] ?? null,
             isActive:           (bool) ($validated['is_active'] ?? true),
             movementDocumentId: isset($validated['movement_document_id']) ? (int) $validated['movement_document_id'] : null,
+            providedFields:     array_values(array_intersect(
+                ['notes', 'seller', 'referrer', 'is_active', 'movement_document_id'],
+                array_keys($validated),
+            )),
         ));
 
         return $this->success(new PatientProcedureRecordResource($record), 'Registro actualizado exitosamente');
