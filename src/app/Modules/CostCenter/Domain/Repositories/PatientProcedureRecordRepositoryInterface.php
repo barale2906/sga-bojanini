@@ -36,7 +36,7 @@ interface PatientProcedureRecordRepositoryInterface
     public function createBatch(array $records): array;
 
     /** @return PatientProcedureRecord[] */
-    public function findByOrderNumber(string $orderNumber): array;
+    public function findByOrderNumber(string $orderNumber, bool $lockForUpdate = false): array;
 
     /**
      * Órdenes con algún registro en discount_status='pending'.

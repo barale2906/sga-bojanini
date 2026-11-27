@@ -203,9 +203,12 @@ class ServiceOrderController extends Controller
     /**
      * Anular una orden de servicio.
      *
+     * Solo se pueden anular las órdenes sin facturar; sus insumos vuelven al inventario
+     * (mismo lote y ubicación) mediante un ajuste confirmado. Requiere `ordenes_servicio.editar`.
+     *
      * @urlParam orderNumber string required Número de orden. Example: OS-20260909-000001
      * @response 200 {"success":true,"data":{"order_number":"OS-20260909-000001","billing_status":"cancelled",...}}
-     * @response 409 {"success":false,"message":"La orden ... ya se encuentra en estado 'cancelled'."}
+     * @response 409 {"success":false,"message":"La orden ... ya está facturada y no se puede anular..."}
      */
     public function cancel(string $orderNumber, UpdateOrderBillingStatusUseCase $useCase): JsonResponse
     {

@@ -193,11 +193,17 @@ class EloquentPatientProcedureRecordRepository implements PatientProcedureRecord
         return $saved;
     }
 
-    public function findByOrderNumber(string $orderNumber): array
+    public function findByOrderNumber(string $orderNumber, bool $lockForUpdate = false): array
     {
-        return PatientProcedureRecordModel::with('medicalService')
+        $query = PatientProcedureRecordModel::with('medicalService')
             ->where('order_number', $orderNumber)
-            ->orderBy('id')
+            ->orderBy('id');
+
+        if ($lockForUpdate) {
+            $query->lockForUpdate();
+        }
+
+        return $query
             ->get()
             ->map(fn ($m) => $this->toDomain($m))
             ->toArray();

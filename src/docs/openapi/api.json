@@ -19475,6 +19475,7 @@
         "/v1/service-orders/{orderNumber}/cancel": {
             "post": {
                 "operationId": "serviceOrder.cancel",
+                "description": "Solo se pueden anular las \u00f3rdenes sin facturar; sus insumos vuelven al inventario\n(mismo lote y ubicaci\u00f3n) mediante un ajuste confirmado. Requiere `ordenes_servicio.editar`.",
                 "summary": "Anular una orden de servicio",
                 "tags": [
                     "ServiceOrder"

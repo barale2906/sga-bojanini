@@ -24,7 +24,7 @@ Route::middleware(['auth:sanctum', 'user.is_active'])->prefix('v1')->group(funct
         ->middleware('permission:ordenes_servicio.ver');
 
     Route::post('service-orders/{orderNumber}/cancel', [ServiceOrderController::class, 'cancel'])
-        ->middleware('permission:ordenes_servicio.ver');
+        ->middleware('permission:ordenes_servicio.editar');
 
     Route::get('procedures/{id}/current-price', [PriceListController::class, 'currentPrice'])
         ->middleware('permission:ordenes_servicio.ver');
