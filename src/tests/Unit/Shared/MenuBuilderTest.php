@@ -64,7 +64,7 @@ class MenuBuilderTest extends TestCase
 
     public function test_grupo_inventario_visible_con_permiso_productos(): void
     {
-        $menu = $this->builder->build(['productos.ver']);
+        $menu = $this->builder->build(['generic-products.ver']);
 
         $keys = array_column($menu, 'key');
         $this->assertContains('inventory-management', $keys);
@@ -81,7 +81,7 @@ class MenuBuilderTest extends TestCase
 
     public function test_grupo_inventario_contiene_catalogo_almacen_e_inventario_en_orden(): void
     {
-        $menu = $this->builder->build(['productos.ver', 'almacenes.ver', 'stock.ver']);
+        $menu = $this->builder->build(['generic-products.ver', 'almacenes.ver', 'stock.ver']);
 
         $group     = $this->findByKey($menu, 'inventory-management');
         $childKeys = array_column($group['children'], 'key');
@@ -91,7 +91,7 @@ class MenuBuilderTest extends TestCase
 
     public function test_grupo_inventario_solo_incluye_secciones_visibles(): void
     {
-        $menu = $this->builder->build(['productos.ver']);
+        $menu = $this->builder->build(['generic-products.ver']);
 
         $group     = $this->findByKey($menu, 'inventory-management');
         $childKeys = array_column($group['children'], 'key');
@@ -103,7 +103,7 @@ class MenuBuilderTest extends TestCase
 
     public function test_products_visible_dentro_de_catalogo(): void
     {
-        $menu     = $this->builder->build(['productos.ver']);
+        $menu     = $this->builder->build(['generic-products.ver']);
         $group    = $this->findByKey($menu, 'inventory-management');
         $catalog  = $this->findByKey($group['children'], 'catalog');
         $itemKeys = array_column($catalog['children'], 'key');
@@ -111,12 +111,32 @@ class MenuBuilderTest extends TestCase
         $this->assertContains('products', $itemKeys);
     }
 
+    public function test_catalogo_usa_el_permiso_generic_products_y_no_el_antiguo_productos(): void
+    {
+        $menu  = $this->builder->build(['productos.ver']);
+        $keys  = array_column($menu, 'key');
+
+        $this->assertNotContains('inventory-management', $keys);
+    }
+
+    public function test_acciones_del_catalogo_siguen_los_permisos_generic_products(): void
+    {
+        $menu    = $this->builder->build(['generic-products.ver', 'generic-products.crear']);
+        $group   = $this->findByKey($menu, 'inventory-management');
+        $catalog = $this->findByKey($group['children'], 'catalog');
+        $product = $this->findByKey($catalog['children'], 'products');
+
+        $this->assertTrue($product['actions']['create']);
+        $this->assertFalse($product['actions']['edit']);
+        $this->assertFalse($product['actions']['import']);
+    }
+
     // ─── Almacén ───────────────────────────────────────────────────────────────
 
     public function test_seccion_warehouse_no_aparece_si_no_hay_children_visibles(): void
     {
         // warehouse requiere al menos uno de almacenes.ver | zonas.ver | ubicaciones.ver
-        $menu  = $this->builder->build(['productos.ver']);
+        $menu  = $this->builder->build(['generic-products.ver']);
         $group = $this->findByKey($menu, 'inventory-management');
 
         $childKeys = array_column($group['children'], 'key');
@@ -464,7 +484,7 @@ class MenuBuilderTest extends TestCase
             'almacenes.ver', 'almacenes.crear', 'almacenes.editar', 'almacenes.eliminar',
             'zonas.ver', 'zonas.crear', 'zonas.editar', 'zonas.eliminar',
             'ubicaciones.ver', 'ubicaciones.crear', 'ubicaciones.editar', 'ubicaciones.eliminar',
-            'productos.ver', 'productos.crear', 'productos.editar', 'productos.eliminar', 'productos.importar',
+            'generic-products.ver', 'generic-products.crear', 'generic-products.editar', 'generic-products.eliminar', 'generic-products.importar',
             'proveedores.ver', 'proveedores.crear', 'proveedores.editar', 'proveedores.eliminar', 'proveedores.importar',
             'lotes.ver', 'lotes.crear',
             'stock.ver',
