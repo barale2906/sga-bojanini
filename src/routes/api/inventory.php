@@ -21,13 +21,13 @@ Route::middleware(['auth:sanctum', 'user.is_active'])->prefix('v1')->group(funct
     Route::post('movements/initial-entries/import', [MovementController::class, 'importInitialEntries'])->middleware('permission:movimientos.importar');
 
     // Registro de operaciones (crean un documento con sus líneas)
-    Route::post('movements/entry', [MovementController::class, 'entry'])->middleware('permission:movimientos.entrada');
-    Route::post('movements/exit', [MovementController::class, 'exit'])->middleware('permission:movimientos.salida');
-    Route::post('movements/transfer', [MovementController::class, 'transfer'])->middleware('permission:movimientos.transferir');
-    Route::post('movements/adjustment', [MovementController::class, 'adjustment'])->middleware('permission:movimientos.ajuste');
-    Route::post('movements/return', [MovementController::class, 'returnStock'])->middleware('permission:movimientos.devolucion');
-    Route::post('movements/write-off', [MovementController::class, 'writeOff'])->middleware('permission:movimientos.baja');
-    Route::post('movements/loss', [MovementController::class, 'loss'])->middleware('permission:movimientos.baja');
+    Route::post('movements/entry', [MovementController::class, 'entry'])->middleware(['permission:movimientos.entrada', 'idempotent']);
+    Route::post('movements/exit', [MovementController::class, 'exit'])->middleware(['permission:movimientos.salida', 'idempotent']);
+    Route::post('movements/transfer', [MovementController::class, 'transfer'])->middleware(['permission:movimientos.transferir', 'idempotent']);
+    Route::post('movements/adjustment', [MovementController::class, 'adjustment'])->middleware(['permission:movimientos.ajuste', 'idempotent']);
+    Route::post('movements/return', [MovementController::class, 'returnStock'])->middleware(['permission:movimientos.devolucion', 'idempotent']);
+    Route::post('movements/write-off', [MovementController::class, 'writeOff'])->middleware(['permission:movimientos.baja', 'idempotent']);
+    Route::post('movements/loss', [MovementController::class, 'loss'])->middleware(['permission:movimientos.baja', 'idempotent']);
 
     // Documentos (comprobantes)
     Route::get('movement-documents', [MovementController::class, 'indexDocuments'])->middleware('permission:stock.ver');

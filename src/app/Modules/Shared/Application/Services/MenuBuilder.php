@@ -203,40 +203,40 @@ class MenuBuilder
     private function buildCatalogSection(callable $has): ?array
     {
         $children = array_filter([
-            $has('productos.ver') ? [
+            $has('generic-products.ver') ? [
                 'key'        => 'products',
                 'label'      => 'Productos',
                 'icon'       => 'package',
                 'route'      => 'products.index',
-                'permission' => 'productos.ver',
+                'permission' => 'generic-products.ver',
                 'actions'    => array_merge(
-                    $this->crudActions($has, 'productos'),
-                    ['import' => $has('productos.importar')],
+                    $this->crudActions($has, 'generic-products'),
+                    ['import' => $has('generic-products.importar')],
                 ),
             ] : null,
-            $has('productos.ver') ? [
+            $has('generic-products.ver') ? [
                 'key'        => 'categories',
                 'label'      => 'Categorías',
                 'icon'       => 'tag',
                 'route'      => 'categories.index',
-                'permission' => 'productos.ver',
-                'actions'    => $this->crudActions($has, 'productos'),
+                'permission' => 'generic-products.ver',
+                'actions'    => $this->crudActions($has, 'generic-products'),
             ] : null,
-            $has('productos.ver') ? [
+            $has('generic-products.ver') ? [
                 'key'        => 'units-of-measure',
                 'label'      => 'Unidades de medida',
                 'icon'       => 'ruler',
                 'route'      => 'units-of-measure.index',
-                'permission' => 'productos.ver',
-                'actions'    => $this->crudActions($has, 'productos'),
+                'permission' => 'generic-products.ver',
+                'actions'    => $this->crudActions($has, 'generic-products'),
             ] : null,
-            $has('productos.ver') ? [
+            $has('generic-products.ver') ? [
                 'key'        => 'product-classifications',
                 'label'      => 'Clasificaciones',
                 'icon'       => 'layers',
                 'route'      => 'product-classifications.index',
-                'permission' => 'productos.ver',
-                'actions'    => $this->crudActions($has, 'productos'),
+                'permission' => 'generic-products.ver',
+                'actions'    => $this->crudActions($has, 'generic-products'),
             ] : null,
             $has('proveedores.ver') ? [
                 'key'        => 'suppliers',

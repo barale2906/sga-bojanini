@@ -14,6 +14,13 @@ interface PatientProcedureRecordRepositoryInterface
     public function findAll(array $filters = []): array;
 
     /**
+     * Igual que findAll, paginado.
+     *
+     * @return array{items: PatientProcedureRecord[], total: int}
+     */
+    public function paginateAll(array $filters, int $perPage, int $page): array;
+
+    /**
      * Registros de un paciente con nombre del procedimiento y del servicio padre.
      * Retorna arrays enriquecidos, no entidades, porque agrega datos de relaciones.
      *
@@ -29,13 +36,21 @@ interface PatientProcedureRecordRepositoryInterface
     public function createBatch(array $records): array;
 
     /** @return PatientProcedureRecord[] */
-    public function findByOrderNumber(string $orderNumber): array;
+    public function findByOrderNumber(string $orderNumber, bool $lockForUpdate = false): array;
 
     /**
      * Órdenes con algún registro en discount_status='pending'.
      * @return array<int, array<string, mixed>>
      */
     public function findPendingDiscountOrders(array $filters = []): array;
+
+    /**
+     * Órdenes de servicio (agrupadas por order_number), la más reciente primero.
+     * Los filtros se aplican a los registros; de cada orden devuelve todos los suyos.
+     *
+     * @return array{items: array<int, array<string, mixed>>, total: int}
+     */
+    public function paginateOrders(array $filters, int $perPage, int $page): array;
 
     public function approveDiscountsForOrder(string $orderNumber, int $userId, \DateTimeImmutable $at): void;
 

@@ -149,18 +149,22 @@ class ServiceOrderBillingTest extends TestCase
             ->assertStatus(409);
     }
 
-    public function test_anular_orden_facturada_es_posible(): void
+    public function test_anular_orden_facturada_retorna_409_y_conserva_el_estado(): void
     {
         $orderNumber = $this->createOrder();
 
         $this->withHeaders($this->auth())
             ->postJson("/api/v1/service-orders/{$orderNumber}/bill");
 
-        $response = $this->withHeaders($this->auth())
-            ->postJson("/api/v1/service-orders/{$orderNumber}/cancel");
+        $this->withHeaders($this->auth())
+            ->postJson("/api/v1/service-orders/{$orderNumber}/cancel")
+            ->assertStatus(409)
+            ->assertJsonPath('success', false);
 
-        $response->assertOk()
-            ->assertJsonPath('data.billing_status', 'cancelled');
+        $this->assertDatabaseHas('patient_procedure_records', [
+            'order_number'   => $orderNumber,
+            'billing_status' => 'billed',
+        ]);
     }
 
     public function test_anular_orden_inexistente_retorna_409(): void
