@@ -56,3 +56,8 @@ Schedule::command('medsys:sync-procedure-types')
 Schedule::command('sanctum:prune-expired --hours=24')
     ->dailyAt('02:30')
     ->name('sanctum:prune-expired');
+
+// Las claves de idempotencia solo sirven mientras un cliente puede reintentar.
+Schedule::command('model:prune', ['--model' => [\App\Modules\Shared\Infrastructure\Persistence\Models\IdempotencyKeyModel::class]])
+    ->dailyAt('03:30')
+    ->name('idempotency-keys:prune');

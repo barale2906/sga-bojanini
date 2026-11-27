@@ -19,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'permission'     => \App\Http\Middleware\CheckPermission::class,
             'permission.any' => \App\Http\Middleware\CheckAnyPermission::class,
+            'idempotent'     => \App\Http\Middleware\EnsureIdempotency::class,
             'user.is_active' => \App\Http\Middleware\EnsureUserIsActive::class,
             'iot.token'      => \App\Modules\Monitoring\Infrastructure\Http\Middleware\IoTTokenMiddleware::class,
             'audit.access'   => \App\Modules\Audit\Infrastructure\Middleware\AuditMiddleware::class,

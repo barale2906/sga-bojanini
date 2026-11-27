@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth:sanctum', 'user.is_active'])->prefix('v1')->group(function () {
     Route::post('service-orders', [ServiceOrderController::class, 'store'])
-        ->middleware('permission:ordenes_servicio.crear');
+        ->middleware(['permission:ordenes_servicio.crear', 'idempotent']);
 
     Route::get('service-orders', [ServiceOrderController::class, 'index'])
         ->middleware('permission:ordenes_servicio.ver');
