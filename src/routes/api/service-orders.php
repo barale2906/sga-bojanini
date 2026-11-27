@@ -8,6 +8,9 @@ Route::middleware(['auth:sanctum', 'user.is_active'])->prefix('v1')->group(funct
     Route::post('service-orders', [ServiceOrderController::class, 'store'])
         ->middleware('permission:ordenes_servicio.crear');
 
+    Route::get('service-orders', [ServiceOrderController::class, 'index'])
+        ->middleware('permission:ordenes_servicio.ver');
+
     Route::get('service-orders/discounts', [ServiceOrderController::class, 'discounts'])
         ->middleware('permission:ordenes_servicio.aprobar');
 

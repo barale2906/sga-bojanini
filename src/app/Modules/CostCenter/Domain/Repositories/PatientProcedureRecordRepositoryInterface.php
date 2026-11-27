@@ -37,6 +37,14 @@ interface PatientProcedureRecordRepositoryInterface
      */
     public function findPendingDiscountOrders(array $filters = []): array;
 
+    /**
+     * Órdenes de servicio (agrupadas por order_number), la más reciente primero.
+     * Los filtros se aplican a los registros; de cada orden devuelve todos los suyos.
+     *
+     * @return array{items: array<int, array<string, mixed>>, total: int}
+     */
+    public function paginateOrders(array $filters, int $perPage, int $page): array;
+
     public function approveDiscountsForOrder(string $orderNumber, int $userId, \DateTimeImmutable $at): void;
 
     /**

@@ -10,6 +10,7 @@ use App\Modules\CostCenter\Application\UseCases\ApproveServiceOrderDiscountUseCa
 use App\Modules\CostCenter\Application\UseCases\CreateServiceOrderUseCase;
 use App\Modules\CostCenter\Application\UseCases\GetServiceOrderUseCase;
 use App\Modules\CostCenter\Application\UseCases\ListPendingDiscountOrdersUseCase;
+use App\Modules\CostCenter\Application\UseCases\ListServiceOrdersUseCase;
 use App\Modules\CostCenter\Application\UseCases\UpdateOrderBillingStatusUseCase;
 use App\Modules\CostCenter\Infrastructure\Http\Requests\StoreServiceOrderRequest;
 use App\Modules\CostCenter\Infrastructure\Http\Resources\PatientProcedureRecordResource;
@@ -17,6 +18,8 @@ use App\Modules\CostCenter\Infrastructure\Http\Resources\ServiceOrderResource;
 use App\Modules\Shared\Infrastructure\Http\Traits\ApiResponse;
 use DateTimeImmutable;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Routing\Controller;
 
 /**
@@ -81,6 +84,50 @@ class ServiceOrderController extends Controller
             ]),
             'Orden de servicio creada exitosamente',
         );
+    }
+
+    /**
+     * Listar órdenes de servicio (paginado, la más reciente primero).
+     *
+     * @queryParam order_number string Número de orden (búsqueda parcial). Example: OS-2026
+     * @queryParam patient_document string Documento del paciente (búsqueda parcial). Example: 1122
+     * @queryParam service_date_from string Fecha inicial (YYYY-MM-DD). Example: 2026-09-01
+     * @queryParam service_date_to string Fecha final (YYYY-MM-DD). Example: 2026-09-30
+     * @queryParam billing_status string billed, cancelled o null (sin facturar). Example: billed
+     * @queryParam discount_status string pending o approved. Example: pending
+     * @queryParam page integer Página. Example: 1
+     * @queryParam per_page integer Registros por página (máx. 100). Example: 25
+     */
+    public function index(Request $request, ListServiceOrdersUseCase $useCase): JsonResponse
+    {
+        $request->validate([
+            'service_date_from' => ['nullable', 'date_format:Y-m-d'],
+            'service_date_to'   => ['nullable', 'date_format:Y-m-d'],
+            'billing_status'    => ['nullable', 'in:billed,cancelled,null'],
+            'discount_status'   => ['nullable', 'in:pending,approved'],
+            'page'              => ['nullable', 'integer', 'min:1'],
+            'per_page'          => ['nullable', 'integer', 'min:1'],
+        ]);
+
+        $perPage = min(
+            (int) $request->query('per_page', config('sga.pagination.default_per_page', 25)),
+            config('sga.pagination.max_per_page', 100),
+        );
+        $page = max(1, (int) $request->query('page', 1));
+
+        $result = $useCase->execute($request->only([
+            'order_number',
+            'patient_document',
+            'service_date_from',
+            'service_date_to',
+            'billing_status',
+            'discount_status',
+        ]), $perPage, $page);
+
+        $paginator = new LengthAwarePaginator($result['items'], $result['total'], $perPage, $page);
+        $paginator->through(fn (array $order) => (new ServiceOrderResource($order))->toArray($request));
+
+        return $this->paginated($paginator, 'Órdenes de servicio');
     }
 
     /**

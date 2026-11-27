@@ -185,18 +185,78 @@ class EloquentPatientProcedureRecordRepository implements PatientProcedureRecord
     public function findPendingDiscountOrders(array $filters = []): array
     {
         $orderNumbers = PatientProcedureRecordModel::where('discount_status', 'pending')
+            ->whereNotNull('order_number')
             ->pluck('order_number')
             ->unique()
             ->values();
 
+        return $this->buildOrders($orderNumbers->all());
+    }
+
+    public function paginateOrders(array $filters, int $perPage, int $page): array
+    {
+        $query = PatientProcedureRecordModel::query()->whereNotNull('order_number');
+
+        if (isset($filters['order_number'])) {
+            $query->where('order_number', 'like', "%{$filters['order_number']}%");
+        }
+
+        if (isset($filters['patient_document'])) {
+            $query->where('patient_document', 'like', "%{$filters['patient_document']}%");
+        }
+
+        if (isset($filters['service_date_from'])) {
+            $query->where('service_date', '>=', $filters['service_date_from']);
+        }
+
+        if (isset($filters['service_date_to'])) {
+            $query->where('service_date', '<=', $filters['service_date_to']);
+        }
+
+        if (isset($filters['discount_status'])) {
+            $query->where('discount_status', $filters['discount_status']);
+        }
+
+        if (isset($filters['billing_status'])) {
+            $filters['billing_status'] === 'null'
+                ? $query->whereNull('billing_status')
+                : $query->where('billing_status', $filters['billing_status']);
+        }
+
+        $total = (clone $query)->distinct()->count('order_number');
+
+        $orderNumbers = $query
+            ->select('order_number')
+            ->selectRaw('MAX(service_date) as last_service_date')
+            ->groupBy('order_number')
+            ->orderByDesc('last_service_date')
+            ->orderByDesc('order_number')
+            ->forPage($page, $perPage)
+            ->pluck('order_number')
+            ->all();
+
+        return ['items' => $this->buildOrders($orderNumbers), 'total' => $total];
+    }
+
+    /**
+     * Arma las órdenes completas (todos sus registros), respetando el orden recibido.
+     *
+     * @param  array<int, string>  $orderNumbers
+     * @return array<int, array<string, mixed>>
+     */
+    private function buildOrders(array $orderNumbers): array
+    {
+        $recordsByOrder = PatientProcedureRecordModel::with('medicalService')
+            ->whereIn('order_number', $orderNumbers)
+            ->orderBy('id')
+            ->get()
+            ->groupBy('order_number');
+
         $result = [];
         foreach ($orderNumbers as $orderNumber) {
-            $records = PatientProcedureRecordModel::with('medicalService')
-                ->where('order_number', $orderNumber)
-                ->orderBy('id')
-                ->get();
+            $records = $recordsByOrder->get($orderNumber);
+            $first   = $records->first();
 
-            $first = $records->first();
             $result[] = [
                 'order_number'        => $orderNumber,
                 'patient_external_id' => $first->patient_external_id,
