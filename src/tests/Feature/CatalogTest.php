@@ -88,6 +88,42 @@ class CatalogTest extends TestCase
             ->assertJsonPath('data.quantity_base', 200);
     }
 
+    public function test_arbol_de_presentaciones_de_un_producto(): void
+    {
+        $aguja = GenericProductModel::where('barcode', '000001')->firstOrFail();
+
+        $response = $this->withHeaders($this->auth())
+            ->getJson("/api/v1/generic-products/{$aguja->id}/presentations/tree")
+            ->assertOk()
+            ->assertJsonPath('success', true);
+
+        // Raíz del producto con sus hijos anidados (caja → paquete).
+        $roots = $response->json('data');
+        $this->assertCount(1, $roots);
+        $this->assertSame('CJ-M5000', $roots[0]['code']);
+        $this->assertSame('CJ-500', $roots[0]['children'][0]['code']);
+        $this->assertSame('PQ-100', $roots[0]['children'][0]['children'][0]['code']);
+    }
+
+    public function test_arbol_de_presentaciones_de_un_producto_sin_presentaciones_es_vacio(): void
+    {
+        $kit = GenericProductModel::where('barcode', '000003')->firstOrFail();
+        $kit->presentations()->detach();
+
+        $this->withHeaders($this->auth())
+            ->getJson("/api/v1/generic-products/{$kit->id}/presentations/tree")
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
+    }
+
+    public function test_arbol_general_de_presentaciones(): void
+    {
+        $this->withHeaders($this->auth())
+            ->getJson('/api/v1/presentations/tree')
+            ->assertOk()
+            ->assertJsonPath('success', true);
+    }
+
     public function test_kit_explosion(): void
     {
         $kit = GenericProductModel::where('barcode', '000003')->firstOrFail();

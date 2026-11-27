@@ -91,7 +91,7 @@ class ProductPresentationController extends Controller
     public function treeByProduct(int $productId): JsonResponse
     {
         $tree = ProductPresentationModel::with('children.children')
-            ->whereHas('products', fn ($q) => $q->where('products.id', $productId))
+            ->whereHas('generics', fn ($q) => $q->where('product_generics.id', $productId))
             ->whereNull('parent_id')
             ->orderBy('sort_order')
             ->get();
