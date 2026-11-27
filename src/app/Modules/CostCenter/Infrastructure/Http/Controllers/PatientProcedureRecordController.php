@@ -19,6 +19,7 @@ use App\Modules\Shared\Infrastructure\Http\Traits\ApiResponse;
 use DateTimeImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Routing\Controller;
 
 /**
@@ -41,6 +42,8 @@ class PatientProcedureRecordController extends Controller
      * @queryParam service_date_from string Fecha de atención desde (Y-m-d). Example: 2026-01-01
      * @queryParam service_date_to string Fecha de atención hasta (Y-m-d). Example: 2026-12-31
      * @queryParam is_active boolean Filtrar por estado. Example: true
+     * @queryParam page integer Página. Con `page` o `per_page` la respuesta es paginada (con `meta`); sin ellos devuelve todos los registros. Example: 1
+     * @queryParam per_page integer Registros por página (máx. 100). Example: 25
      *
      * @response 200 {"success": true, "data": [{"id":1,"patient_document":"12345678","quantity":2,...}]}
      */
@@ -59,12 +62,29 @@ class PatientProcedureRecordController extends Controller
             'order_number',
         ]);
 
-        $items = $useCase->execute($filters);
+        if (! $request->hasAny(['page', 'per_page'])) {
+            return $this->success(
+                PatientProcedureRecordResource::collection($useCase->execute($filters)),
+                'Registros de procedimientos',
+            );
+        }
 
-        return $this->success(
-            PatientProcedureRecordResource::collection($items),
-            'Registros de procedimientos',
+        $request->validate([
+            'page'     => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', 'min:1'],
+        ]);
+
+        $perPage = min(
+            (int) $request->query('per_page', config('sga.pagination.default_per_page', 25)),
+            config('sga.pagination.max_per_page', 100),
         );
+        $page = max(1, (int) $request->query('page', 1));
+
+        $result    = $useCase->paginate($filters, $perPage, $page);
+        $paginator = new LengthAwarePaginator($result['items'], $result['total'], $perPage, $page);
+        $paginator->through(fn ($record) => (new PatientProcedureRecordResource($record))->toArray($request));
+
+        return $this->paginated($paginator, 'Registros de procedimientos');
     }
 
     /**

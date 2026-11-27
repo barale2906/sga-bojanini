@@ -8,6 +8,7 @@ use App\Modules\CostCenter\Domain\Entities\PatientProcedureRecord;
 use App\Modules\CostCenter\Domain\Repositories\PatientProcedureRecordRepositoryInterface;
 use App\Modules\CostCenter\Infrastructure\Persistence\Models\PatientProcedureRecordModel;
 use DateTimeImmutable;
+use Illuminate\Database\Eloquent\Builder;
 
 class EloquentPatientProcedureRecordRepository implements PatientProcedureRecordRepositoryInterface
 {
@@ -19,6 +20,30 @@ class EloquentPatientProcedureRecordRepository implements PatientProcedureRecord
     }
 
     public function findAll(array $filters = []): array
+    {
+        return $this->filteredQuery($filters)
+            ->with('medicalService')
+            ->orderByDesc('service_date')
+            ->get()
+            ->map(fn ($m) => $this->toDomain($m))
+            ->toArray();
+    }
+
+    public function paginateAll(array $filters, int $perPage, int $page): array
+    {
+        $paginator = $this->filteredQuery($filters)
+            ->with('medicalService')
+            ->orderByDesc('service_date')
+            ->orderByDesc('id')
+            ->paginate($perPage, ['*'], 'page', $page);
+
+        return [
+            'items' => $paginator->getCollection()->map(fn ($m) => $this->toDomain($m))->all(),
+            'total' => $paginator->total(),
+        ];
+    }
+
+    private function filteredQuery(array $filters): Builder
     {
         $query = PatientProcedureRecordModel::query();
 
@@ -70,11 +95,7 @@ class EloquentPatientProcedureRecordRepository implements PatientProcedureRecord
             }
         }
 
-        return $query->with('medicalService')
-            ->orderByDesc('service_date')
-            ->get()
-            ->map(fn ($m) => $this->toDomain($m))
-            ->toArray();
+        return $query;
     }
 
     public function findByPatientWithService(string $patientExternalId, array $filters = []): array

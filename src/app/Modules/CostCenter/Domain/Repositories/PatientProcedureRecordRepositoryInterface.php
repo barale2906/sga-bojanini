@@ -14,6 +14,13 @@ interface PatientProcedureRecordRepositoryInterface
     public function findAll(array $filters = []): array;
 
     /**
+     * Igual que findAll, paginado.
+     *
+     * @return array{items: PatientProcedureRecord[], total: int}
+     */
+    public function paginateAll(array $filters, int $perPage, int $page): array;
+
+    /**
      * Registros de un paciente con nombre del procedimiento y del servicio padre.
      * Retorna arrays enriquecidos, no entidades, porque agrega datos de relaciones.
      *

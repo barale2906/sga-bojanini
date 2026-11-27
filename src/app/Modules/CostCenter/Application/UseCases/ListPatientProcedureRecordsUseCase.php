@@ -16,4 +16,12 @@ class ListPatientProcedureRecordsUseCase
     {
         return $this->repository->findAll($filters);
     }
+
+    /**
+     * @return array{items: array, total: int}
+     */
+    public function paginate(array $filters, int $perPage, int $page): array
+    {
+        return $this->repository->paginateAll($filters, $perPage, $page);
+    }
 }
